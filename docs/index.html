@@ -44,7 +44,36 @@
 
     doc.setFontSize(18);
     doc.text(`Report: ${sectionName}`, 14, 22);
+<!-- 📊 Esportazione dati Temperature -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const exportBtn = document.getElementById("exportTemperaturePDF");
+    if (exportBtn) {
+      exportBtn.addEventListener("click", () => {
+        const tableRows = Array.from(document.querySelectorAll("table tr"));
+        if (tableRows.length === 0) {
+          alert("Nessuna tabella trovata nella sezione Temperature.");
+          return;
+        }
 
+        const headers = Array.from(tableRows[0].querySelectorAll("th")).map(th =>
+          th.innerText.trim()
+        );
+
+        const data = tableRows.slice(1).map(row => {
+          const cells = row.querySelectorAll("td");
+          const rowData = {};
+          headers.forEach((key, index) => {
+            rowData[key] = cells[index]?.innerText.trim() ?? "";
+          });
+          return rowData;
+        });
+
+        exportToPDF(data, headers, "Temperature");
+      });
+    }
+  });
+</script>
     const headers = [selectedColumns];
     const rows = data.map(item =>
       selectedColumns.map(key => item[key] ?? '')
