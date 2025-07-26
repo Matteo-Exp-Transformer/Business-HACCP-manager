@@ -48,49 +48,42 @@
 <script>
   document.addEventListener("DOMContentLoaded", () => {
     const exportBtn = document.getElementById("exportTemperaturePDF");
-    if (exportBtn) {
-      exportBtn.addEventListener("click", () => {
-        const tableRows = Array.from(document.querySelectorAll("table tr"));
-        if (tableRows.length === 0) {
-          alert("Nessuna tabella trovata nella sezione Temperature.");
-          return;
-        }
+    if (!exportBtn) return;
 
-        const headers = Array.from(tableRows[0].querySelectorAll("th")).map(th =>
-          th.innerText.trim()
-        );
+    exportBtn.addEventListener("click", () => {
+      const entryDivs = document.querySelectorAll("#temperatureList > div");
+      if (entryDivs.length === 0) {
+        alert("Nessuna temperatura registrata da esportare.");
+        return;
+      }
 
-        const data = tableRows.slice(1).map(row => {
-          const cells = row.querySelectorAll("td");
-          const rowData = {};
-          headers.forEach((key, index) => {
-            rowData[key] = cells[index]?.innerText.trim() ?? "";
-          });
-          return rowData;
-        });
+      const headers = ["Posizione", "Temperatura", "Orario"];
+      const rows = [];
 
-        exportToPDF(data, headers, "Temperature");
+      entryDivs.forEach(div => {
+        const position = div.querySelector("strong")?.innerText.trim() || "";
+        const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
+        const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
+        rows.push([position, temp, time]);
       });
-    }
-  });
-</script>
-    const headers = [selectedColumns];
-    const rows = data.map(item =>
-      selectedColumns.map(key => item[key] ?? '')
-    );
 
-    doc.autoTable({
-      startY: 30,
-      head: headers,
-      body: rows,
-      theme: 'striped',
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [25, 118, 210] }
+      const doc = new jspdf.jsPDF();
+      doc.setFontSize(18);
+      doc.text(`Report: Temperature`, 14, 22);
+
+      doc.autoTable({
+        startY: 30,
+        head: [headers],
+        body: rows,
+        theme: 'striped',
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [25, 118, 210] }
+      });
+
+      const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
+      doc.save(fileName);
     });
-
-    const fileName = `report_${sectionName}_${new Date().toISOString().slice(0, 10)}.pdf`;
-    doc.save(fileName);
-  }
+  });
 </script>
   </body>
 </html>
