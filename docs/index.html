@@ -27,11 +27,11 @@
   <body>
     <noscript>Abilita JavaScript per utilizzare questa applicazione.</noscript>
     <div id="root"></div>
-<!-- 🔘 Pulsante di esportazione temperature -->
-<button id="exportTemperaturePDF"
-        style="margin: 20px auto; display: block; padding: 10px 20px; background-color: #1976d2; color: white; border: none; border-radius: 4px; font-size: 16px;">
-  📄 Esporta Temperature in PDF
-</button>
+<div id="pdf-button-container" style="display: none;">
+  <button id="exportTemperaturePDF" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg z-50">
+    <i class="fas fa-file-pdf me-2"></i> Esporta Temperature in PDF
+  </button>
+</div>
 <!-- 📦 Librerie PDF (CDN) -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
