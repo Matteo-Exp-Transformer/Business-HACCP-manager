@@ -3,8 +3,9 @@ const urlsToCache = [
   './',
   './index.html',
   './manifest.json',
-  './asset/index.js',
-  './asset/index.css',
+  './asset/index-BjvKARtX.js',
+  './asset/index-BHgQLqRx.css',
+  './pdf-export-temperature.js',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png'
 ];
