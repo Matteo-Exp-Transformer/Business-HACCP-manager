@@ -23,67 +23,64 @@
     <link rel="manifest" href="./manifest.json" />
     <script type="module" crossorigin src="./asset/index-BjvKARtX.js"></script>
     <link rel="stylesheet" crossorigin href="./asset/index-BHgQLqRx.css">
+
+    <!-- PDF Librerie -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   </head>
   <body>
     <noscript>Abilita JavaScript per utilizzare questa applicazione.</noscript>
     <div id="root"></div>
-<div id="pdf-button-container" style="display: block;">
-  <button id="exportTemperaturePDF" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded shadow-lg z-50">
-    <i class="fas fa-file-pdf me-2"></i> Esporta Temperature in PDF
-  </button>
-</div>
-<!-- 📦 Librerie PDF (CDN) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-<script src="./pdf-export-temperature.js"></script>
-<!-- 🧠 Funzione Esporta in PDF -->
-<script>
-  async function exportToPDF(data, selectedColumns, sectionName) {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
 
-    doc.setFontSize(18);
-    doc.text(`Report: ${sectionName}`, 14, 22);
-<!-- 📊 Esportazione dati Temperature -->
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const exportBtn = document.getElementById("exportTemperaturePDF");
-    if (!exportBtn) return;
+    <!-- Pulsante PDF ottimizzato -->
+    <div id="pdf-button-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+      <button id="exportTemperaturePDF" style="padding: 12px 16px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
+        <i class="fas fa-file-pdf me-2"></i> Esporta Temperature in PDF
+      </button>
+    </div>
 
-    exportBtn.addEventListener("click", () => {
-      const entryDivs = document.querySelectorAll("#temperatureList > div");
-      if (entryDivs.length === 0) {
-        alert("Nessuna temperatura registrata da esportare.");
-        return;
-      }
+    <!-- Script Esportazione PDF -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const exportBtn = document.getElementById("exportTemperaturePDF");
+        if (!exportBtn) return;
 
-      const headers = ["Posizione", "Temperatura", "Orario"];
-      const rows = [];
+        exportBtn.addEventListener("click", () => {
+          const entryDivs = document.querySelectorAll("#temperatureList > div");
+          if (entryDivs.length === 0) {
+            alert("Nessuna temperatura registrata da esportare.");
+            return;
+          }
 
-      entryDivs.forEach(div => {
-        const position = div.querySelector("strong")?.innerText.trim() || "";
-        const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
-        const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
-        rows.push([position, temp, time]);
+          const headers = ["Posizione", "Temperatura", "Orario"];
+          const rows = [];
+
+          entryDivs.forEach(div => {
+            const position = div.querySelector("strong")?.innerText.trim() || "";
+            const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
+            const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
+            rows.push([position, temp, time]);
+          });
+
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          doc.setFontSize(18);
+          doc.text("Report: Temperature", 14, 22);
+
+          doc.autoTable({
+            startY: 30,
+            head: [headers],
+            body: rows,
+            theme: 'striped',
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [25, 118, 210] }
+          });
+
+          const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
+          doc.save(fileName);
+        });
       });
-
-      const doc = new jspdf.jsPDF();
-      doc.setFontSize(18);
-      doc.text(`Report: Temperature`, 14, 22);
-
-      doc.autoTable({
-        startY: 30,
-        head: [headers],
-        body: rows,
-        theme: 'striped',
-        styles: { fontSize: 10 },
-        headStyles: { fillColor: [25, 118, 210] }
-      });
-
-      const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
-      doc.save(fileName);
-    });
-  });
-</script>
+    </script>
   </body>
 </html>
+
