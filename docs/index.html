@@ -40,6 +40,32 @@
     </div>
 
     <script>
+      // Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+              console.log('SW registered: ', registration);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    // New content is available, show update notification
+                    if (confirm('Nuova versione disponibile. Ricaricare la pagina?')) {
+                      window.location.reload();
+                    }
+                  }
+                });
+              });
+            })
+            .catch(registrationError => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+
       document.addEventListener("DOMContentLoaded", () => {
         const exportBtnContainer = document.getElementById("pdf-button-container");
         const exportBtn = document.getElementById("exportTemperaturePDF");
@@ -64,38 +90,49 @@
         });
 
         exportBtn.addEventListener("click", () => {
+          // Check if PDF libraries are loaded
+          if (typeof window.jspdf === 'undefined') {
+            alert("Errore: Librerie PDF non caricate. Ricarica la pagina e riprova.");
+            return;
+          }
+
           const entryDivs = document.querySelectorAll("#temperatureList > div");
           if (entryDivs.length === 0) {
             alert("Nessuna temperatura registrata da esportare.");
             return;
           }
 
-          const headers = ["Posizione", "Temperatura", "Orario"];
-          const rows = [];
+          try {
+            const headers = ["Posizione", "Temperatura", "Orario"];
+            const rows = [];
 
-          entryDivs.forEach(div => {
-            const position = div.querySelector("strong")?.innerText.trim() || "";
-            const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
-            const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
-            rows.push([position, temp, time]);
-          });
+            entryDivs.forEach(div => {
+              const position = div.querySelector("strong")?.innerText.trim() || "";
+              const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
+              const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
+              rows.push([position, temp, time]);
+            });
 
-          const { jsPDF } = window.jspdf;
-          const doc = new jsPDF();
-          doc.setFontSize(18);
-          doc.text("Report: Temperature", 14, 22);
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(18);
+            doc.text("Report: Temperature", 14, 22);
 
-          doc.autoTable({
-            startY: 30,
-            head: [headers],
-            body: rows,
-            theme: 'striped',
-            styles: { fontSize: 10 },
-            headStyles: { fillColor: [25, 118, 210] }
-          });
+            doc.autoTable({
+              startY: 30,
+              head: [headers],
+              body: rows,
+              theme: 'striped',
+              styles: { fontSize: 10 },
+              headStyles: { fillColor: [25, 118, 210] }
+            });
 
-          const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
-          doc.save(fileName);
+            const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
+            doc.save(fileName);
+          } catch (error) {
+            console.error('PDF export error:', error);
+            alert("Errore durante l'esportazione del PDF. Riprova.");
+          }
         });
       });
     </script>
