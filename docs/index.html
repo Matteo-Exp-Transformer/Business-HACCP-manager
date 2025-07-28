@@ -32,18 +32,36 @@
     <noscript>Abilita JavaScript per utilizzare questa applicazione.</noscript>
     <div id="root"></div>
 
-    <!-- Pulsante PDF ottimizzato -->
-    <div id="pdf-button-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
-      <button id="exportTemperaturePDF" style="padding: 12px 16px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
-        <i class="fas fa-file-pdf me-2"></i> Esporta Temperature in PDF
+    <!-- Pulsante PDF stile Manus -->
+    <div id="pdf-button-container" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+      <button id="exportTemperaturePDF" style="padding: 14px 20px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.3s ease; font-size: 16px; border: none; cursor: pointer;">
+        📄 Esporta Temperature in PDF
       </button>
     </div>
 
-    <!-- Script Esportazione PDF -->
     <script>
       document.addEventListener("DOMContentLoaded", () => {
+        const exportBtnContainer = document.getElementById("pdf-button-container");
         const exportBtn = document.getElementById("exportTemperaturePDF");
-        if (!exportBtn) return;
+
+        const observer = new MutationObserver(() => {
+          const activeTab = document.querySelector(".tab-active");
+          if (activeTab && activeTab.innerText.toLowerCase().includes("temperature")) {
+            exportBtnContainer.style.display = "block";
+          } else {
+            exportBtnContainer.style.display = "none";
+          }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+
+        exportBtn.addEventListener("mouseover", () => {
+          exportBtn.style.backgroundColor = "#1565c0";
+        });
+
+        exportBtn.addEventListener("mouseout", () => {
+          exportBtn.style.backgroundColor = "#1976d2";
+        });
 
         exportBtn.addEventListener("click", () => {
           const entryDivs = document.querySelectorAll("#temperatureList > div");
@@ -83,4 +101,3 @@
     </script>
   </body>
 </html>
-
