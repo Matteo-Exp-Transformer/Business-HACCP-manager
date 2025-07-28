@@ -2,79 +2,114 @@
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="./icons/icon-192x192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mini-ePackPro - Sistema HACCP</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Sistema completo di gestione HACCP per ristoranti e attività alimentari" />
+    <meta name="theme-color" content="#1976d2" />
+    <meta name="background-color" content="#ffffff" />
+    <meta name="display" content="standalone" />
+    <meta name="orientation" content="portrait-primary" />
+
+    <!-- Apple PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Mini-ePackPro" />
+    <link rel="apple-touch-icon" href="./icons/icon-192x192.png" />
+
+    <!-- Manifest -->
+    <link rel="manifest" href="./manifest.json" />
+    <script type="module" crossorigin src="./asset/index-BjvKARtX.js"></script>
+    <link rel="stylesheet" crossorigin href="./asset/index-BHgQLqRx.css">
+
+    <!-- Stile pulsante PDF -->
     <style>
       #exportTemperaturePDF {
         position: fixed;
-        bottom: 1rem;
-        right: 1rem;
+        bottom: 20px;
+        right: 20px;
         background-color: #1976d2;
         color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 8px;
         font-weight: bold;
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        transition: background-color 0.3s ease, transform 0.2s ease;
-        z-index: 1000;
+        font-size: 14px;
+        cursor: pointer;
+        z-index: 9999;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease, background-color 0.2s ease;
       }
+
       #exportTemperaturePDF:hover {
-        background-color: #1565c0;
+        background-color: #125ea7;
         transform: scale(1.05);
+      }
+
+      @media (max-width: 600px) {
+        #exportTemperaturePDF {
+          width: 160px;
+          font-size: 12px;
+          padding: 10px;
+        }
       }
     </style>
   </head>
   <body>
+    <noscript>Abilita JavaScript per utilizzare questa applicazione.</noscript>
     <div id="root"></div>
 
+    <!-- Pulsante PDF -->
+    <button id="exportTemperaturePDF">
+      📄 Esporta Temperature in PDF
+    </button>
+
+    <!-- 📦 Librerie PDF (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <!-- 📊 Script esportazione PDF -->
     <script>
       document.addEventListener("DOMContentLoaded", () => {
-        const observer = new MutationObserver(() => {
-          const tempSection = document.querySelector("h2");
-          if (tempSection && tempSection.textContent.includes("Temperature") && !document.getElementById("exportTemperaturePDF")) {
-            const button = document.createElement("button");
-            button.id = "exportTemperaturePDF";
-            button.innerHTML = "📄 Esporta Temperature in PDF";
-            document.body.appendChild(button);
+        const exportBtn = document.getElementById("exportTemperaturePDF");
+        if (!exportBtn) return;
 
-            button.addEventListener("click", () => {
-              const entryDivs = document.querySelectorAll("#temperatureList > div");
-              if (entryDivs.length === 0) {
-                alert("Nessuna temperatura registrata da esportare.");
-                return;
-              }
-
-              const headers = ["Posizione", "Temperatura", "Orario"];
-              const rows = [];
-
-              entryDivs.forEach(div => {
-                const position = div.querySelector("strong")?.innerText.trim() || "";
-                const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
-                const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
-                rows.push([position, temp, time]);
-              });
-
-              const { jsPDF } = window.jspdf;
-              const doc = new jsPDF();
-              doc.setFontSize(18);
-              doc.text("Report: Temperature", 14, 22);
-              doc.autoTable({
-                startY: 30,
-                head: [headers],
-                body: rows,
-                theme: 'striped',
-                styles: { fontSize: 10 },
-                headStyles: { fillColor: [25, 118, 210] }
-              });
-              const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
-              doc.save(fileName);
-            });
+        exportBtn.addEventListener("click", () => {
+          const entryDivs = document.querySelectorAll("#temperatureList > div");
+          if (entryDivs.length === 0) {
+            alert("Nessuna temperatura registrata da esportare.");
+            return;
           }
-        });
 
-        observer.observe(document.getElementById("root"), { childList: true, subtree: true });
+          const headers = ["Posizione", "Temperatura", "Orario"];
+          const rows = [];
+
+          entryDivs.forEach(div => {
+            const position = div.querySelector("strong")?.innerText.trim() || "";
+            const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
+            const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
+            rows.push([position, temp, time]);
+          });
+
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF();
+          doc.setFontSize(18);
+          doc.text("Report: Temperature", 14, 22);
+
+          doc.autoTable({
+            startY: 30,
+            head: [headers],
+            body: rows,
+            theme: 'striped',
+            styles: { fontSize: 10 },
+            headStyles: { fillColor: [25, 118, 210] }
+          });
+
+          const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
+          doc.save(fileName);
+        });
       });
     </script>
   </body>
