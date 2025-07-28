@@ -64,7 +64,8 @@
         });
 
         exportBtn.addEventListener("click", () => {
-          const entryDivs = document.querySelectorAll("#temperatureList > div");
+          // Look for temperature entries in the React app structure
+          const entryDivs = document.querySelectorAll("div[class*='flex items-center justify-between p-3 border rounded-lg']");
           if (entryDivs.length === 0) {
             alert("Nessuna temperatura registrata da esportare.");
             return;
@@ -74,11 +75,27 @@
           const rows = [];
 
           entryDivs.forEach(div => {
-            const position = div.querySelector("strong")?.innerText.trim() || "";
-            const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
-            const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
-            rows.push([position, temp, time]);
+            // Look for the location (first paragraph with font-medium class)
+            const locationEl = div.querySelector("p.font-medium");
+            const position = locationEl?.innerText.trim() || "";
+            
+            // Look for temperature (div with text-lg font-bold class)
+            const tempEl = div.querySelector("div.text-lg.font-bold");
+            const temp = tempEl?.innerText.trim() || "";
+            
+            // Look for time (paragraph with text-sm text-gray-500 class)
+            const timeEl = div.querySelector("p.text-sm.text-gray-500");
+            const time = timeEl?.innerText.trim() || "";
+            
+            if (position && temp) {
+              rows.push([position, temp, time]);
+            }
           });
+
+          if (rows.length === 0) {
+            alert("Nessuna temperatura valida trovata da esportare.");
+            return;
+          }
 
           const { jsPDF } = window.jspdf;
           const doc = new jsPDF();
@@ -98,6 +115,19 @@
           doc.save(fileName);
         });
       });
+
+      // Service Worker Registration
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
     </script>
   </body>
 </html>

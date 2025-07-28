@@ -6,12 +6,13 @@ const DYNAMIC_CACHE = 'mini-epackpro-dynamic-v1.0.0'
 
 // File da cachare immediatamente
 const STATIC_FILES = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
-  // I file JS e CSS verranno aggiunti dinamicamente
+  '/docs/',
+  '/docs/index.html',
+  '/docs/manifest.json',
+  '/docs/asset/index-BjvKARtX.js',
+  '/docs/asset/index-BHgQLqRx.css',
+  '/docs/icons/icon-192x192.png',
+  '/docs/icons/icon-512x512.png'
 ]
 
 // File che non devono essere cachati
@@ -101,23 +102,19 @@ async function cacheFirst(request) {
   try {
     const cachedResponse = await caches.match(request)
     if (cachedResponse) {
-      console.log('[SW] Serving from cache:', request.url)
       return cachedResponse
     }
     
     const networkResponse = await fetch(request)
-    if (networkResponse.ok) {
-      const cache = await caches.open(STATIC_CACHE)
-      cache.put(request, networkResponse.clone())
-      console.log('[SW] Cached new resource:', request.url)
-    }
+    const cache = await caches.open(DYNAMIC_CACHE)
+    cache.put(request, networkResponse.clone())
     return networkResponse
   } catch (error) {
     console.error('[SW] Cache first failed:', error)
-    return new Response('Offline - Resource not available', { 
-      status: 503,
-      statusText: 'Service Unavailable'
-    })
+    // Fallback per risorse critiche
+    if (request.url.includes('/docs/')) {
+      return caches.match('/docs/index.html')
+    }
   }
 }
 
@@ -125,22 +122,15 @@ async function cacheFirst(request) {
 async function networkFirst(request) {
   try {
     const networkResponse = await fetch(request)
-    if (networkResponse.ok) {
-      const cache = await caches.open(DYNAMIC_CACHE)
-      cache.put(request, networkResponse.clone())
-      console.log('[SW] Updated cache from network:', request.url)
-    }
+    const cache = await caches.open(DYNAMIC_CACHE)
+    cache.put(request, networkResponse.clone())
     return networkResponse
   } catch (error) {
-    console.log('[SW] Network failed, trying cache:', request.url)
     const cachedResponse = await caches.match(request)
     if (cachedResponse) {
       return cachedResponse
     }
-    return new Response('Offline - API not available', { 
-      status: 503,
-      statusText: 'Service Unavailable'
-    })
+    throw error
   }
 }
 
@@ -149,34 +139,61 @@ async function staleWhileRevalidate(request) {
   const cache = await caches.open(DYNAMIC_CACHE)
   const cachedResponse = await cache.match(request)
   
-  const fetchPromise = fetch(request).then(networkResponse => {
-    if (networkResponse.ok) {
-      cache.put(request, networkResponse.clone())
-      console.log('[SW] Updated cache in background:', request.url)
-    }
-    return networkResponse
+  const networkResponsePromise = fetch(request).then(response => {
+    cache.put(request, response.clone())
+    return response
   }).catch(error => {
     console.log('[SW] Background fetch failed:', error)
-    return cachedResponse
   })
   
-  return cachedResponse || fetchPromise
+  return cachedResponse || networkResponsePromise
 }
 
-// Utility functions
+// Funzioni di utilità
 function isStaticResource(request) {
-  const url = new URL(request.url)
-  const staticExtensions = ['.js', '.css', '.png', '.jpg', '.jpeg', '.svg', '.ico', '.woff', '.woff2']
-  return staticExtensions.some(ext => url.pathname.endsWith(ext)) ||
-         url.pathname.includes('/icons/') ||
-         url.pathname.includes('/assets/')
+  return request.url.includes('/docs/asset/') ||
+         request.url.includes('/docs/icons/') ||
+         request.url.includes('/docs/manifest.json')
 }
 
 function isApiRequest(request) {
-  const url = new URL(request.url)
-  return url.pathname.startsWith('/api/') || 
-         url.pathname.includes('firebase') ||
-         url.pathname.includes('googleapis')
+  return request.url.includes('/api/') ||
+         request.url.includes('/admin/')
+}
+
+// Gestione errori
+self.addEventListener('error', event => {
+  console.error('[SW] Service Worker error:', event.error)
+})
+
+self.addEventListener('unhandledrejection', event => {
+  console.error('[SW] Unhandled promise rejection:', event.reason)
+})
+
+// Funzioni per la gestione dei dati HACCP
+async function clearAllCaches() {
+  const cacheNames = await caches.keys()
+  return Promise.all(
+    cacheNames.map(cacheName => caches.delete(cacheName))
+  )
+}
+
+// Sincronizzazione dati HACCP
+async function syncHACCPData() {
+  try {
+    // Qui puoi implementare la sincronizzazione con un server
+    // Per ora, salviamo solo localmente
+    const clients = await self.clients.matchAll()
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'HACCP_DATA_SYNC',
+        timestamp: new Date().toISOString()
+      })
+    })
+  } catch (error) {
+    console.error('[SW] Sync failed:', error)
+    return Promise.reject(error)
+  }
 }
 
 // Gestione messaggi dal client
@@ -198,23 +215,6 @@ self.addEventListener('message', event => {
   }
 })
 
-// Pulizia cache
-async function clearAllCaches() {
-  const cacheNames = await caches.keys()
-  return Promise.all(
-    cacheNames.map(cacheName => caches.delete(cacheName))
-  )
-}
-
-// Gestione errori
-self.addEventListener('error', event => {
-  console.error('[SW] Service Worker error:', event.error)
-})
-
-self.addEventListener('unhandledrejection', event => {
-  console.error('[SW] Unhandled promise rejection:', event.reason)
-})
-
 // Notifiche push (per future implementazioni)
 self.addEventListener('push', event => {
   console.log('[SW] Push message received')
@@ -223,15 +223,15 @@ self.addEventListener('push', event => {
     const data = event.data.json()
     const options = {
       body: data.body || 'Nuova notifica HACCP',
-      icon: '/icons/icon-192x192.png',
-      badge: '/icons/icon-72x72.png',
+      icon: '/docs/icons/icon-192x192.png',
+      badge: '/docs/icons/icon-72x72.png',
       vibrate: [200, 100, 200],
       data: data.data || {},
       actions: [
         {
           action: 'view',
           title: 'Visualizza',
-          icon: '/icons/icon-96x96.png'
+          icon: '/docs/icons/icon-96x96.png'
         },
         {
           action: 'dismiss',
@@ -254,7 +254,7 @@ self.addEventListener('notificationclick', event => {
   
   if (event.action === 'view') {
     event.waitUntil(
-      clients.openWindow('/')
+      clients.openWindow('/docs/')
     )
   }
 })
@@ -267,29 +267,6 @@ self.addEventListener('sync', event => {
     event.waitUntil(syncHACCPData())
   }
 })
-
-// Funzione di sincronizzazione dati HACCP
-async function syncHACCPData() {
-  try {
-    // Qui implementeresti la logica di sincronizzazione
-    // con il server quando la connessione è disponibile
-    console.log('[SW] Syncing HACCP data...')
-    
-    // Esempio: invia dati localStorage al server
-    const clients = await self.clients.matchAll()
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'SYNC_REQUEST',
-        timestamp: Date.now()
-      })
-    })
-    
-    return Promise.resolve()
-  } catch (error) {
-    console.error('[SW] Sync failed:', error)
-    return Promise.reject(error)
-  }
-}
 
 console.log('[SW] Service Worker loaded successfully')
 
