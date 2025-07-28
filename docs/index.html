@@ -24,53 +24,22 @@
     <script type="module" crossorigin src="./asset/index-BjvKARtX.js"></script>
     <link rel="stylesheet" crossorigin href="./asset/index-BHgQLqRx.css">
 
-    <!-- Stile pulsante PDF -->
-    <style>
-      #exportTemperaturePDF {
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background-color: #1976d2;
-        color: white;
-        border: none;
-        padding: 12px 20px;
-        border-radius: 8px;
-        font-weight: bold;
-        font-size: 14px;
-        cursor: pointer;
-        z-index: 9999;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-        transition: transform 0.2s ease, background-color 0.2s ease;
-      }
-
-      #exportTemperaturePDF:hover {
-        background-color: #125ea7;
-        transform: scale(1.05);
-      }
-
-      @media (max-width: 600px) {
-        #exportTemperaturePDF {
-          width: 160px;
-          font-size: 12px;
-          padding: 10px;
-        }
-      }
-    </style>
+    <!-- PDF Librerie -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   </head>
   <body>
     <noscript>Abilita JavaScript per utilizzare questa applicazione.</noscript>
     <div id="root"></div>
 
-    <!-- Pulsante PDF -->
-    <button id="exportTemperaturePDF">
-      📄 Esporta Temperature in PDF
-    </button>
+    <!-- Pulsante PDF ottimizzato -->
+    <div id="pdf-button-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
+      <button id="exportTemperaturePDF" style="padding: 12px 16px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">
+        <i class="fas fa-file-pdf me-2"></i> Esporta Temperature in PDF
+      </button>
+    </div>
 
-    <!-- 📦 Librerie PDF (CDN) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-
-    <!-- 📊 Script esportazione PDF -->
+    <!-- Script Esportazione PDF -->
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const exportBtn = document.getElementById("exportTemperaturePDF");
@@ -114,3 +83,4 @@
     </script>
   </body>
 </html>
+
