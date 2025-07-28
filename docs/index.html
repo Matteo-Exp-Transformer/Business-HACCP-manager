@@ -1,108 +1,94 @@
 <!doctype html>
+
 <html lang="it">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="./icons/icon-192x192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mini-ePackPro - Sistema HACCP</title>
+    <title>Mini-ePackPro - Sistema HACCP</title><!-- PWA Meta Tags -->
+<meta name="description" content="Sistema completo di gestione HACCP per ristoranti e attività alimentari" />
+<meta name="theme-color" content="#1976d2" />
+<meta name="background-color" content="#ffffff" />
+<meta name="display" content="standalone" />
+<meta name="orientation" content="portrait-primary" />
 
-    <!-- PWA Meta Tags -->
-    <meta name="description" content="Sistema completo di gestione HACCP per ristoranti e attività alimentari" />
-    <meta name="theme-color" content="#1976d2" />
-    <meta name="background-color" content="#ffffff" />
-    <meta name="display" content="standalone" />
-    <meta name="orientation" content="portrait-primary" />
+<!-- Apple PWA Meta Tags -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Mini-ePackPro" />
+<link rel="apple-touch-icon" href="./icons/icon-192x192.png" />
 
-    <!-- Apple PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Mini-ePackPro" />
-    <link rel="apple-touch-icon" href="./icons/icon-192x192.png" />
+<!-- Manifest -->
+<link rel="manifest" href="./manifest.json" />
+<script type="module" crossorigin src="./asset/index-BjvKARtX.js"></script>
+<link rel="stylesheet" crossorigin href="./asset/index-BHgQLqRx.css">
 
-    <!-- Manifest -->
-    <link rel="manifest" href="./manifest.json" />
-    <script type="module" crossorigin src="./asset/index-BjvKARtX.js"></script>
-    <link rel="stylesheet" crossorigin href="./asset/index-BHgQLqRx.css">
+<!-- PDF Librerie -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
 
-    <!-- PDF Librerie -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
   </head>
   <body>
     <noscript>Abilita JavaScript per utilizzare questa applicazione.</noscript>
-    <div id="root"></div>
+    <div id="root"></div><!-- Pulsante PDF con stile Manus -->
+<div id="pdf-button-container" style="position: fixed; bottom: 20px; right: 20px; z-index: 1000; display: none;">
+  <button id="exportTemperaturePDF" style="padding: 12px 16px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,0,0,0.15); transition: all 0.3s ease; cursor: pointer;">
+    <i class="fas fa-file-pdf me-2"></i> Esporta Temperature in PDF
+  </button>
+</div>
 
-    <!-- Pulsanti Esportazione -->
-    <div id="export-buttons" style="position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 12px; z-index: 1000;">
-      <button id="exportTemperaturePDF" style="padding: 12px 16px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">📄 Esporta Temperature</button>
-      <button id="exportCleaningPDF" style="padding: 12px 16px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">🧽 Esporta Pulizie</button>
-      <button id="exportStaffPDF" style="padding: 12px 16px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">👨‍🍳 Esporta Personale</button>
-      <button id="exportAllPDF" style="padding: 12px 16px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: background-color 0.3s ease;">📦 Esporta Dati Completi</button>
-    </div>
+<!-- Script visibilità + esportazione PDF -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const exportBtn = document.getElementById("exportTemperaturePDF");
+    const btnContainer = document.getElementById("pdf-button-container");
 
-    <!-- Script Esportazioni -->
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const exportTemperatureBtn = document.getElementById("exportTemperaturePDF");
-        const exportCleaningBtn = document.getElementById("exportCleaningPDF");
-        const exportStaffBtn = document.getElementById("exportStaffPDF");
-        const exportAllBtn = document.getElementById("exportAllPDF");
+    // Mostra il pulsante solo se siamo nella scheda Temperature
+    const observer = new MutationObserver(() => {
+      const activeTab = document.querySelector(".tab-button.active");
+      const tabText = activeTab?.textContent?.trim().toLowerCase() || "";
+      btnContainer.style.display = tabText.includes("temperatur") ? "block" : "none";
+    });
 
-        if (exportTemperatureBtn) {
-          exportTemperatureBtn.addEventListener("click", () => {
-            const entryDivs = document.querySelectorAll("#temperatureList > div");
-            if (entryDivs.length === 0) {
-              alert("Nessuna temperatura registrata da esportare.");
-              return;
-            }
+    observer.observe(document.body, { subtree: true, childList: true });
 
-            const headers = ["Posizione", "Temperatura", "Orario"];
-            const rows = [];
+    // Funzione di esportazione PDF
+    exportBtn?.addEventListener("click", () => {
+      const entryDivs = document.querySelectorAll("#temperatureList > div");
+      if (!entryDivs.length) {
+        alert("Nessuna temperatura registrata da esportare.");
+        return;
+      }
 
-            entryDivs.forEach(div => {
-              const position = div.querySelector("strong")?.innerText.trim() || "";
-              const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
-              const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
-              rows.push([position, temp, time]);
-            });
+      const headers = ["Posizione", "Temperatura", "Orario"];
+      const rows = [];
 
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFontSize(18);
-            doc.text("Report: Temperature", 14, 22);
-
-            doc.autoTable({
-              startY: 30,
-              head: [headers],
-              body: rows,
-              theme: 'striped',
-              styles: { fontSize: 10 },
-              headStyles: { fillColor: [25, 118, 210] }
-            });
-
-            const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
-            doc.save(fileName);
-          });
-        }
-
-        if (exportCleaningBtn) {
-          exportCleaningBtn.addEventListener("click", () => {
-            alert("Funzione esporta pulizie in sviluppo...");
-          });
-        }
-
-        if (exportStaffBtn) {
-          exportStaffBtn.addEventListener("click", () => {
-            alert("Funzione esporta personale in sviluppo...");
-          });
-        }
-
-        if (exportAllBtn) {
-          exportAllBtn.addEventListener("click", () => {
-            alert("Funzione esporta dati completi in sviluppo...");
-          });
-        }
+      entryDivs.forEach(div => {
+        const position = div.querySelector("strong")?.innerText.trim() || "";
+        const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
+        const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
+        rows.push([position, temp, time]);
       });
-    </script>
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(18);
+      doc.text("Report: Temperature", 14, 22);
+
+      doc.autoTable({
+        startY: 30,
+        head: [headers],
+        body: rows,
+        theme: 'striped',
+        styles: { fontSize: 10 },
+        headStyles: { fillColor: [25, 118, 210] }
+      });
+
+      const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
+      doc.save(fileName);
+    });
+  });
+</script>
+
   </body>
 </html>
