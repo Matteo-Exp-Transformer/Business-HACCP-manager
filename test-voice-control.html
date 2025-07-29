@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎤 Test Controllo Vocale HACCP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .5;
+            }
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-blue-100 min-h-screen p-4">
+    
+    <!-- Header -->
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-center text-blue-800 mb-2">
+            🎤 Test Controllo Vocale HACCP
+        </h1>
+        <p class="text-center text-blue-600 mb-8">
+            Prima app HACCP al mondo con controllo vocale in italiano
+        </p>
+    </div>
+
+    <!-- Status Cards -->
+    <div class="max-w-4xl mx-auto grid md:grid-cols-3 gap-4 mb-8">
+        
+        <!-- Supporto Browser -->
+        <div class="bg-white p-4 rounded-lg shadow-md">
+            <h3 class="font-bold text-gray-800 mb-2">🌐 Supporto Browser</h3>
+            <div id="browser-support" class="text-sm">
+                <span class="text-yellow-600">Verificando...</span>
+            </div>
+        </div>
+
+        <!-- Stato Microfono -->
+        <div class="bg-white p-4 rounded-lg shadow-md">
+            <h3 class="font-bold text-gray-800 mb-2">🎤 Stato Microfono</h3>
+            <div id="mic-status" class="text-sm">
+                <span class="text-gray-600">Non attivo</span>
+            </div>
+        </div>
+
+        <!-- Comandi Processati -->
+        <div class="bg-white p-4 rounded-lg shadow-md">
+            <h3 class="font-bold text-gray-800 mb-2">📊 Comandi Processati</h3>
+            <div id="commands-count" class="text-sm">
+                <span class="text-blue-600 font-bold text-lg">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controllo Vocale -->
+    <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-6 mb-8">
+        
+        <h2 class="text-xl font-bold text-gray-800 mb-4 text-center">
+            🎤 Controllo Vocale
+        </h2>
+
+        <!-- Pulsante Microfono -->
+        <div class="text-center mb-6">
+            <button id="voice-toggle" class="bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-full shadow-lg transition-all duration-300" style="width: 100px; height: 100px;">
+                <span class="text-3xl">🎤</span>
+            </button>
+            <p class="mt-2 text-gray-600" id="voice-status">Clicca per iniziare</p>
+        </div>
+
+        <!-- Trascrizione -->
+        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+            <h4 class="font-semibold text-gray-700 mb-2">Trascrizione Live:</h4>
+            <div id="transcript" class="min-h-12 text-gray-600 italic">
+                In attesa di comandi vocali...
+            </div>
+        </div>
+
+        <!-- Esempi Comandi -->
+        <div class="bg-blue-50 p-4 rounded-lg mb-4">
+            <h4 class="font-semibold text-blue-800 mb-2">Esempi comandi da provare:</h4>
+            <div class="space-y-1 text-sm text-blue-700">
+                <div>• "Temperatura frigorifero 2 gradi"</div>
+                <div>• "Pulizia banco lavoro completata"</div>
+                <div>• "Note: controllare guarnizione porta"</div>
+                <div>• "Consegna verdure fresche ricevuta"</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Comandi -->
+    <div class="max-w-4xl mx-auto">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">📋 Log Comandi Riconosciuti</h2>
+        <div id="commands-log" class="bg-white rounded-lg shadow-md p-4 max-h-96 overflow-y-auto">
+            <p class="text-gray-500 italic">Nessun comando processato ancora...</p>
+        </div>
+    </div>
+
+    <!-- Dati Salvati -->
+    <div class="max-w-4xl mx-auto mt-8 grid md:grid-cols-2 gap-6">
+        
+        <!-- Temperature -->
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <h3 class="font-bold text-gray-800 mb-3">🌡️ Temperature Salvate</h3>
+            <div id="saved-temperatures" class="space-y-2 max-h-48 overflow-y-auto">
+                <p class="text-gray-500 italic">Nessuna temperatura registrata</p>
+            </div>
+        </div>
+
+        <!-- Note Vocali -->
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <h3 class="font-bold text-gray-800 mb-3">📝 Note Vocali</h3>
+            <div id="saved-notes" class="space-y-2 max-h-48 overflow-y-auto">
+                <p class="text-gray-500 italic">Nessuna nota salvata</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sistema di Test per Controllo Vocale
+        class VoiceTestSystem {
+            constructor() {
+                this.isListening = false;
+                this.recognition = null;
+                this.isSupported = false;
+                this.commandCount = 0;
+                this.commandsLog = [];
+                
+                this.init();
+            }
+
+            init() {
+                this.checkBrowserSupport();
+                this.setupRecognition();
+                this.setupEventListeners();
+                this.updateUI();
+                
+                console.log('🎤 Sistema Test Controllo Vocale inizializzato');
+            }
+
+            checkBrowserSupport() {
+                const supportEl = document.getElementById('browser-support');
+                
+                if ('webkitSpeechRecognition' in window) {
+                    this.isSupported = true;
+                    this.SpeechRecognition = window.webkitSpeechRecognition;
+                    supportEl.innerHTML = '<span class="text-green-600">✅ Supportato (WebKit)</span>';
+                } else if ('SpeechRecognition' in window) {
+                    this.isSupported = true;
+                    this.SpeechRecognition = window.SpeechRecognition;
+                    supportEl.innerHTML = '<span class="text-green-600">✅ Supportato (Native)</span>';
+                } else {
+                    this.isSupported = false;
+                    supportEl.innerHTML = '<span class="text-red-600">❌ Non supportato</span>';
+                }
+            }
+
+            setupRecognition() {
+                if (!this.isSupported) return;
+
+                this.recognition = new this.SpeechRecognition();
+                this.recognition.continuous = false;
+                this.recognition.interimResults = true;
+                this.recognition.lang = 'it-IT';
+                this.recognition.maxAlternatives = 3;
+
+                this.recognition.onstart = () => {
+                    console.log('🎤 Ascolto iniziato...');
+                    this.isListening = true;
+                    this.updateUI();
+                };
+
+                this.recognition.onresult = (event) => {
+                    this.handleVoiceResult(event);
+                };
+
+                this.recognition.onerror = (event) => {
+                    console.error('❌ Errore riconoscimento:', event.error);
+                    this.showError(event.error);
+                    this.isListening = false;
+                    this.updateUI();
+                };
+
+                this.recognition.onend = () => {
+                    console.log('🎤 Ascolto terminato');
+                    this.isListening = false;
+                    this.updateUI();
+                };
+            }
+
+            setupEventListeners() {
+                document.getElementById('voice-toggle').addEventListener('click', () => {
+                    this.toggleListening();
+                });
+            }
+
+            toggleListening() {
+                if (!this.isSupported) {
+                    alert('Riconoscimento vocale non supportato in questo browser');
+                    return;
+                }
+
+                if (this.isListening) {
+                    this.stopListening();
+                } else {
+                    this.startListening();
+                }
+            }
+
+            startListening() {
+                if (!this.isSupported || this.isListening) return;
+
+                try {
+                    this.recognition.start();
+                    this.showNotification('🎤 Ascolto attivo - parla ora!', 'info');
+                } catch (error) {
+                    console.error('Errore avvio:', error);
+                    this.showError('Errore avvio microfono');
+                }
+            }
+
+            stopListening() {
+                if (this.recognition && this.isListening) {
+                    this.recognition.stop();
+                }
+            }
+
+            handleVoiceResult(event) {
+                let transcript = '';
+                let isFinal = false;
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        isFinal = true;
+                    }
+                }
+
+                this.updateTranscript(transcript, isFinal);
+
+                if (isFinal) {
+                    this.processCommand(transcript.trim());
+                }
+            }
+
+            updateTranscript(transcript, isFinal) {
+                const transcriptEl = document.getElementById('transcript');
+                
+                if (isFinal) {
+                    transcriptEl.innerHTML = `<strong>Comando finale:</strong> "${transcript}"`;
+                    transcriptEl.className = 'min-h-12 text-blue-700 font-semibold';
+                } else {
+                    transcriptEl.innerHTML = `<em>Ascolto:</em> "${transcript}"`;
+                    transcriptEl.className = 'min-h-12 text-yellow-600';
+                }
+            }
+
+            processCommand(transcript) {
+                console.log('🎤 Processando:', transcript);
+                
+                this.commandCount++;
+                this.commandsLog.unshift({
+                    timestamp: new Date().toLocaleString('it-IT'),
+                    transcript: transcript,
+                    type: this.detectCommandType(transcript)
+                });
+
+                this.updateCommandsLog();
+                this.updateCommandCount();
+                this.simulateDataSave(transcript);
+                
+                // Feedback positivo
+                this.showNotification('✅ Comando riconosciuto!', 'success');
+            }
+
+            detectCommandType(transcript) {
+                const lower = transcript.toLowerCase();
+                
+                if (lower.includes('temperatura') || lower.includes('gradi')) {
+                    return '🌡️ Temperatura';
+                } else if (lower.includes('pulizia') || lower.includes('pulito')) {
+                    return '🧹 Pulizia';
+                } else if (lower.includes('note') || lower.includes('annota')) {
+                    return '📝 Nota';
+                } else if (lower.includes('consegna') || lower.includes('ricevuto')) {
+                    return '📦 Consegna';
+                } else {
+                    return '❓ Generico';
+                }
+            }
+
+            simulateDataSave(transcript) {
+                const lower = transcript.toLowerCase();
+                
+                // Simula salvataggio temperature
+                if (lower.includes('temperatura')) {
+                    const tempMatch = transcript.match(/(\d+(?:[.,]\d+)?)\s*grad[io]/i);
+                    const locationMatch = transcript.match(/temperatura\s+(\w+)/i);
+                    
+                    if (tempMatch && locationMatch) {
+                        this.addSavedTemperature(locationMatch[1], tempMatch[1]);
+                    }
+                }
+                
+                // Simula salvataggio note
+                if (lower.includes('note')) {
+                    const noteMatch = transcript.match(/note?\s*:\s*(.+)/i);
+                    if (noteMatch) {
+                        this.addSavedNote(noteMatch[1]);
+                    }
+                }
+            }
+
+            addSavedTemperature(location, temperature) {
+                const container = document.getElementById('saved-temperatures');
+                if (container.querySelector('.text-gray-500')) {
+                    container.innerHTML = '';
+                }
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.className = 'bg-blue-50 p-2 rounded text-sm';
+                tempDiv.innerHTML = `
+                    <strong>${location}:</strong> ${temperature}°C
+                    <br><small class="text-gray-600">${new Date().toLocaleString('it-IT')}</small>
+                `;
+                container.insertBefore(tempDiv, container.firstChild);
+            }
+
+            addSavedNote(noteText) {
+                const container = document.getElementById('saved-notes');
+                if (container.querySelector('.text-gray-500')) {
+                    container.innerHTML = '';
+                }
+                
+                const noteDiv = document.createElement('div');
+                noteDiv.className = 'bg-yellow-50 p-2 rounded text-sm';
+                noteDiv.innerHTML = `
+                    <strong>Nota:</strong> ${noteText}
+                    <br><small class="text-gray-600">${new Date().toLocaleString('it-IT')}</small>
+                `;
+                container.insertBefore(noteDiv, container.firstChild);
+            }
+
+            updateCommandsLog() {
+                const logContainer = document.getElementById('commands-log');
+                
+                if (this.commandsLog.length === 0) return;
+                
+                logContainer.innerHTML = this.commandsLog.map(command => `
+                    <div class="border-b border-gray-200 py-2">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-sm font-semibold">${command.type}</span>
+                                <p class="text-gray-700">"${command.transcript}"</p>
+                            </div>
+                            <small class="text-gray-500">${command.timestamp}</small>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateCommandCount() {
+                document.getElementById('commands-count').innerHTML = 
+                    `<span class="text-blue-600 font-bold text-lg">${this.commandCount}</span>`;
+            }
+
+            updateUI() {
+                const button = document.getElementById('voice-toggle');
+                const status = document.getElementById('voice-status');
+                const micStatus = document.getElementById('mic-status');
+
+                if (this.isListening) {
+                    button.className = 'bg-red-600 hover:bg-red-700 text-white p-6 rounded-full shadow-lg transition-all duration-300 animate-pulse';
+                    button.innerHTML = '<span class="text-3xl">🔴</span>';
+                    status.textContent = 'In ascolto... parla ora!';
+                    micStatus.innerHTML = '<span class="text-red-600">🔴 Attivo</span>';
+                } else {
+                    button.className = 'bg-blue-600 hover:bg-blue-700 text-white p-6 rounded-full shadow-lg transition-all duration-300';
+                    button.innerHTML = '<span class="text-3xl">🎤</span>';
+                    status.textContent = 'Clicca per iniziare';
+                    micStatus.innerHTML = '<span class="text-gray-600">⚪ Inattivo</span>';
+                }
+            }
+
+            showNotification(message, type = 'info') {
+                const colors = {
+                    success: 'bg-green-100 border-green-400 text-green-700',
+                    error: 'bg-red-100 border-red-400 text-red-700',
+                    warning: 'bg-yellow-100 border-yellow-400 text-yellow-700',
+                    info: 'bg-blue-100 border-blue-400 text-blue-700'
+                };
+
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 ${colors[type]} border px-4 py-3 rounded-lg shadow-lg z-50 max-w-sm`;
+                notification.innerHTML = `
+                    <div class="flex items-center">
+                        <span>${message}</span>
+                        <button class="ml-2 opacity-75 hover:opacity-100" onclick="this.parentElement.parentElement.remove()">✕</button>
+                    </div>
+                `;
+
+                document.body.appendChild(notification);
+
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 4000);
+            }
+
+            showError(error) {
+                let message = '❌ Errore riconoscimento vocale';
+                
+                switch (error) {
+                    case 'no-speech':
+                        message = '🔇 Nessun audio rilevato - riprova parlando più forte';
+                        break;
+                    case 'audio-capture':
+                        message = '🎤 Problema accesso microfono';
+                        break;
+                    case 'not-allowed':
+                        message = '❌ Permesso microfono negato - abilita nelle impostazioni browser';
+                        break;
+                    case 'network':
+                        message = '🌐 Problema connessione per riconoscimento vocale';
+                        break;
+                }
+                
+                this.showNotification(message, 'error');
+            }
+        }
+
+        // Inizializza sistema quando pagina è caricata
+        document.addEventListener('DOMContentLoaded', () => {
+            window.voiceTest = new VoiceTestSystem();
+            
+            // Messaggio di benvenuto
+            setTimeout(() => {
+                if (window.voiceTest.isSupported) {
+                    window.voiceTest.showNotification('🎉 Test controllo vocale pronto! Clicca il microfono per iniziare.', 'success');
+                } else {
+                    window.voiceTest.showNotification('⚠️ Riconoscimento vocale non supportato in questo browser. Prova Chrome o Edge.', 'warning');
+                }
+            }, 1000);
+        });
+    </script>
+
+</body>
+</html>
