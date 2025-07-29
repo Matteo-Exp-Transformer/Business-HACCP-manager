@@ -4,13 +4,16 @@ const CACHE_NAME = 'mini-epackpro-v1.0.0'
 const STATIC_CACHE = 'mini-epackpro-static-v1.0.0'
 const DYNAMIC_CACHE = 'mini-epackpro-dynamic-v1.0.0'
 
-// File da cachare immediatamente
+// Determina il path di base dellʼapplicazione (utile quando è servita da una sottocartella)
+const BASE_PATH = self.location.pathname.replace(/\/[^\/]*$/, '/');
+
+// File da cachare immediatamente (prefetch)
 const STATIC_FILES = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  BASE_PATH,
+  `${BASE_PATH}index.html`,
+  `${BASE_PATH}manifest.json`,
+  `${BASE_PATH}icons/icon-192x192.png`,
+  `${BASE_PATH}icons/icon-512x512.png`,
   // I file JS e CSS verranno aggiunti dinamicamente
 ]
 
@@ -25,20 +28,21 @@ const EXCLUDE_FROM_CACHE = [
 // Installazione Service Worker
 self.addEventListener('install', event => {
   console.log('[SW] Installing Service Worker...')
-  
+
   event.waitUntil(
-    caches.open(STATIC_CACHE)
-      .then(cache => {
+    (async () => {
+      try {
+        const cache = await caches.open(STATIC_CACHE)
         console.log('[SW] Caching static files')
-        return cache.addAll(STATIC_FILES)
-      })
-      .then(() => {
+        await cache.addAll(STATIC_FILES)
         console.log('[SW] Static files cached successfully')
-        return self.skipWaiting()
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('[SW] Error caching static files:', error)
-      })
+      } finally {
+        // Procede comunque con lʼattivazione, anche se alcuni file non sono stati cache-ati
+        await self.skipWaiting()
+      }
+    })()
   )
 })
 
