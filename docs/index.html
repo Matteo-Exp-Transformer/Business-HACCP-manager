@@ -21,120 +21,16 @@
 
     <!-- Manifest -->
     <link rel="manifest" href="./manifest.json" />
-    <script type="module" crossorigin src="./asset/index-BjvKARtX.js"></script>
-    <link rel="stylesheet" crossorigin href="./asset/index-BHgQLqRx.css">
 
     <!-- PDF Librerie -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script type="module" crossorigin src="./asset/index-e86ff17f.js"></script>
+    <link rel="stylesheet" href="./asset/index-b8c6dab6.css">
   </head>
   <body>
     <noscript>Abilita JavaScript per utilizzare questa applicazione.</noscript>
     <div id="root"></div>
-
-    <!-- Pulsante PDF stile Manus -->
-    <div id="pdf-button-container" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1000;">
-      <button id="exportTemperaturePDF" style="padding: 14px 20px; font-weight: bold; color: white; background-color: #1976d2; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.3s ease; font-size: 16px; border: none; cursor: pointer;">
-        📄 Esporta Temperature in PDF
-      </button>
-    </div>
-
-    <script>
-      // Service Worker Registration
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(registration => {
-              console.log('SW registered: ', registration);
-              
-              // Check for updates
-              registration.addEventListener('updatefound', () => {
-                const newWorker = registration.installing;
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    // New content is available, show update notification
-                    if (confirm('Nuova versione disponibile. Ricaricare la pagina?')) {
-                      window.location.reload();
-                    }
-                  }
-                });
-              });
-            })
-            .catch(registrationError => {
-              console.log('SW registration failed: ', registrationError);
-            });
-        });
-      }
-
-      document.addEventListener("DOMContentLoaded", () => {
-        const exportBtnContainer = document.getElementById("pdf-button-container");
-        const exportBtn = document.getElementById("exportTemperaturePDF");
-
-        const observer = new MutationObserver(() => {
-          const activeTab = document.querySelector(".tab-active");
-          if (activeTab && activeTab.innerText.toLowerCase().includes("temperature")) {
-            exportBtnContainer.style.display = "block";
-          } else {
-            exportBtnContainer.style.display = "none";
-          }
-        });
-
-        observer.observe(document.body, { childList: true, subtree: true });
-
-        exportBtn.addEventListener("mouseover", () => {
-          exportBtn.style.backgroundColor = "#1565c0";
-        });
-
-        exportBtn.addEventListener("mouseout", () => {
-          exportBtn.style.backgroundColor = "#1976d2";
-        });
-
-        exportBtn.addEventListener("click", () => {
-          // Check if PDF libraries are loaded
-          if (typeof window.jspdf === 'undefined') {
-            alert("Errore: Librerie PDF non caricate. Ricarica la pagina e riprova.");
-            return;
-          }
-
-          const entryDivs = document.querySelectorAll("#temperatureList > div");
-          if (entryDivs.length === 0) {
-            alert("Nessuna temperatura registrata da esportare.");
-            return;
-          }
-
-          try {
-            const headers = ["Posizione", "Temperatura", "Orario"];
-            const rows = [];
-
-            entryDivs.forEach(div => {
-              const position = div.querySelector("strong")?.innerText.trim() || "";
-              const temp = div.querySelector(".text-xl.font-bold")?.innerText.trim() || "";
-              const time = div.querySelector(".text-xs.text-gray-500")?.innerText.trim() || "";
-              rows.push([position, temp, time]);
-            });
-
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFontSize(18);
-            doc.text("Report: Temperature", 14, 22);
-
-            doc.autoTable({
-              startY: 30,
-              head: [headers],
-              body: rows,
-              theme: 'striped',
-              styles: { fontSize: 10 },
-              headStyles: { fillColor: [25, 118, 210] }
-            });
-
-            const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
-            doc.save(fileName);
-          } catch (error) {
-            console.error('PDF export error:', error);
-            alert("Errore durante l'esportazione del PDF. Riprova.");
-          }
-        });
-      });
-    </script>
+    
   </body>
 </html>
