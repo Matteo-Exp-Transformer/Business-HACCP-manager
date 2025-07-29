@@ -98,6 +98,34 @@
           doc.save(fileName);
         });
       });
+
+      // Registrazione Service Worker per funzionalità PWA offline
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+              console.log('🚀 Service Worker registrato con successo:', registration);
+              // Notifica all'utente che l'app è pronta per l'uso offline
+              if (registration.installing) {
+                console.log('📦 Service Worker in installazione...');
+              } else if (registration.waiting) {
+                console.log('⏳ Service Worker in attesa...');
+              } else if (registration.active) {
+                console.log('✅ Service Worker attivo - App pronta per uso offline!');
+              }
+            })
+            .catch(error => {
+              console.error('❌ Registrazione Service Worker fallita:', error);
+            });
+        });
+
+        // Gestione aggiornamenti Service Worker
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('🔄 Service Worker aggiornato - Ricarica consigliata');
+        });
+      } else {
+        console.warn('⚠️ Service Worker non supportato in questo browser');
+      }
     </script>
   </body>
 </html>

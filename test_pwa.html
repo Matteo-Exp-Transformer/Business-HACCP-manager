@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test PWA - Mini-ePackPro</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .warning { background-color: #fff3cd; border-color: #ffeaa7; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        #results { margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test PWA - Mini-ePackPro HACCP</h1>
+    
+    <div class="test info">
+        <h3>📋 Test in Corso...</h3>
+        <button onclick="runAllTests()">🚀 Esegui Tutti i Test</button>
+        <button onclick="testServiceWorker()">🔧 Test Service Worker</button>
+        <button onclick="testManifest()">📱 Test Manifest</button>
+        <button onclick="testOffline()">🌐 Test Offline</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(title, status, message) {
+            const div = document.createElement('div');
+            div.className = `test ${status}`;
+            div.innerHTML = `<h3>${title}</h3><p>${message}</p>`;
+            results.appendChild(div);
+        }
+
+        async function testServiceWorker() {
+            addResult('🔧 Service Worker Test', 'info', 'Testando registrazione Service Worker...');
+            
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.register('http://127.0.0.1:8001/sw.js');
+                    addResult('✅ Service Worker', 'success', `Service Worker registrato: ${registration.scope}`);
+                    
+                    // Test cache
+                    const cacheNames = await caches.keys();
+                    if (cacheNames.length > 0) {
+                        addResult('💾 Cache Test', 'success', `Cache trovate: ${cacheNames.join(', ')}`);
+                    } else {
+                        addResult('💾 Cache Test', 'warning', 'Nessuna cache trovata (normale al primo caricamento)');
+                    }
+                } catch (error) {
+                    addResult('❌ Service Worker', 'error', `Errore: ${error.message}`);
+                }
+            } else {
+                addResult('❌ Service Worker', 'error', 'Service Worker non supportato');
+            }
+        }
+
+        async function testManifest() {
+            addResult('📱 Manifest Test', 'info', 'Testando manifest PWA...');
+            
+            try {
+                const response = await fetch('http://127.0.0.1:8001/manifest.json');
+                if (response.ok) {
+                    const manifest = await response.json();
+                    addResult('✅ Manifest', 'success', `Manifest caricato: ${manifest.name}`);
+                    
+                    // Test icone
+                    if (manifest.icons && manifest.icons.length > 0) {
+                        addResult('🎨 Icone', 'success', `${manifest.icons.length} icone definite`);
+                    } else {
+                        addResult('🎨 Icone', 'error', 'Nessuna icona trovata nel manifest');
+                    }
+                } else {
+                    addResult('❌ Manifest', 'error', `Errore HTTP: ${response.status}`);
+                }
+            } catch (error) {
+                addResult('❌ Manifest', 'error', `Errore: ${error.message}`);
+            }
+        }
+
+        async function testOffline() {
+            addResult('🌐 Offline Test', 'info', 'Testando capacità offline...');
+            
+            // Simula disconnessione testando cache
+            try {
+                const cache = await caches.open('mini-epack-pro-v1.0.1');
+                const cachedResponse = await cache.match('http://127.0.0.1:8001/index.html');
+                
+                if (cachedResponse) {
+                    addResult('✅ Offline Ready', 'success', 'App disponibile offline');
+                } else {
+                    addResult('⏳ Offline Pending', 'warning', 'Cache in costruzione - ricaricare la pagina');
+                }
+            } catch (error) {
+                addResult('❌ Offline Test', 'error', `Errore: ${error.message}`);
+            }
+        }
+
+        async function runAllTests() {
+            results.innerHTML = '';
+            addResult('🚀 Test Suite', 'info', 'Eseguendo tutti i test...');
+            
+            await testServiceWorker();
+            await testManifest();
+            await testOffline();
+            
+            addResult('🏁 Test Completati', 'success', 'Tutti i test sono stati eseguiti!');
+        }
+
+        // Test automatico al caricamento
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addResult('🎯 Test Automatico', 'info', 'Eseguendo test automatico...');
+                runAllTests();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
