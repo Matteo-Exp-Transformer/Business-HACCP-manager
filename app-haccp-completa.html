@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎤 Mini-ePackPro HACCP - Prima App Vocale al Mondo</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="Sistema completo HACCP con controllo vocale in italiano" />
+    <meta name="theme-color" content="#1976d2" />
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiTWluaS1lUGFja1BybyBIQUNDUCIsInNob3J0X25hbWUiOiJIQUNDUCIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwidGhlbWVfY29sb3IiOiIjMTk3NmQyIn0=" />
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
+        .tab-active {
+            background-color: #1976d2 !important;
+            color: white !important;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white p-4 shadow-lg">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <h1 class="text-xl font-bold">🎤 Mini-ePackPro HACCP</h1>
+            <div class="text-sm">
+                <span id="status-indicator" class="bg-green-500 px-2 py-1 rounded">Online</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white shadow-md sticky top-0 z-40">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex space-x-1 p-2">
+                <button class="tab-btn tab-active px-4 py-2 rounded-lg transition-all" data-tab="dashboard">
+                    📊 Dashboard
+                </button>
+                <button class="tab-btn px-4 py-2 rounded-lg transition-all hover:bg-gray-100" data-tab="temperature">
+                    🌡️ Temperature
+                </button>
+                <button class="tab-btn px-4 py-2 rounded-lg transition-all hover:bg-gray-100" data-tab="cleaning">
+                    🧹 Pulizie
+                </button>
+                <button class="tab-btn px-4 py-2 rounded-lg transition-all hover:bg-gray-100" data-tab="staff">
+                    👥 Personale
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto p-4">
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content fade-in">
+            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                
+                <!-- Stats Cards -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">🌡️ Temperature Oggi</h3>
+                    <div class="text-3xl font-bold text-blue-600" id="temp-count">0</div>
+                    <p class="text-gray-600 text-sm">Rilevazioni effettuate</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">🧹 Pulizie</h3>
+                    <div class="text-3xl font-bold text-green-600" id="cleaning-count">0</div>
+                    <p class="text-gray-600 text-sm">Attività completate</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">🎤 Comandi Vocali</h3>
+                    <div class="text-3xl font-bold text-purple-600" id="voice-count">0</div>
+                    <p class="text-gray-600 text-sm">Comandi processati</p>
+                </div>
+            </div>
+
+            <!-- Voice Control Guide -->
+            <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-lg shadow-lg mb-6">
+                <h2 class="text-xl font-bold mb-4">🎤 Controllo Vocale Attivo</h2>
+                <p class="mb-4">Prima app HACCP al mondo con controllo vocale in italiano!</p>
+                <div class="grid md:grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-semibold mb-2">Comandi Temperature:</h4>
+                        <div class="text-sm space-y-1">
+                            <div>• "Temperatura frigorifero 2 gradi"</div>
+                            <div>• "Temperatura forno 180 gradi"</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Comandi Pulizie:</h4>
+                        <div class="text-sm space-y-1">
+                            <div>• "Pulizia banco lavoro completata"</div>
+                            <div>• "Note: controllare frigorifero"</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Temperature Tab -->
+        <div id="temperature-tab" class="tab-content hidden">
+            <div class="grid lg:grid-cols-2 gap-6">
+                
+                <!-- Add Temperature Form -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">🌡️ Nuova Temperatura</h2>
+                    <form id="temperature-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Posizione</label>
+                            <input type="text" id="temp-location" class="w-full p-3 border rounded-lg" placeholder="es. Frigorifero 1" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Temperatura (°C)</label>
+                            <input type="number" id="temp-value" class="w-full p-3 border rounded-lg" placeholder="es. 2.5" step="0.1" required>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                            Aggiungi Temperatura
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Temperature List -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">📋 Temperature Registrate</h2>
+                    <div id="temperature-list" class="space-y-3 max-h-96 overflow-y-auto">
+                        <p class="text-gray-500 italic">Nessuna temperatura registrata</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cleaning Tab -->
+        <div id="cleaning-tab" class="tab-content hidden">
+            <div class="grid lg:grid-cols-2 gap-6">
+                
+                <!-- Add Cleaning Task -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">🧹 Nuova Attività</h2>
+                    <form id="cleaning-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Attività</label>
+                            <input type="text" id="cleaning-task" class="w-full p-3 border rounded-lg" placeholder="es. Pulizia banco lavoro" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Assegnato a</label>
+                            <input type="text" id="cleaning-assignee" class="w-full p-3 border rounded-lg" placeholder="es. Mario Rossi" required>
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors">
+                            Aggiungi Attività
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Cleaning List -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">📋 Attività Pulizie</h2>
+                    <div id="cleaning-list" class="space-y-3 max-h-96 overflow-y-auto">
+                        <p class="text-gray-500 italic">Nessuna attività registrata</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Staff Tab -->
+        <div id="staff-tab" class="tab-content hidden">
+            <div class="grid lg:grid-cols-2 gap-6">
+                
+                <!-- Add Staff -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">👥 Nuovo Membro</h2>
+                    <form id="staff-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                            <input type="text" id="staff-name" class="w-full p-3 border rounded-lg" placeholder="es. Mario Rossi" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Ruolo</label>
+                            <input type="text" id="staff-role" class="w-full p-3 border rounded-lg" placeholder="es. Cuoco" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Certificazione</label>
+                            <input type="text" id="staff-cert" class="w-full p-3 border rounded-lg" placeholder="es. HACCP Base">
+                        </div>
+                        <button type="submit" class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors">
+                            Aggiungi Membro
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Staff List -->
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">📋 Team</h2>
+                    <div id="staff-list" class="space-y-3 max-h-96 overflow-y-auto">
+                        <p class="text-gray-500 italic">Nessun membro registrato</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Voice Control Interface -->
+    <div id="voice-control-ui" class="fixed bottom-4 right-4 z-50">
+        <!-- Main Voice Button -->
+        <div id="voice-main-button" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg cursor-pointer transition-all duration-300 mb-4" style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center;">
+            <span id="voice-icon" class="text-xl">🎤</span>
+        </div>
+        
+        <!-- Voice Panel -->
+        <div id="voice-panel" class="bg-white rounded-lg shadow-xl p-4 mb-4 hidden" style="width: 300px;">
+            <h3 class="font-bold text-gray-800 mb-3 text-center">🎤 Controllo Vocale</h3>
+            
+            <!-- Status -->
+            <div id="voice-status" class="text-center mb-3">
+                <span class="inline-block px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700">
+                    Pronto all'ascolto
+                </span>
+            </div>
+            
+            <!-- Live Transcript -->
+            <div id="voice-transcript" class="bg-gray-50 p-3 rounded-lg mb-3 min-h-12 text-sm">
+                <span class="text-gray-500 italic">I tuoi comandi appariranno qui...</span>
+            </div>
+            
+            <!-- Controls -->
+            <div class="flex space-x-2">
+                <button id="voice-start" class="flex-1 bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700">
+                    Inizia
+                </button>
+                <button id="voice-stop" class="flex-1 bg-red-600 text-white py-2 px-3 rounded text-sm hover:bg-red-700">
+                    Stop
+                </button>
+                <button id="voice-help" class="bg-blue-600 text-white py-2 px-3 rounded text-sm hover:bg-blue-700">
+                    ?
+                </button>
+            </div>
+        </div>
+        
+        <!-- Help Modal -->
+        <div id="voice-help-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg max-w-md w-full p-6">
+                <h3 class="text-lg font-bold mb-4">🎤 Guida Controllo Vocale</h3>
+                <div class="space-y-3 text-sm">
+                    <div>
+                        <strong>Temperature:</strong><br>
+                        "Temperatura [posizione] [valore] gradi"<br>
+                        <em>Es: "Temperatura frigorifero 2 gradi"</em>
+                    </div>
+                    <div>
+                        <strong>Pulizie:</strong><br>
+                        "Pulizia [cosa] completata"<br>
+                        <em>Es: "Pulizia banco lavoro completata"</em>
+                    </div>
+                    <div>
+                        <strong>Note:</strong><br>
+                        "Note: [descrizione]"<br>
+                        <em>Es: "Note: controllare guarnizione"</em>
+                    </div>
+                </div>
+                <button id="close-help" class="mt-4 w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications Container -->
+    <div id="notifications-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script>
+        // HACCP App Main System
+        class HACCPApp {
+            constructor() {
+                this.data = {
+                    temperatures: JSON.parse(localStorage.getItem('haccp-temperatures') || '[]'),
+                    cleaning: JSON.parse(localStorage.getItem('haccp-cleaning') || '[]'),
+                    staff: JSON.parse(localStorage.getItem('haccp-staff') || '[]'),
+                    voiceCommands: 0
+                };
+                
+                this.currentTab = 'dashboard';
+                this.voiceControl = null;
+                
+                this.init();
+            }
+
+            init() {
+                this.setupTabs();
+                this.setupForms();
+                this.initVoiceControl();
+                this.updateDashboard();
+                this.loadData();
+                
+                console.log('🎤 HACCP App inizializzata con controllo vocale');
+            }
+
+            setupTabs() {
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const tabId = btn.dataset.tab;
+                        this.switchTab(tabId);
+                    });
+                });
+            }
+
+            switchTab(tabId) {
+                // Update buttons
+                document.querySelectorAll('.tab-btn').forEach(btn => {
+                    btn.classList.remove('tab-active');
+                    if (btn.dataset.tab === tabId) {
+                        btn.classList.add('tab-active');
+                    }
+                });
+
+                // Update content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                document.getElementById(`${tabId}-tab`).classList.remove('hidden');
+                
+                this.currentTab = tabId;
+            }
+
+            setupForms() {
+                // Temperature Form
+                document.getElementById('temperature-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addTemperature();
+                });
+
+                // Cleaning Form
+                document.getElementById('cleaning-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addCleaning();
+                });
+
+                // Staff Form
+                document.getElementById('staff-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addStaff();
+                });
+            }
+
+            addTemperature() {
+                const location = document.getElementById('temp-location').value;
+                const temperature = parseFloat(document.getElementById('temp-value').value);
+
+                if (!location || isNaN(temperature)) return;
+
+                const tempData = {
+                    id: Date.now(),
+                    location: location,
+                    temperature: temperature,
+                    time: new Date().toLocaleString('it-IT'),
+                    status: this.getTemperatureStatus(temperature)
+                };
+
+                this.data.temperatures.unshift(tempData);
+                this.saveData('temperatures');
+                this.updateTemperatureList();
+                this.updateDashboard();
+                
+                // Clear form
+                document.getElementById('temperature-form').reset();
+                
+                this.showNotification(`✅ Temperatura registrata: ${location} ${temperature}°C`, 'success');
+            }
+
+            addCleaning() {
+                const task = document.getElementById('cleaning-task').value;
+                const assignee = document.getElementById('cleaning-assignee').value;
+
+                if (!task || !assignee) return;
+
+                const cleaningData = {
+                    id: Date.now(),
+                    task: task,
+                    assignee: assignee,
+                    completed: true,
+                    date: new Date().toLocaleDateString('it-IT'),
+                    completedAt: new Date().toLocaleString('it-IT')
+                };
+
+                this.data.cleaning.unshift(cleaningData);
+                this.saveData('cleaning');
+                this.updateCleaningList();
+                this.updateDashboard();
+                
+                // Clear form
+                document.getElementById('cleaning-form').reset();
+                
+                this.showNotification(`✅ Attività registrata: ${task}`, 'success');
+            }
+
+            addStaff() {
+                const name = document.getElementById('staff-name').value;
+                const role = document.getElementById('staff-role').value;
+                const cert = document.getElementById('staff-cert').value;
+
+                if (!name || !role) return;
+
+                const staffData = {
+                    id: Date.now(),
+                    name: name,
+                    role: role,
+                    certification: cert || 'N/A'
+                };
+
+                this.data.staff.unshift(staffData);
+                this.saveData('staff');
+                this.updateStaffList();
+                
+                // Clear form
+                document.getElementById('staff-form').reset();
+                
+                this.showNotification(`✅ Membro aggiunto: ${name}`, 'success');
+            }
+
+            getTemperatureStatus(temp) {
+                if (temp < 4) return 'ok';
+                if (temp <= 8) return 'warning';
+                return 'danger';
+            }
+
+            updateTemperatureList() {
+                const list = document.getElementById('temperature-list');
+                
+                if (this.data.temperatures.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 italic">Nessuna temperatura registrata</p>';
+                    return;
+                }
+
+                const statusColors = {
+                    ok: 'bg-green-100 text-green-800',
+                    warning: 'bg-yellow-100 text-yellow-800',
+                    danger: 'bg-red-100 text-red-800'
+                };
+
+                list.innerHTML = this.data.temperatures.map(temp => `
+                    <div class="border border-gray-200 p-3 rounded-lg">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <strong class="text-gray-800">${temp.location}</strong>
+                                <div class="text-xl font-bold text-gray-900">${temp.temperature}°C</div>
+                                <div class="text-xs text-gray-500">${temp.time}</div>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs ${statusColors[temp.status]}">
+                                ${temp.status.toUpperCase()}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateCleaningList() {
+                const list = document.getElementById('cleaning-list');
+                
+                if (this.data.cleaning.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 italic">Nessuna attività registrata</p>';
+                    return;
+                }
+
+                list.innerHTML = this.data.cleaning.map(item => `
+                    <div class="border border-gray-200 p-3 rounded-lg">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <strong class="text-gray-800">${item.task}</strong>
+                                <div class="text-sm text-gray-600">Assegnato a: ${item.assignee}</div>
+                                <div class="text-xs text-gray-500">Completato: ${item.completedAt}</div>
+                            </div>
+                            <span class="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                                ✅ COMPLETATO
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateStaffList() {
+                const list = document.getElementById('staff-list');
+                
+                if (this.data.staff.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500 italic">Nessun membro registrato</p>';
+                    return;
+                }
+
+                list.innerHTML = this.data.staff.map(member => `
+                    <div class="border border-gray-200 p-3 rounded-lg">
+                        <strong class="text-gray-800">${member.name}</strong>
+                        <div class="text-sm text-gray-600">Ruolo: ${member.role}</div>
+                        <div class="text-xs text-gray-500">Certificazione: ${member.certification}</div>
+                    </div>
+                `).join('');
+            }
+
+            updateDashboard() {
+                document.getElementById('temp-count').textContent = this.data.temperatures.length;
+                document.getElementById('cleaning-count').textContent = this.data.cleaning.length;
+                document.getElementById('voice-count').textContent = this.data.voiceCommands;
+            }
+
+            loadData() {
+                this.updateTemperatureList();
+                this.updateCleaningList();
+                this.updateStaffList();
+            }
+
+            saveData(type) {
+                localStorage.setItem(`haccp-${type}`, JSON.stringify(this.data[type]));
+            }
+
+            // Voice Control Integration
+            initVoiceControl() {
+                this.voiceControl = new VoiceControl(this);
+            }
+
+            // Voice command handlers
+            handleVoiceTemperature(location, temperature) {
+                // Simulate form fill and submit
+                document.getElementById('temp-location').value = location;
+                document.getElementById('temp-value').value = temperature;
+                this.addTemperature();
+                this.data.voiceCommands++;
+                this.updateDashboard();
+            }
+
+            handleVoiceCleaning(task, assignee = 'Utente Vocale') {
+                document.getElementById('cleaning-task').value = task;
+                document.getElementById('cleaning-assignee').value = assignee;
+                this.addCleaning();
+                this.data.voiceCommands++;
+                this.updateDashboard();
+            }
+
+            showNotification(message, type = 'info') {
+                const colors = {
+                    success: 'bg-green-100 border-green-400 text-green-700',
+                    error: 'bg-red-100 border-red-400 text-red-700',
+                    warning: 'bg-yellow-100 border-yellow-400 text-yellow-700',
+                    info: 'bg-blue-100 border-blue-400 text-blue-700'
+                };
+
+                const notification = document.createElement('div');
+                notification.className = `${colors[type]} border px-4 py-3 rounded-lg shadow-lg max-w-sm fade-in`;
+                notification.innerHTML = `
+                    <div class="flex items-center">
+                        <span>${message}</span>
+                        <button class="ml-2 opacity-75 hover:opacity-100" onclick="this.parentElement.parentElement.remove()">✕</button>
+                    </div>
+                `;
+
+                document.getElementById('notifications-container').appendChild(notification);
+
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 4000);
+            }
+        }
+
+        // Voice Control System
+        class VoiceControl {
+            constructor(app) {
+                this.app = app;
+                this.isListening = false;
+                this.recognition = null;
+                this.isSupported = false;
+                this.currentMode = 'standby';
+                
+                this.init();
+            }
+
+            init() {
+                this.checkBrowserSupport();
+                this.setupRecognition();
+                this.setupEventListeners();
+                this.updateUI();
+                
+                console.log('🎤 Sistema Controllo Vocale inizializzato');
+            }
+
+            checkBrowserSupport() {
+                if ('webkitSpeechRecognition' in window) {
+                    this.isSupported = true;
+                    this.SpeechRecognition = window.webkitSpeechRecognition;
+                } else if ('SpeechRecognition' in window) {
+                    this.isSupported = true;
+                    this.SpeechRecognition = window.SpeechRecognition;
+                } else {
+                    this.isSupported = false;
+                    console.warn('⚠️ Riconoscimento vocale non supportato');
+                }
+            }
+
+            setupRecognition() {
+                if (!this.isSupported) return;
+
+                this.recognition = new this.SpeechRecognition();
+                this.recognition.continuous = false;
+                this.recognition.interimResults = true;
+                this.recognition.lang = 'it-IT';
+                this.recognition.maxAlternatives = 3;
+
+                this.recognition.onstart = () => {
+                    this.isListening = true;
+                    this.currentMode = 'listening';
+                    this.updateUI();
+                };
+
+                this.recognition.onresult = (event) => {
+                    this.handleVoiceResult(event);
+                };
+
+                this.recognition.onerror = (event) => {
+                    console.error('❌ Errore riconoscimento:', event.error);
+                    this.handleError(event.error);
+                };
+
+                this.recognition.onend = () => {
+                    this.isListening = false;
+                    this.currentMode = 'standby';
+                    this.updateUI();
+                };
+            }
+
+            setupEventListeners() {
+                document.getElementById('voice-main-button').addEventListener('click', () => {
+                    this.togglePanel();
+                });
+
+                document.getElementById('voice-start').addEventListener('click', () => {
+                    this.startListening();
+                });
+
+                document.getElementById('voice-stop').addEventListener('click', () => {
+                    this.stopListening();
+                });
+
+                document.getElementById('voice-help').addEventListener('click', () => {
+                    this.showHelp();
+                });
+
+                document.getElementById('close-help').addEventListener('click', () => {
+                    this.hideHelp();
+                });
+            }
+
+            togglePanel() {
+                const panel = document.getElementById('voice-panel');
+                panel.classList.toggle('hidden');
+            }
+
+            startListening() {
+                if (!this.isSupported) {
+                    this.app.showNotification('❌ Riconoscimento vocale non supportato', 'error');
+                    return;
+                }
+
+                if (this.isListening) return;
+
+                try {
+                    this.recognition.start();
+                    this.app.showNotification('🎤 Ascolto attivo - parla ora!', 'info');
+                } catch (error) {
+                    console.error('Errore avvio:', error);
+                    this.app.showNotification('❌ Errore avvio microfono', 'error');
+                }
+            }
+
+            stopListening() {
+                if (this.recognition && this.isListening) {
+                    this.recognition.stop();
+                }
+            }
+
+            handleVoiceResult(event) {
+                let transcript = '';
+                let isFinal = false;
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    transcript += event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        isFinal = true;
+                    }
+                }
+
+                this.updateTranscript(transcript, isFinal);
+
+                if (isFinal) {
+                    this.processCommand(transcript.trim());
+                }
+            }
+
+            updateTranscript(transcript, isFinal) {
+                const transcriptEl = document.getElementById('voice-transcript');
+                
+                if (isFinal) {
+                    transcriptEl.innerHTML = `<strong>Comando:</strong> "${transcript}"`;
+                    transcriptEl.className = 'bg-blue-50 p-3 rounded-lg mb-3 min-h-12 text-sm border border-blue-200';
+                } else {
+                    transcriptEl.innerHTML = `<em>Ascolto:</em> "${transcript}"`;
+                    transcriptEl.className = 'bg-yellow-50 p-3 rounded-lg mb-3 min-h-12 text-sm border border-yellow-200';
+                }
+            }
+
+            processCommand(transcript) {
+                console.log('🎤 Processando comando:', transcript);
+                this.currentMode = 'processing';
+                this.updateUI();
+
+                const lower = transcript.toLowerCase();
+
+                // Temperature commands
+                if (lower.includes('temperatura')) {
+                    const tempMatch = transcript.match(/temperatura\s+(\w+)\s+(\d+(?:[.,]\d+)?)\s*grad[io]/i);
+                    if (tempMatch) {
+                        const location = this.capitalizeFirst(tempMatch[1]);
+                        const temperature = parseFloat(tempMatch[2].replace(',', '.'));
+                        this.app.handleVoiceTemperature(location, temperature);
+                        this.app.showNotification(`✅ Temperatura registrata: ${location} ${temperature}°C`, 'success');
+                        return;
+                    }
+                }
+
+                // Cleaning commands
+                if (lower.includes('pulizia')) {
+                    const cleanMatch = transcript.match(/pulizia\s+(.+?)\s+(completata|finita|fatta)/i);
+                    if (cleanMatch) {
+                        const task = this.capitalizeFirst(cleanMatch[1]);
+                        this.app.handleVoiceCleaning(`Pulizia ${task}`);
+                        this.app.showNotification(`✅ Pulizia registrata: ${task}`, 'success');
+                        return;
+                    }
+                }
+
+                // Note commands
+                if (lower.includes('note')) {
+                    const noteMatch = transcript.match(/note?\s*:\s*(.+)/i);
+                    if (noteMatch) {
+                        const noteText = noteMatch[1];
+                        this.app.handleVoiceCleaning(`Nota: ${noteText}`);
+                        this.app.showNotification(`✅ Nota registrata`, 'success');
+                        return;
+                    }
+                }
+
+                // Unknown command
+                this.app.showNotification('❓ Comando non riconosciuto. Riprova o consulta la guida.', 'warning');
+
+                setTimeout(() => {
+                    this.currentMode = 'standby';
+                    this.updateUI();
+                }, 2000);
+            }
+
+            capitalizeFirst(str) {
+                return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+            }
+
+            updateUI() {
+                const icon = document.getElementById('voice-icon');
+                const button = document.getElementById('voice-main-button');
+                const status = document.getElementById('voice-status');
+
+                switch (this.currentMode) {
+                    case 'listening':
+                        icon.textContent = '🔴';
+                        button.className = 'bg-red-600 hover:bg-red-700 text-white p-4 rounded-full shadow-lg cursor-pointer transition-all duration-300 mb-4 animate-pulse';
+                        status.innerHTML = '<span class="inline-block px-3 py-1 rounded-full text-sm bg-red-100 text-red-700">🎤 In ascolto...</span>';
+                        break;
+                    case 'processing':
+                        icon.textContent = '⚙️';
+                        button.className = 'bg-yellow-600 hover:bg-yellow-700 text-white p-4 rounded-full shadow-lg cursor-pointer transition-all duration-300 mb-4';
+                        status.innerHTML = '<span class="inline-block px-3 py-1 rounded-full text-sm bg-yellow-100 text-yellow-700">⚙️ Elaborazione...</span>';
+                        break;
+                    default:
+                        icon.textContent = '🎤';
+                        button.className = 'bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg cursor-pointer transition-all duration-300 mb-4';
+                        status.innerHTML = '<span class="inline-block px-3 py-1 rounded-full text-sm bg-gray-100 text-gray-700">Pronto all\'ascolto</span>';
+                }
+            }
+
+            handleError(error) {
+                let message = '❌ Errore riconoscimento vocale';
+                
+                switch (error) {
+                    case 'no-speech':
+                        message = '🔇 Nessun audio rilevato - riprova';
+                        break;
+                    case 'audio-capture':
+                        message = '🎤 Problema accesso microfono';
+                        break;
+                    case 'not-allowed':
+                        message = '❌ Permesso microfono negato';
+                        break;
+                    case 'network':
+                        message = '🌐 Problema connessione';
+                        break;
+                }
+                
+                this.app.showNotification(message, 'error');
+            }
+
+            showHelp() {
+                document.getElementById('voice-help-modal').classList.remove('hidden');
+            }
+
+            hideHelp() {
+                document.getElementById('voice-help-modal').classList.add('hidden');
+            }
+        }
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', () => {
+            window.haccpApp = new HACCPApp();
+            
+            // Welcome message
+            setTimeout(() => {
+                window.haccpApp.showNotification('🎉 App HACCP con controllo vocale caricata! Clicca il microfono per iniziare.', 'success');
+            }, 1000);
+        });
+    </script>
+
+</body>
+</html>
