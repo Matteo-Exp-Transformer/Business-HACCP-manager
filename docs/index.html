@@ -39,6 +39,50 @@
       </button>
     </div>
 
+    <!-- Quick Temperature Entry Widget - UX Enhancement basato su SONNET report -->
+    <div id="quick-temp-widget" class="fixed bottom-4 right-4 bg-blue-600 text-white p-4 rounded-full shadow-lg cursor-pointer hidden z-50" style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold;">
+      🌡️
+    </div>
+
+    <!-- Update Notification Banner - PWA Enhancement -->
+    <div id="update-banner" class="fixed top-0 left-0 right-0 bg-green-600 text-white p-3 text-center hidden z-50">
+      <span>🚀 Nuova versione disponibile!</span>
+      <button id="update-btn" class="ml-2 bg-white text-green-600 px-3 py-1 rounded">Aggiorna</button>
+      <button id="dismiss-update" class="ml-2 text-white">✕</button>
+    </div>
+
+    <!-- Quick Temperature Modal -->
+    <div id="quick-temp-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+      <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
+        <h3 class="text-lg font-bold mb-4">🌡️ Temperature Rapida</h3>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Posizione</label>
+            <select id="quick-location" class="w-full p-3 border rounded-lg text-lg">
+              <option>Frigorifero 1</option>
+              <option>Frigorifero 2</option>
+              <option>Congelatore</option>
+              <option>Display frigo</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Temperatura (°C)</label>
+            <input type="number" id="quick-temp-input" class="w-full p-4 border rounded-lg text-2xl text-center" placeholder="0.0" step="0.1">
+          </div>
+          <div class="flex space-x-2">
+            <!-- Preset buttons per valori comuni -->
+            <button class="preset-temp bg-green-100 text-green-800 px-3 py-2 rounded text-sm" data-temp="2">2°C</button>
+            <button class="preset-temp bg-green-100 text-green-800 px-3 py-2 rounded text-sm" data-temp="4">4°C</button>
+            <button class="preset-temp bg-yellow-100 text-yellow-800 px-3 py-2 rounded text-sm" data-temp="-18">-18°C</button>
+          </div>
+          <div class="flex space-x-2">
+            <button id="quick-temp-save" class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-medium">Salva</button>
+            <button id="quick-temp-cancel" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg font-medium">Annulla</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const exportBtnContainer = document.getElementById("pdf-button-container");
@@ -97,35 +141,128 @@
           const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`;
           doc.save(fileName);
         });
+
+        // Enhanced UX Features - Implementazione raccomandazioni SONNET
+        const quickTempWidget = document.getElementById('quick-temp-widget');
+        const quickTempModal = document.getElementById('quick-temp-modal');
+        const updateBanner = document.getElementById('update-banner');
+        
+        // Mostra quick temp widget solo nella tab temperature
+        const quickTempObserver = new MutationObserver(() => {
+          const activeTab = document.querySelector('[data-state="active"]');
+          if (activeTab && activeTab.textContent.toLowerCase().includes('temperature')) {
+            quickTempWidget.classList.remove('hidden');
+          } else {
+            quickTempWidget.classList.add('hidden');
+          }
+        });
+        
+        quickTempObserver.observe(document.body, { childList: true, subtree: true });
+        
+        // Quick Temperature Entry - UX Enhancement
+        quickTempWidget.addEventListener('click', () => {
+          quickTempModal.classList.remove('hidden');
+          document.getElementById('quick-temp-input').focus();
+        });
+        
+        // Preset temperature buttons
+        document.querySelectorAll('.preset-temp').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.getElementById('quick-temp-input').value = btn.dataset.temp;
+          });
+        });
+        
+        // Quick save temperature
+        document.getElementById('quick-temp-save').addEventListener('click', () => {
+          const location = document.getElementById('quick-location').value;
+          const temperature = parseFloat(document.getElementById('quick-temp-input').value);
+          
+          if (!isNaN(temperature)) {
+            // Simula click sul form principale per aggiungere temperature
+            const tempInput = document.querySelector('input[placeholder*="temperatura"]');
+            const locationInput = document.querySelector('input[placeholder*="posizione"]');
+            const addButton = document.querySelector('button[type="submit"]');
+            
+            if (tempInput && locationInput && addButton) {
+              locationInput.value = location;
+              tempInput.value = temperature;
+              addButton.click();
+            }
+            
+            // Chiudi modal
+            quickTempModal.classList.add('hidden');
+            document.getElementById('quick-temp-input').value = '';
+            
+            // Feedback visivo
+            quickTempWidget.style.background = '#10b981';
+            setTimeout(() => {
+              quickTempWidget.style.background = '#2563eb';
+            }, 1000);
+          }
+        });
+        
+        // Cancel quick entry
+        document.getElementById('quick-temp-cancel').addEventListener('click', () => {
+          quickTempModal.classList.add('hidden');
+          document.getElementById('quick-temp-input').value = '';
+        });
+        
+        // Enhanced Service Worker con notifiche aggiornamento
+        if ('serviceWorker' in navigator) {
+          window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+              .then(registration => {
+                console.log('🚀 Service Worker registrato con successo:', registration);
+                
+                // Check for updates ogni 30 secondi
+                setInterval(() => {
+                  registration.update();
+                }, 30000);
+                
+                // Gestione aggiornamenti
+                registration.addEventListener('updatefound', () => {
+                  const newWorker = registration.installing;
+                  newWorker.addEventListener('statechange', () => {
+                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      // Mostra banner aggiornamento
+                      updateBanner.classList.remove('hidden');
+                    }
+                  });
+                });
+                
+                if (registration.installing) {
+                  console.log('📦 Service Worker in installazione...');
+                } else if (registration.waiting) {
+                  console.log('⏳ Service Worker in attesa...');
+                  updateBanner.classList.remove('hidden');
+                } else if (registration.active) {
+                  console.log('✅ Service Worker attivo - App pronta per uso offline!');
+                }
+              })
+              .catch(error => {
+                console.error('❌ Registrazione Service Worker fallita:', error);
+              });
+          });
+
+          // Gestione aggiornamenti Service Worker
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('🔄 Service Worker aggiornato - Ricarica consigliata');
+            updateBanner.classList.remove('hidden');
+          });
+          
+          // Update button click
+          document.getElementById('update-btn').addEventListener('click', () => {
+            window.location.reload();
+          });
+          
+          // Dismiss update banner
+          document.getElementById('dismiss-update').addEventListener('click', () => {
+            updateBanner.classList.add('hidden');
+          });
+        } else {
+          console.warn('⚠️ Service Worker non supportato in questo browser');
+        }
       });
-
-      // Registrazione Service Worker per funzionalità PWA offline
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(registration => {
-              console.log('🚀 Service Worker registrato con successo:', registration);
-              // Notifica all'utente che l'app è pronta per l'uso offline
-              if (registration.installing) {
-                console.log('📦 Service Worker in installazione...');
-              } else if (registration.waiting) {
-                console.log('⏳ Service Worker in attesa...');
-              } else if (registration.active) {
-                console.log('✅ Service Worker attivo - App pronta per uso offline!');
-              }
-            })
-            .catch(error => {
-              console.error('❌ Registrazione Service Worker fallita:', error);
-            });
-        });
-
-        // Gestione aggiornamenti Service Worker
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          console.log('🔄 Service Worker aggiornato - Ricarica consigliata');
-        });
-      } else {
-        console.warn('⚠️ Service Worker non supportato in questo browser');
-      }
     </script>
   </body>
 </html>

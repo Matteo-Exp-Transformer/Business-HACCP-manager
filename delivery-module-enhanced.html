@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚚 Delivery Management HACCP - Strategic Implementation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'haccp-blue': '#1976d2',
+                        'haccp-green': '#10b981',
+                        'haccp-red': '#ef4444',
+                        'haccp-yellow': '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Enhanced UX - Touch targets 48px+ come raccomandato da SONNET */
+        .touch-target {
+            min-height: 48px;
+            min-width: 48px;
+        }
+        
+        /* High contrast per ambiente cucina */
+        .high-contrast {
+            filter: contrast(1.2);
+        }
+        
+        /* Smooth animations */
+        .smooth-transition {
+            transition: all 0.3s ease;
+        }
+        
+        /* Scanner overlay */
+        .scanner-overlay {
+            background: linear-gradient(45deg, transparent 49%, rgba(255,255,255,0.8) 49%, rgba(255,255,255,0.8) 51%, transparent 51%);
+            animation: scanner-line 2s linear infinite;
+        }
+        
+        @keyframes scanner-line {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Header con status connectivity -->
+    <header class="bg-haccp-blue text-white p-4 high-contrast">
+        <div class="flex items-center justify-between">
+            <h1 class="text-xl font-bold">🚚 Delivery Management</h1>
+            <div class="flex items-center space-x-2">
+                <div id="connectivity-status" class="w-3 h-3 bg-green-400 rounded-full"></div>
+                <span id="sync-status" class="text-sm">Online</span>
+                <button id="settings-btn" class="touch-target p-2 rounded">⚙️</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Quick Actions Bar - UX Enhancement -->
+    <div class="bg-white border-b p-4">
+        <div class="flex space-x-2 overflow-x-auto">
+            <button id="quick-scan-btn" class="touch-target bg-haccp-green text-white px-4 py-2 rounded-lg flex items-center space-x-2 smooth-transition">
+                <span>📱</span>
+                <span>Scan Rapido</span>
+            </button>
+            <button id="temp-check-btn" class="touch-target bg-haccp-blue text-white px-4 py-2 rounded-lg flex items-center space-x-2 smooth-transition">
+                <span>🌡️</span>
+                <span>Temp Check</span>
+            </button>
+            <button id="voice-note-btn" class="touch-target bg-purple-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 smooth-transition">
+                <span>🎤</span>
+                <span>Nota Vocale</span>
+            </button>
+            <button id="emergency-btn" class="touch-target bg-haccp-red text-white px-4 py-2 rounded-lg flex items-center space-x-2 smooth-transition">
+                <span>🚨</span>
+                <span>Problema</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="p-4 space-y-6">
+        
+        <!-- AI Predictions Panel - Advanced Feature da O3 analysis -->
+        <div id="ai-predictions" class="bg-gradient-to-r from-purple-100 to-blue-100 p-4 rounded-lg border high-contrast">
+            <h3 class="font-bold text-gray-800 mb-3 flex items-center">
+                🤖 <span class="ml-2">Predizioni AI & Insights</span>
+            </h3>
+            <div id="predictions-content" class="space-y-2">
+                <div class="bg-white p-3 rounded flex items-center justify-between">
+                    <span class="text-sm">🚚 Prossima consegna critica in arrivo</span>
+                    <span class="text-xs bg-haccp-yellow text-white px-2 py-1 rounded">15 min</span>
+                </div>
+                <div class="bg-white p-3 rounded flex items-center justify-between">
+                    <span class="text-sm">❄️ Temperatura frigo sotto soglia</span>
+                    <span class="text-xs bg-haccp-red text-white px-2 py-1 rounded">Azione richiesta</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scanner Interface -->
+        <div class="bg-white rounded-lg border high-contrast">
+            <div class="p-4 border-b">
+                <h3 class="font-bold text-gray-800 flex items-center">
+                    📱 <span class="ml-2">Scanner QR/Barcode + Temperature</span>
+                </h3>
+            </div>
+            
+            <!-- Camera Preview Mockup -->
+            <div id="camera-preview" class="relative bg-gray-900 h-64 flex items-center justify-center hidden">
+                <div class="scanner-overlay absolute inset-0"></div>
+                <div class="text-white text-center">
+                    <div class="text-4xl mb-2">📷</div>
+                    <div>Inquadra il codice QR o Barcode</div>
+                    <div class="text-sm opacity-75 mt-2">Tap per messa a fuoco</div>
+                </div>
+                <button id="close-camera" class="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded">✕</button>
+            </div>
+            
+            <!-- Scanner Results -->
+            <div class="p-4 space-y-4">
+                <div class="flex space-x-2">
+                    <button id="scan-qr-btn" class="flex-1 touch-target bg-haccp-blue text-white py-3 rounded-lg smooth-transition">
+                        📱 Scan QR
+                    </button>
+                    <button id="scan-barcode-btn" class="flex-1 touch-target bg-haccp-green text-white py-3 rounded-lg smooth-transition">
+                        📊 Scan Barcode
+                    </button>
+                    <button id="bluetooth-temp-btn" class="flex-1 touch-target bg-purple-600 text-white py-3 rounded-lg smooth-transition">
+                        🔗 Bluetooth
+                    </button>
+                </div>
+                
+                <!-- Scanned Product Info -->
+                <div id="scanned-product" class="bg-gray-50 p-4 rounded-lg hidden">
+                    <h4 class="font-medium text-gray-800 mb-2">Prodotto Scansionato:</h4>
+                    <div id="product-details" class="space-y-2">
+                        <!-- Popolato dinamicamente -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Temperature Monitoring - Enhanced from OPUS recommendations -->
+        <div class="bg-white rounded-lg border high-contrast">
+            <div class="p-4 border-b">
+                <h3 class="font-bold text-gray-800 flex items-center">
+                    🌡️ <span class="ml-2">Monitoraggio Temperature Consegna</span>
+                </h3>
+            </div>
+            <div class="p-4">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div class="bg-haccp-green bg-opacity-10 p-3 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-haccp-green">4.2°C</div>
+                        <div class="text-sm text-gray-600">Temp Attuale</div>
+                    </div>
+                    <div class="bg-blue-50 p-3 rounded-lg text-center">
+                        <div class="text-2xl font-bold text-blue-600">12</div>
+                        <div class="text-sm text-gray-600">Prodotti OK</div>
+                    </div>
+                </div>
+                
+                <!-- Manual Temperature Entry -->
+                <div class="space-y-3">
+                    <div class="flex space-x-2">
+                        <input type="number" id="manual-temp" placeholder="Temperatura °C" 
+                               class="flex-1 p-3 border rounded-lg text-lg text-center touch-target">
+                        <select id="temp-location" class="p-3 border rounded-lg touch-target">
+                            <option>Camion frigo</option>
+                            <option>Container 1</option>
+                            <option>Container 2</option>
+                            <option>Area scarico</option>
+                        </select>
+                    </div>
+                    <button id="add-temp-reading" class="w-full touch-target bg-haccp-blue text-white py-3 rounded-lg smooth-transition">
+                        Aggiungi Lettura Temperatura
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivery Checklist - HACCP Workflow Optimization -->
+        <div class="bg-white rounded-lg border high-contrast">
+            <div class="p-4 border-b">
+                <h3 class="font-bold text-gray-800 flex items-center">
+                    ✅ <span class="ml-2">Checklist Consegna HACCP</span>
+                </h3>
+            </div>
+            <div class="p-4">
+                <div id="delivery-checklist" class="space-y-3">
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <input type="checkbox" id="check-1" class="w-6 h-6 touch-target">
+                        <label for="check-1" class="flex-1 text-gray-700">Verifica temperatura camion all'arrivo</label>
+                        <span class="text-xs bg-haccp-green text-white px-2 py-1 rounded">OK</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <input type="checkbox" id="check-2" class="w-6 h-6 touch-target">
+                        <label for="check-2" class="flex-1 text-gray-700">Controllo documenti e certificazioni</label>
+                        <span class="text-xs bg-haccp-yellow text-white px-2 py-1 rounded">Pending</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <input type="checkbox" id="check-3" class="w-6 h-6 touch-target">
+                        <label for="check-3" class="flex-1 text-gray-700">Ispezione packaging e integrità</label>
+                        <span class="text-xs bg-gray-400 text-white px-2 py-1 rounded">Todo</span>
+                    </div>
+                    <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                        <input type="checkbox" id="check-4" class="w-6 h-6 touch-target">
+                        <label for="check-4" class="flex-1 text-gray-700">Tracciabilità lotti e scadenze</label>
+                        <span class="text-xs bg-gray-400 text-white px-2 py-1 rounded">Todo</span>
+                    </div>
+                </div>
+                
+                <!-- Completion Actions -->
+                <div class="mt-4 flex space-x-2">
+                    <button id="save-checklist" class="flex-1 touch-target bg-haccp-green text-white py-3 rounded-lg smooth-transition">
+                        💾 Salva Checklist
+                    </button>
+                    <button id="generate-report" class="flex-1 touch-target bg-haccp-blue text-white py-3 rounded-lg smooth-transition">
+                        📄 Genera Report
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Deliveries -->
+        <div class="bg-white rounded-lg border high-contrast">
+            <div class="p-4 border-b">
+                <h3 class="font-bold text-gray-800 flex items-center">
+                    📦 <span class="ml-2">Consegne Recenti</span>
+                </h3>
+            </div>
+            <div class="divide-y" id="recent-deliveries">
+                <div class="p-4 flex items-center justify-between">
+                    <div>
+                        <div class="font-medium text-gray-800">Fornitore ABC - Prodotti freschi</div>
+                        <div class="text-sm text-gray-600">Oggi 14:30 • Temp: 2.5°C</div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs bg-haccp-green text-white px-2 py-1 rounded">Conforme</span>
+                        <button class="touch-target text-haccp-blue">📄</button>
+                    </div>
+                </div>
+                <div class="p-4 flex items-center justify-between">
+                    <div>
+                        <div class="font-medium text-gray-800">Fornitore XYZ - Surgelati</div>
+                        <div class="text-sm text-gray-600">Oggi 12:15 • Temp: -18°C</div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs bg-haccp-green text-white px-2 py-1 rounded">Conforme</span>
+                        <button class="touch-target text-haccp-blue">📄</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button per Quick Access -->
+    <button id="fab-quick-action" class="fixed bottom-6 right-6 w-16 h-16 bg-haccp-green text-white rounded-full shadow-lg flex items-center justify-center text-2xl smooth-transition">
+        ⚡
+    </button>
+
+    <!-- Modals -->
+    
+    <!-- Voice Note Modal -->
+    <div id="voice-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
+            <h3 class="text-lg font-bold mb-4">🎤 Nota Vocale</h3>
+            <div class="text-center space-y-4">
+                <div id="recording-indicator" class="hidden">
+                    <div class="w-16 h-16 bg-red-500 rounded-full mx-auto animate-pulse flex items-center justify-center">
+                        <span class="text-white text-2xl">🎤</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-2">Registrazione in corso...</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="start-recording" class="flex-1 bg-red-500 text-white py-3 rounded-lg">🎤 Registra</button>
+                    <button id="stop-recording" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg" disabled>⏹️ Stop</button>
+                </div>
+                <button id="close-voice-modal" class="w-full bg-gray-300 text-gray-700 py-3 rounded-lg">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bluetooth Connection Modal -->
+    <div id="bluetooth-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
+            <h3 class="text-lg font-bold mb-4">🔗 Connessione Bluetooth</h3>
+            <div class="space-y-4">
+                <div id="bluetooth-devices" class="space-y-2">
+                    <div class="p-3 border rounded-lg flex items-center justify-between">
+                        <span>Thermometer Pro-1</span>
+                        <button class="bg-haccp-blue text-white px-3 py-1 rounded text-sm">Connetti</button>
+                    </div>
+                    <div class="p-3 border rounded-lg flex items-center justify-between">
+                        <span>TempSensor-4432</span>
+                        <span class="text-sm text-green-600">Connesso</span>
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <button id="scan-bluetooth" class="flex-1 bg-haccp-blue text-white py-3 rounded-lg">🔍 Scansiona</button>
+                    <button id="close-bluetooth-modal" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg">Chiudi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Delivery Management System - Strategic Implementation
+        
+        class DeliveryManager {
+            constructor() {
+                this.deliveries = JSON.parse(localStorage.getItem('haccp-deliveries') || '[]');
+                this.temperatures = JSON.parse(localStorage.getItem('haccp-delivery-temps') || '[]');
+                this.aiPredictions = [];
+                this.bluetoothDevices = [];
+                this.init();
+            }
+            
+            init() {
+                this.setupEventListeners();
+                this.updateAIPredictions();
+                this.simulateBluetoothConnection();
+                this.updateConnectivityStatus();
+                
+                // Auto-save ogni 30 secondi
+                setInterval(() => this.autoSave(), 30000);
+            }
+            
+            setupEventListeners() {
+                // Quick Actions
+                document.getElementById('quick-scan-btn').addEventListener('click', () => this.quickScan());
+                document.getElementById('temp-check-btn').addEventListener('click', () => this.quickTempCheck());
+                document.getElementById('voice-note-btn').addEventListener('click', () => this.openVoiceModal());
+                document.getElementById('emergency-btn').addEventListener('click', () => this.handleEmergency());
+                
+                // Scanner functions
+                document.getElementById('scan-qr-btn').addEventListener('click', () => this.startQRScan());
+                document.getElementById('scan-barcode-btn').addEventListener('click', () => this.startBarcodeScan());
+                document.getElementById('bluetooth-temp-btn').addEventListener('click', () => this.openBluetoothModal());
+                
+                // Temperature management
+                document.getElementById('add-temp-reading').addEventListener('click', () => this.addTemperatureReading());
+                
+                // Checklist management
+                document.getElementById('save-checklist').addEventListener('click', () => this.saveChecklist());
+                document.getElementById('generate-report').addEventListener('click', () => this.generateReport());
+                
+                // Voice recording
+                document.getElementById('start-recording').addEventListener('click', () => this.startRecording());
+                document.getElementById('stop-recording').addEventListener('click', () => this.stopRecording());
+                document.getElementById('close-voice-modal').addEventListener('click', () => this.closeVoiceModal());
+                
+                // Bluetooth
+                document.getElementById('scan-bluetooth').addEventListener('click', () => this.scanBluetoothDevices());
+                document.getElementById('close-bluetooth-modal').addEventListener('click', () => this.closeBluetoothModal());
+                
+                // FAB
+                document.getElementById('fab-quick-action').addEventListener('click', () => this.showQuickActions());
+            }
+            
+            // AI Predictions - Advanced feature da O3 analysis
+            updateAIPredictions() {
+                const predictions = [
+                    {
+                        type: 'delivery',
+                        message: 'Prossima consegna critica in arrivo',
+                        time: '15 min',
+                        priority: 'medium'
+                    },
+                    {
+                        type: 'temperature',
+                        message: 'Temperatura frigo sotto soglia',
+                        action: 'Azione richiesta',
+                        priority: 'high'
+                    }
+                ];
+                
+                this.renderPredictions(predictions);
+            }
+            
+            renderPredictions(predictions) {
+                const container = document.getElementById('predictions-content');
+                container.innerHTML = predictions.map(pred => `
+                    <div class="bg-white p-3 rounded flex items-center justify-between">
+                        <span class="text-sm">${this.getPredictionIcon(pred.type)} ${pred.message}</span>
+                        <span class="text-xs bg-haccp-${pred.priority === 'high' ? 'red' : 'yellow'} text-white px-2 py-1 rounded">
+                            ${pred.time || pred.action}
+                        </span>
+                    </div>
+                `).join('');
+            }
+            
+            getPredictionIcon(type) {
+                const icons = {
+                    'delivery': '🚚',
+                    'temperature': '❄️',
+                    'quality': '🔍',
+                    'compliance': '📋'
+                };
+                return icons[type] || '🔔';
+            }
+            
+            // Scanner Functions - UX Enhancement
+            quickScan() {
+                this.showNotification('📱 Scanner rapido attivato', 'success');
+                this.startQRScan();
+            }
+            
+            startQRScan() {
+                document.getElementById('camera-preview').classList.remove('hidden');
+                
+                // Simula scan dopo 3 secondi
+                setTimeout(() => {
+                    this.processScannedCode('QR-PROD-001234', 'qr');
+                }, 3000);
+            }
+            
+            startBarcodeScan() {
+                document.getElementById('camera-preview').classList.remove('hidden');
+                
+                // Simula scan dopo 3 secondi
+                setTimeout(() => {
+                    this.processScannedCode('8901234567890', 'barcode');
+                }, 3000);
+            }
+            
+            processScannedCode(code, type) {
+                document.getElementById('camera-preview').classList.add('hidden');
+                
+                // Simula lookup prodotto
+                const productInfo = this.getProductInfo(code, type);
+                this.displayScannedProduct(productInfo);
+                
+                this.showNotification(`✅ ${type.toUpperCase()} scansionato con successo`, 'success');
+            }
+            
+            getProductInfo(code, type) {
+                // Mock data - in produzione verrebbe da database/API
+                return {
+                    code: code,
+                    name: 'Filetto di Salmone Fresco',
+                    supplier: 'Fornitore Premium Fish',
+                    batch: 'LOT-2024-001',
+                    expiry: '2024-02-15',
+                    temperature: '2°C max',
+                    status: 'conforme'
+                };
+            }
+            
+            displayScannedProduct(product) {
+                const container = document.getElementById('scanned-product');
+                const details = document.getElementById('product-details');
+                
+                details.innerHTML = `
+                    <div class="flex justify-between">
+                        <span class="font-medium">Prodotto:</span>
+                        <span>${product.name}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Codice:</span>
+                        <span class="font-mono text-sm">${product.code}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Fornitore:</span>
+                        <span>${product.supplier}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Lotto:</span>
+                        <span class="font-mono text-sm">${product.batch}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Scadenza:</span>
+                        <span>${product.expiry}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Temp richiesta:</span>
+                        <span>${product.temperature}</span>
+                    </div>
+                    <div class="mt-3 p-2 bg-green-100 text-green-800 rounded text-center font-medium">
+                        ✅ Prodotto ${product.status}
+                    </div>
+                `;
+                
+                container.classList.remove('hidden');
+            }
+            
+            // Temperature Management - Enhanced from OPUS recommendations
+            quickTempCheck() {
+                document.getElementById('manual-temp').focus();
+                this.showNotification('🌡️ Inserimento temperatura rapido', 'info');
+            }
+            
+            addTemperatureReading() {
+                const temp = parseFloat(document.getElementById('manual-temp').value);
+                const location = document.getElementById('temp-location').value;
+                
+                if (!isNaN(temp)) {
+                    const reading = {
+                        id: Date.now(),
+                        temperature: temp,
+                        location: location,
+                        timestamp: new Date().toISOString(),
+                        status: this.getTemperatureStatus(temp)
+                    };
+                    
+                    this.temperatures.push(reading);
+                    this.saveData();
+                    
+                    // Reset form
+                    document.getElementById('manual-temp').value = '';
+                    
+                    // Visual feedback
+                    this.showNotification(`🌡️ Temperatura ${temp}°C registrata`, 'success');
+                } else {
+                    this.showNotification('⚠️ Inserire una temperatura valida', 'error');
+                }
+            }
+            
+            getTemperatureStatus(temp) {
+                if (temp < 0) return temp < -15 ? 'ok' : 'warning';
+                if (temp <= 4) return 'ok';
+                if (temp <= 8) return 'warning';
+                return 'danger';
+            }
+            
+            // Voice Recording
+            openVoiceModal() {
+                document.getElementById('voice-modal').classList.remove('hidden');
+            }
+            
+            closeVoiceModal() {
+                document.getElementById('voice-modal').classList.add('hidden');
+            }
+            
+            startRecording() {
+                document.getElementById('recording-indicator').classList.remove('hidden');
+                document.getElementById('start-recording').disabled = true;
+                document.getElementById('stop-recording').disabled = false;
+                
+                this.showNotification('🎤 Registrazione avviata', 'info');
+            }
+            
+            stopRecording() {
+                document.getElementById('recording-indicator').classList.add('hidden');
+                document.getElementById('start-recording').disabled = false;
+                document.getElementById('stop-recording').disabled = true;
+                
+                this.showNotification('💾 Nota vocale salvata', 'success');
+            }
+            
+            // Bluetooth Integration
+            openBluetoothModal() {
+                document.getElementById('bluetooth-modal').classList.remove('hidden');
+            }
+            
+            closeBluetoothModal() {
+                document.getElementById('bluetooth-modal').classList.add('hidden');
+            }
+            
+            scanBluetoothDevices() {
+                this.showNotification('🔍 Scansione dispositivi Bluetooth...', 'info');
+                
+                // Simula scan
+                setTimeout(() => {
+                    this.showNotification('✅ Dispositivi trovati', 'success');
+                }, 2000);
+            }
+            
+            simulateBluetoothConnection() {
+                // Simula connessione automatica a dispositivo salvato
+                setTimeout(() => {
+                    this.showNotification('🔗 Termometro Bluetooth connesso', 'success');
+                }, 5000);
+            }
+            
+            // Emergency Handling
+            handleEmergency() {
+                const confirmed = confirm('🚨 Segnalare un problema critico nella consegna?');
+                if (confirmed) {
+                    this.showNotification('🚨 Segnalazione critica inviata', 'error');
+                    // In produzione: invia notifica push, email, etc.
+                }
+            }
+            
+            // Checklist Management
+            saveChecklist() {
+                const checkboxes = document.querySelectorAll('#delivery-checklist input[type="checkbox"]');
+                const checklist = Array.from(checkboxes).map(cb => ({
+                    id: cb.id,
+                    checked: cb.checked,
+                    label: cb.nextElementSibling.textContent
+                }));
+                
+                const deliveryRecord = {
+                    id: Date.now(),
+                    timestamp: new Date().toISOString(),
+                    checklist: checklist,
+                    temperatures: this.temperatures,
+                    status: 'completed'
+                };
+                
+                this.deliveries.push(deliveryRecord);
+                this.saveData();
+                
+                this.showNotification('💾 Checklist salvata con successo', 'success');
+            }
+            
+            generateReport() {
+                this.showNotification('📄 Generazione report PDF...', 'info');
+                
+                // Simula generazione report
+                setTimeout(() => {
+                    this.showNotification('✅ Report generato e salvato', 'success');
+                }, 2000);
+            }
+            
+            // Utility Functions
+            showNotification(message, type = 'info') {
+                // Implementazione notifiche toast
+                const notification = document.createElement('div');
+                notification.className = `fixed top-20 right-4 p-4 rounded-lg text-white z-50 ${this.getNotificationColor(type)}`;
+                notification.textContent = message;
+                
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 3000);
+            }
+            
+            getNotificationColor(type) {
+                const colors = {
+                    'success': 'bg-green-500',
+                    'error': 'bg-red-500',
+                    'warning': 'bg-yellow-500',
+                    'info': 'bg-blue-500'
+                };
+                return colors[type] || colors.info;
+            }
+            
+            updateConnectivityStatus() {
+                const statusDot = document.getElementById('connectivity-status');
+                const statusText = document.getElementById('sync-status');
+                
+                if (navigator.onLine) {
+                    statusDot.className = 'w-3 h-3 bg-green-400 rounded-full';
+                    statusText.textContent = 'Online';
+                } else {
+                    statusDot.className = 'w-3 h-3 bg-red-400 rounded-full';
+                    statusText.textContent = 'Offline';
+                }
+            }
+            
+            showQuickActions() {
+                // Implementa menu rapido FAB
+                const actions = ['Scan', 'Temp', 'Voice', 'Emergency'];
+                this.showNotification('⚡ Azioni rapide disponibili', 'info');
+            }
+            
+            // Data Persistence
+            saveData() {
+                localStorage.setItem('haccp-deliveries', JSON.stringify(this.deliveries));
+                localStorage.setItem('haccp-delivery-temps', JSON.stringify(this.temperatures));
+            }
+            
+            autoSave() {
+                this.saveData();
+                console.log('📁 Auto-save completato');
+            }
+        }
+        
+        // Initialize Delivery Management System
+        document.addEventListener('DOMContentLoaded', () => {
+            window.deliveryManager = new DeliveryManager();
+            
+            // Update connectivity status on network change
+            window.addEventListener('online', () => window.deliveryManager.updateConnectivityStatus());
+            window.addEventListener('offline', () => window.deliveryManager.updateConnectivityStatus());
+            
+            // Camera close button
+            document.getElementById('close-camera').addEventListener('click', () => {
+                document.getElementById('camera-preview').classList.add('hidden');
+            });
+        });
+    </script>
+</body>
+</html>

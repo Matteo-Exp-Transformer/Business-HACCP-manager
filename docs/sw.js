@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mini-epack-pro-v1.0.1';
+const CACHE_NAME = 'mini-epack-pro-v1.1.0-strategic';
 const urlsToCache = [
   './',
   './index.html',
