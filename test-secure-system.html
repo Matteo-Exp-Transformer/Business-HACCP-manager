@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Test Sistema Sicuro HACCP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .test-result {
+            transition: all 0.3s ease;
+        }
+        .test-passed {
+            @apply bg-green-100 border-green-500 text-green-800;
+        }
+        .test-failed {
+            @apply bg-red-100 border-red-500 text-red-800;
+        }
+        .test-pending {
+            @apply bg-yellow-100 border-yellow-500 text-yellow-800;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-6">
+    <div class="max-w-4xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🧪 Test Sistema Sicuro HACCP</h1>
+            <p class="text-gray-600">Verifica dell'integrità e funzionalità dei sistemi di sicurezza implementati</p>
+        </header>
+
+        <!-- Status Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white p-4 rounded-lg border">
+                <h3 class="font-bold text-gray-800 mb-2">🛡️ Validation System</h3>
+                <div id="validation-status" class="text-sm">Loading...</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg border">
+                <h3 class="font-bold text-gray-800 mb-2">🔐 Storage System</h3>
+                <div id="storage-status" class="text-sm">Loading...</div>
+            </div>
+            <div class="bg-white p-4 rounded-lg border">
+                <h3 class="font-bold text-gray-800 mb-2">📊 Test Results</h3>
+                <div id="test-summary" class="text-sm">
+                    <span id="passed-count">0</span> / <span id="total-count">0</span> passed
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Controls -->
+        <div class="bg-white p-6 rounded-lg border mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">🎮 Test Controls</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button id="run-all-tests" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
+                    🚀 Run All Tests
+                </button>
+                <button id="test-validation" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition">
+                    🛡️ Test Validation
+                </button>
+                <button id="test-storage" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                    🔐 Test Storage
+                </button>
+                <button id="test-integration" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition">
+                    🔗 Test Integration
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="space-y-4">
+            <div class="bg-white p-6 rounded-lg border">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">📋 Validation Tests</h2>
+                <div id="validation-tests" class="space-y-2">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg border">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">💾 Storage Tests</h2>
+                <div id="storage-tests" class="space-y-2">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg border">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">🔗 Integration Tests</h2>
+                <div id="integration-tests" class="space-y-2">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg border">
+                <h2 class="text-xl font-bold text-gray-800 mb-4">📊 System Statistics</h2>
+                <div id="system-stats" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Playground -->
+        <div class="bg-white p-6 rounded-lg border mt-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">🎮 Data Playground</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-bold text-gray-700 mb-2">Test Data Input</h3>
+                    <textarea id="test-data-input" class="w-full h-32 p-3 border rounded-lg font-mono text-sm" placeholder='{"location": "Frigorifero 1", "temperature": 2.5}'></textarea>
+                    <div class="mt-2 space-x-2">
+                        <button id="validate-input" class="bg-blue-600 text-white px-3 py-1 rounded text-sm">Validate</button>
+                        <button id="save-input" class="bg-green-600 text-white px-3 py-1 rounded text-sm">Save</button>
+                        <button id="load-input" class="bg-purple-600 text-white px-3 py-1 rounded text-sm">Load</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-bold text-gray-700 mb-2">Result Output</h3>
+                    <div id="test-output" class="w-full h-32 p-3 border rounded-lg bg-gray-50 font-mono text-sm overflow-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load Security Systems -->
+    <script src="js/core-validation.js"></script>
+    <script src="js/secure-storage.js"></script>
+
+    <script>
+        // 🧪 TEST FRAMEWORK
+        class HACCPTestFramework {
+            constructor() {
+                this.tests = [];
+                this.results = [];
+                this.init();
+            }
+
+            init() {
+                this.setupEventListeners();
+                this.checkSystemStatus();
+                this.initializeTests();
+            }
+
+            setupEventListeners() {
+                document.getElementById('run-all-tests').addEventListener('click', () => this.runAllTests());
+                document.getElementById('test-validation').addEventListener('click', () => this.runValidationTests());
+                document.getElementById('test-storage').addEventListener('click', () => this.runStorageTests());
+                document.getElementById('test-integration').addEventListener('click', () => this.runIntegrationTests());
+                
+                document.getElementById('validate-input').addEventListener('click', () => this.validatePlaygroundInput());
+                document.getElementById('save-input').addEventListener('click', () => this.savePlaygroundInput());
+                document.getElementById('load-input').addEventListener('click', () => this.loadPlaygroundInput());
+            }
+
+            checkSystemStatus() {
+                // Check if systems are loaded
+                const validationStatus = window.HACCPValidator ? '✅ Loaded' : '❌ Not Found';
+                const storageStatus = window.HACCPStorage ? '✅ Loaded' : '❌ Not Found';
+
+                document.getElementById('validation-status').textContent = validationStatus;
+                document.getElementById('storage-status').textContent = storageStatus;
+            }
+
+            initializeTests() {
+                // Validation Tests
+                this.addTest('validation', 'Temperature validation - valid data', () => {
+                    const data = { location: 'Frigorifero 1', temperature: 2.5 };
+                    const result = window.HACCPValidator.validateTemperature(data);
+                    return result.isValid === true;
+                });
+
+                this.addTest('validation', 'Temperature validation - invalid data', () => {
+                    const data = { location: '', temperature: 'invalid' };
+                    const result = window.HACCPValidator.validateTemperature(data);
+                    return result.isValid === false;
+                });
+
+                this.addTest('validation', 'Staff validation - valid data', () => {
+                    const data = { name: 'Mario Rossi', role: 'chef' };
+                    const result = window.HACCPValidator.validateStaff(data);
+                    return result.isValid === true;
+                });
+
+                this.addTest('validation', 'Cleaning validation - valid data', () => {
+                    const data = { task: 'Pulizia banco lavoro', assignee: 'Luca', completed: false, date: '2024-01-15' };
+                    const result = window.HACCPValidator.validateCleaningTask(data);
+                    return result.isValid === true;
+                });
+
+                this.addTest('validation', 'Data sanitization', () => {
+                    const data = { location: '  Frigorifero 1  ', temperature: '2.5' };
+                    const result = window.HACCPValidator.validateTemperature(data);
+                    return result.isValid && result.sanitized.location === 'Frigorifero 1' && result.sanitized.temperature === 2.5;
+                });
+
+                // Storage Tests
+                this.addTest('storage', 'Save and load data', async () => {
+                    const testData = { location: 'Test Location', temperature: 3.0 };
+                    const saveResult = await window.HACCPStorage.saveData('temperatures', testData);
+                    const loadResult = await window.HACCPStorage.loadData('temperatures');
+                    return saveResult.success && loadResult && loadResult.data.temperature === 3.0;
+                });
+
+                this.addTest('storage', 'Data integrity verification', async () => {
+                    const testData = { location: 'Test Location', temperature: 4.0 };
+                    const saveResult = await window.HACCPStorage.saveData('temperatures', testData);
+                    const loadResult = await window.HACCPStorage.loadData('temperatures');
+                    return saveResult.success && loadResult && loadResult.metadata.checksum;
+                });
+
+                this.addTest('storage', 'Backup creation', async () => {
+                    const testData = { location: 'Backup Test', temperature: 1.0 };
+                    await window.HACCPStorage.saveData('temperatures', testData);
+                    const backups = window.HACCPStorage.getBackupsForModule('temperatures');
+                    return backups.length > 0;
+                });
+
+                // Integration Tests
+                this.addTest('integration', 'Validation + Storage flow', async () => {
+                    const testData = { location: 'Integration Test', temperature: 2.0 };
+                    const validation = window.HACCPValidator.validateTemperature(testData);
+                    if (!validation.isValid) return false;
+                    
+                    const saveResult = await window.HACCPStorage.saveData('temperatures', validation.sanitized);
+                    return saveResult.success;
+                });
+
+                this.addTest('integration', 'Error handling', async () => {
+                    try {
+                        const invalidData = { location: '', temperature: 'not-a-number' };
+                        const saveResult = await window.HACCPStorage.saveData('temperatures', invalidData);
+                        return !saveResult.success; // Should fail validation
+                    } catch (error) {
+                        return true; // Error properly caught
+                    }
+                });
+
+                this.addTest('integration', 'Global error boundary', () => {
+                    const originalErrorLogs = window.HACCPValidator.errorLogs.length;
+                    
+                    // Trigger an error
+                    try {
+                        throw new Error('Test error');
+                    } catch (error) {
+                        window.HACCPValidator.logError('test', error);
+                    }
+                    
+                    return window.HACCPValidator.errorLogs.length > originalErrorLogs;
+                });
+            }
+
+            addTest(category, name, testFunction) {
+                this.tests.push({
+                    category,
+                    name,
+                    testFunction,
+                    status: 'pending'
+                });
+            }
+
+            async runAllTests() {
+                this.results = [];
+                
+                for (const test of this.tests) {
+                    await this.runSingleTest(test);
+                }
+                
+                this.updateUI();
+                this.updateSummary();
+                this.updateSystemStats();
+            }
+
+            async runValidationTests() {
+                await this.runTestsByCategory('validation');
+            }
+
+            async runStorageTests() {
+                await this.runTestsByCategory('storage');
+            }
+
+            async runIntegrationTests() {
+                await this.runTestsByCategory('integration');
+            }
+
+            async runTestsByCategory(category) {
+                const categoryTests = this.tests.filter(test => test.category === category);
+                
+                for (const test of categoryTests) {
+                    await this.runSingleTest(test);
+                }
+                
+                this.updateUI();
+                this.updateSummary();
+            }
+
+            async runSingleTest(test) {
+                test.status = 'running';
+                this.updateTestUI(test);
+                
+                try {
+                    const startTime = Date.now();
+                    const result = await test.testFunction();
+                    const endTime = Date.now();
+                    
+                    test.status = result ? 'passed' : 'failed';
+                    test.duration = endTime - startTime;
+                    test.result = result;
+                    
+                } catch (error) {
+                    test.status = 'failed';
+                    test.error = error.message;
+                    test.result = false;
+                }
+                
+                this.updateTestUI(test);
+            }
+
+            updateUI() {
+                const categories = ['validation', 'storage', 'integration'];
+                
+                categories.forEach(category => {
+                    const container = document.getElementById(`${category}-tests`);
+                    const categoryTests = this.tests.filter(test => test.category === category);
+                    
+                    container.innerHTML = categoryTests.map(test => this.renderTestResult(test)).join('');
+                });
+            }
+
+            updateTestUI(test) {
+                // Update individual test UI if needed
+            }
+
+            renderTestResult(test) {
+                const statusIcon = {
+                    'pending': '⏳',
+                    'running': '🔄',
+                    'passed': '✅',
+                    'failed': '❌'
+                }[test.status];
+
+                const statusClass = {
+                    'pending': 'test-pending',
+                    'running': 'test-pending',
+                    'passed': 'test-passed',
+                    'failed': 'test-failed'
+                }[test.status];
+
+                return `
+                    <div class="test-result p-3 border rounded-lg ${statusClass}">
+                        <div class="flex items-center justify-between">
+                            <span class="font-medium">${statusIcon} ${test.name}</span>
+                            ${test.duration ? `<span class="text-xs">${test.duration}ms</span>` : ''}
+                        </div>
+                        ${test.error ? `<div class="text-xs mt-1 opacity-75">Error: ${test.error}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            updateSummary() {
+                const passed = this.tests.filter(test => test.status === 'passed').length;
+                const total = this.tests.length;
+                
+                document.getElementById('passed-count').textContent = passed;
+                document.getElementById('total-count').textContent = total;
+            }
+
+            updateSystemStats() {
+                const statsContainer = document.getElementById('system-stats');
+                
+                try {
+                    const validationStats = window.HACCPValidator.getValidationStats();
+                    const storageStats = window.HACCPStorage.getStorageStats();
+                    
+                    statsContainer.innerHTML = `
+                        <div>
+                            <h4 class="font-bold text-gray-700 mb-2">Validation Stats</h4>
+                            <ul class="text-sm space-y-1">
+                                <li>Total Errors: ${validationStats.totalErrors}</li>
+                                <li>Categories: ${Object.keys(validationStats.errorsByCategory).join(', ') || 'None'}</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-gray-700 mb-2">Storage Stats</h4>
+                            <ul class="text-sm space-y-1">
+                                <li>Total Size: ${Math.round(storageStats.totalSize / 1024)}KB</li>
+                                <li>Backups: ${storageStats.backupCount}</li>
+                                <li>Available: ${Math.round(storageStats.available / 1024)}KB</li>
+                            </ul>
+                        </div>
+                    `;
+                } catch (error) {
+                    statsContainer.innerHTML = '<div class="text-red-600">Error loading stats</div>';
+                }
+            }
+
+            // Playground methods
+            validatePlaygroundInput() {
+                const input = document.getElementById('test-data-input').value;
+                const output = document.getElementById('test-output');
+                
+                try {
+                    const data = JSON.parse(input);
+                    const result = window.HACCPValidator.validateTemperature(data);
+                    
+                    output.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                } catch (error) {
+                    output.innerHTML = `<div class="text-red-600">Error: ${error.message}</div>`;
+                }
+            }
+
+            async savePlaygroundInput() {
+                const input = document.getElementById('test-data-input').value;
+                const output = document.getElementById('test-output');
+                
+                try {
+                    const data = JSON.parse(input);
+                    const result = await window.HACCPStorage.saveData('temperatures', data);
+                    
+                    output.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                } catch (error) {
+                    output.innerHTML = `<div class="text-red-600">Error: ${error.message}</div>`;
+                }
+            }
+
+            async loadPlaygroundInput() {
+                const output = document.getElementById('test-output');
+                
+                try {
+                    const result = await window.HACCPStorage.loadData('temperatures');
+                    
+                    output.innerHTML = `<pre>${JSON.stringify(result, null, 2)}</pre>`;
+                } catch (error) {
+                    output.innerHTML = `<div class="text-red-600">Error: ${error.message}</div>`;
+                }
+            }
+        }
+
+        // Initialize test framework when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            // Wait for security systems to load
+            setTimeout(() => {
+                window.testFramework = new HACCPTestFramework();
+                console.log('🧪 Test Framework initialized');
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
