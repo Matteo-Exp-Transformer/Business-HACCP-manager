@@ -331,7 +331,7 @@ function Inventory({ products = [], setProducts, currentUser }) {
               <option value="expired">Scaduti</option>
               <option value="critical">Critici (≤3 giorni)</option>
               <option value="warning">In scadenza (≤7 giorni)</option>
-              <option value="ok">OK (>7 giorni)</option>
+              <option value="ok">OK (&gt;7 giorni)</option>
             </select>
           </div>
         </CardContent>
