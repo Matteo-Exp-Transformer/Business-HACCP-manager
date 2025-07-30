@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings } from 'lucide-react
+import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import Temperature from './components/Temperature'
 import Cleaning from './components/Cleaning'
@@ -16,7 +16,7 @@ function App() {
   const [temperatures, setTemperatures] = useState([])
   const [cleaning, setCleaning] = useState([])
   const [staff, setStaff] = useState([])
-const [products, setProducts] = useState([])
+  const [products, setProducts] = useState([])
   
   // Sistema utenti e login
   const [currentUser, setCurrentUser] = useState(null)
@@ -28,12 +28,13 @@ const [products, setProducts] = useState([])
     const temps = localStorage.getItem('haccp-temperatures')
     const cleaningData = localStorage.getItem('haccp-cleaning')
     const staffData = localStorage.getItem('haccp-staff')
- const productsData = localStorage.getItem('haccp-products')
+    const productsData = localStorage.getItem('haccp-products')
     const usersData = localStorage.getItem('haccp-users')
+
     if (temps) setTemperatures(JSON.parse(temps))
     if (cleaningData) setCleaning(JSON.parse(cleaningData))
     if (staffData) setStaff(JSON.parse(staffData))
-if (productsData) setProducts(JSON.parse(productsData))
+    if (productsData) setProducts(JSON.parse(productsData))
     if (usersData) {
       setUsers(JSON.parse(usersData))
     } else {
@@ -51,16 +52,6 @@ if (productsData) setProducts(JSON.parse(productsData))
     }
   }, [])
 
-  // Export all data
-  const exportData = () => {
-    const data = {
-      temperatures,
-      cleaningTasks: cleaning,
-      staff,
-      products,
-      exportDate: new Date().toISOString()
-    }
-
   // Funzioni gestione utenti
   const handleLogin = (user) => {
     setCurrentUser(user)
@@ -76,23 +67,7 @@ if (productsData) setProducts(JSON.parse(productsData))
       description: `Accesso di ${user.name}`
     }
     
-    // Salva l'azione di login (potremo espandere questo sistema)
-    const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
-    actions.push(loginAction)
-    localStorage.setItem('haccp-actions', JSON.stringify(actions))
-  }
-
-// Registra l'accesso
-    const loginAction = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      user: user.id,
-      userName: user.name,
-      type: 'login',
-      description: `Accesso di ${user.name}`
-    }
-    
-    // Salva l'azione di login (potremo espandere questo sistema)
+    // Salva l'azione di login
     const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
     actions.push(loginAction)
     localStorage.setItem('haccp-actions', JSON.stringify(actions))
@@ -118,51 +93,7 @@ if (productsData) setProducts(JSON.parse(productsData))
     setActiveTab('dashboard')
   }
 
-  // Import data
-  const importData = (event) => {
-    const file = event.target.files[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result)
-        if (data.temperatures) {
-          setTemperatures(data.temperatures)
-          localStorage.setItem('haccp-temperatures', JSON.stringify(data.temperatures))
-        }
-        if (data.cleaningTasks) {
-          setCleaning(data.cleaningTasks)
-          localStorage.setItem('haccp-cleaning', JSON.stringify(data.cleaningTasks))
-        }
-        if (data.staff) {
-          setStaff(data.staff)
-          localStorage.setItem('haccp-staff', JSON.stringify(data.staff))
-        }
-        if (data.products) {
-          setProducts(data.products)
-          localStorage.setItem('haccp-products', JSON.stringify(data.products))
-        }
-        alert('Dati importati con successo!')
-      } catch (error) {
-        alert('Errore durante l\'importazione del file')
-        console.error('Import error:', error)
-      }
-    }
-    reader.readAsText(file)
-  }
-      }
-      
-      const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
-      actions.push(logoutAction)
-      localStorage.setItem('haccp-actions', JSON.stringify(actions))
-    }
-    
-    setCurrentUser(null)
-    setActiveTab('dashboard')
-  }
-
-const addUser = (userData) => {
+  const addUser = (userData) => {
     const newUser = {
       ...userData,
       id: `user_${Date.now()}`,
@@ -182,7 +113,6 @@ const addUser = (userData) => {
     const tempOk = temperatures.filter(t => t.status === 'ok').length
     const tempProblems = temperatures.filter(t => t.status === 'danger').length
     const cleaningPending = cleaning.filter(c => !c.completed).length
-    const currentDate = new Date().toISOString().split('T')[0]
     
     // Calcola scadenze prodotti
     const today = new Date()
@@ -219,6 +149,40 @@ const addUser = (userData) => {
     a.download = `haccp-data-${new Date().toISOString().split('T')[0]}.json`
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  // Import data
+  const importData = (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      try {
+        const data = JSON.parse(e.target.result)
+        if (data.temperatures) {
+          setTemperatures(data.temperatures)
+          localStorage.setItem('haccp-temperatures', JSON.stringify(data.temperatures))
+        }
+        if (data.cleaningTasks) {
+          setCleaning(data.cleaningTasks)
+          localStorage.setItem('haccp-cleaning', JSON.stringify(data.cleaningTasks))
+        }
+        if (data.staff) {
+          setStaff(data.staff)
+          localStorage.setItem('haccp-staff', JSON.stringify(data.staff))
+        }
+        if (data.products) {
+          setProducts(data.products)
+          localStorage.setItem('haccp-products', JSON.stringify(data.products))
+        }
+        alert('Dati importati con successo!')
+      } catch (error) {
+        alert('Errore durante l\'importazione del file')
+        console.error('Import error:', error)
+      }
+    }
+    reader.readAsText(file)
   }
 
   // Se non c'è utente loggato, mostra dashboard con pulsante "Inizia Turno"
@@ -482,146 +446,6 @@ const addUser = (userData) => {
             <Inventory 
               products={products} 
               setProducts={setProducts}
-              currentUser={currentUser}
-            />
-          </TabsContent>
-
-          {isAdmin() && (
-            <TabsContent value="staff">
-              <Staff 
-                staff={staff} 
-                setStaff={setStaff}
-                users={users}
-                setUsers={setUsers}
-                currentUser={currentUser}
-              />
-            </TabsContent>
-          )}
-        </Tabs>
-
-        {/* PDF Export Floating Button */}
-        <PDFExport 
-          activeTab={activeTab}
-          temperatures={temperatures}
-        />
-      </div>
-    </div>
-  )
-}
-
-export default App
-            </div>
-          </div>
-        </div>
-
-        {/* Modal Login */}
-        <Login 
-          isOpen={isLoginModalOpen}
-          onClose={() => setIsLoginModalOpen(false)}
-          onLogin={handleLogin}
-          users={users}
-          onAddUser={addUser}
-        />
-      </div>
-    )
-  }
-
-  // Se utente è loggato, mostra l'app completa
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header con info utente */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Mini-ePackPro HACCP
-            </h1>
-            <p className="text-gray-600">
-              Benvenuto, {currentUser.name} 
-              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                {currentUser.role === 'admin' ? 'Admin' : 'Dipendente'}
-              </span>
-              <span className="ml-2 text-sm">
-                ({currentUser.department})
-              </span>
-            </p>
-          </div>
-          
-          <div className="flex gap-2">
-            {isAdmin() && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setActiveTab('staff')}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Esci
-            </Button>
-          </div>
-        </div>
-
-        {/* Navigation Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
- <TabsList className="grid w-full grid-cols-5 mb-8">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="inventory" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Inventario</span>
-            </TabsTrigger>
-            <TabsTrigger value="temperature" className="flex items-center gap-2">
-              <Thermometer className="h-4 w-4" />
-              Temperature
-            </TabsTrigger>
-            <TabsTrigger value="cleaning" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Pulizie
-            </TabsTrigger>
-            {isAdmin() && (
-              <TabsTrigger value="staff" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Gestione
-              </TabsTrigger>
-            )}
-          </TabsList>
-
-          {/* Tab Content */}
-          <TabsContent value="dashboard">
-            <Dashboard 
-              temperatures={temperatures} 
-              cleaning={cleaning} 
-              staff={staff}
-  products={products}
-              currentUser={currentUser}
-            />
-          </TabsContent>
-
-          <TabsContent value="inventory">
-            <Inventory />
-          </TabsContent>
-
-          <TabsContent value="temperature">
-            <Temperature 
-              temperatures={temperatures} 
-              setTemperatures={setTemperatures}
-              currentUser={currentUser}
-            />
-          </TabsContent>
-
-          <TabsContent value="cleaning">
-            <Cleaning 
-              cleaning={cleaning} 
-              setCleaning={setCleaning}
               currentUser={currentUser}
             />
           </TabsContent>
