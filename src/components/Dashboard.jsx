@@ -1,200 +1,284 @@
-import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
-import { AlertTriangle, CheckCircle, Thermometer, Users, Calendar } from 'lucide-react'
+import React, { useState } from 'react'
+import { X, User, Plus, Eye, EyeOff } from 'lucide-react'
+import { Button } from './ui/Button'
+import { Input } from './ui/Input'
+import { Label } from './ui/Label'
 
-function Dashboard({ temperatures, cleaning, staff }) {
-  // Calculate temperature statistics
-  const tempStats = temperatures.reduce((acc, temp) => {
-    if (temp.status === 'ok') acc.ok++
-    else if (temp.status === 'warning') acc.warning++
-    else if (temp.status === 'danger') acc.danger++
-    return acc
-  }, { ok: 0, warning: 0, danger: 0 })
+function Login({ isOpen, onClose, onLogin, users, onAddUser }) {
+  const [selectedUser, setSelectedUser] = useState('')
+  const [pin, setPin] = useState('')
+  const [showAddUser, setShowAddUser] = useState(false)
+  const [showPin, setShowPin] = useState(false)
+  const [error, setError] = useState('')
 
-  // Get recent critical temperatures
-  const criticalTemps = temperatures
-    .filter(temp => temp.status === 'danger')
-    .slice(-5)
+  // Form per nuovo utente
+  const [newUser, setNewUser] = useState({
+    name: '',
+    pin: '',
+    role: 'employee',
+    department: 'Cuochi'
+  })
 
-  // Calculate cleaning completion rate
-  const completedCleaning = cleaning.filter(task => task.completed).length
-  const cleaningRate = cleaning.length > 0 ? Math.round((completedCleaning / cleaning.length) * 100) : 0
+  const departments = ['Banconisti', 'Cuochi', 'Amministrazione']
 
-  // Get today's date for filtering
-  const today = new Date().toLocaleDateString('it-IT')
-  const todaysTemps = temperatures.filter(temp => temp.time.includes(today))
+  const handleLogin = () => {
+    if (!selectedUser || !pin) {
+      setError('Seleziona utente e inserisci PIN')
+      return
+    }
+
+    const user = users.find(u => u.id === selectedUser)
+    if (!user) {
+      setError('Utente non trovato')
+      return
+    }
+
+    if (user.pin !== pin) {
+      setError('PIN non corretto')
+      return
+    }
+
+    onLogin(user)
+    resetForm()
+  }
+
+  const handleAddUser = () => {
+    if (!newUser.name.trim() || !newUser.pin.trim()) {
+      setError('Nome e PIN sono obbligatori')
+      return
+    }
+
+    if (newUser.pin.length !== 4) {
+      setError('Il PIN deve essere di 4 cifre')
+      return
+    }
+
+    // Controlla se il PIN è già in uso
+    if (users.some(u => u.pin === newUser.pin)) {
+      setError('PIN già in uso, scegline un altro')
+      return
+    }
+
+    onAddUser(newUser)
+    setShowAddUser(false)
+    setNewUser({
+      name: '',
+      pin: '',
+      role: 'employee',
+      department: 'Cuochi'
+    })
+    setError('')
+  }
+
+  const resetForm = () => {
+    setSelectedUser('')
+    setPin('')
+    setError('')
+    setShowAddUser(false)
+    setShowPin(false)
+  }
+
+  const handleClose = () => {
+    resetForm()
+    onClose()
+  }
+
+  if (!isOpen) return null
 
   return (
-    <div className="space-y-6">
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Temperature Oggi</CardTitle>
-            <Thermometer className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{todaysTemps.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {tempStats.danger > 0 && (
-                <span className="text-red-600">⚠️ {tempStats.danger} critiche</span>
-              )}
-            </p>
-          </CardContent>
-        </Card>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex justify-between items-center p-6 border-b">
+          <h2 className="text-xl font-semibold">
+            {showAddUser ? 'Aggiungi Nuovo Utente' : 'Inizia il Turno'}
+          </h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pulizie Complete</CardTitle>
-            <CheckCircle className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{cleaningRate}%</div>
-            <p className="text-xs text-muted-foreground">
-              {completedCleaning}/{cleaning.length} completate
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Personale</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{staff.length}</div>
-            <p className="text-xs text-muted-foreground">
-              membri del team
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ultimo Controllo</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {temperatures.length > 0 ? 'Oggi' : '--'}
+        <div className="p-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
+              {error}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {temperatures.length > 0 
-                ? temperatures[temperatures.length - 1].time.split(' ')[1]
-                : 'Nessun controllo'
-              }
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          )}
 
-      {/* Alerts Section */}
-      {(criticalTemps.length > 0 || cleaningRate < 80) && (
-        <Card className="border-red-200">
-          <CardHeader>
-            <CardTitle className="text-red-600 flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              Attenzione Richiesta
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {criticalTemps.length > 0 && (
+          {!showAddUser ? (
+            // Form Login
+            <div className="space-y-4">
+              {/* Selezione Utente */}
               <div>
-                <h4 className="font-medium text-red-600 mb-2">Temperature Critiche</h4>
-                <div className="space-y-2">
-                  {criticalTemps.map(temp => (
-                    <div key={temp.id} className="flex justify-between items-center bg-red-50 p-2 rounded">
-                      <span className="font-medium">{temp.location}</span>
-                      <span className="text-red-600 font-bold">{temp.temperature}°C</span>
-                      <span className="text-xs text-gray-500">{temp.time}</span>
-                    </div>
+                <Label htmlFor="user-select">Seleziona Utente</Label>
+                <select
+                  id="user-select"
+                  value={selectedUser}
+                  onChange={(e) => {
+                    setSelectedUser(e.target.value)
+                    setError('')
+                  }}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">-- Scegli utente --</option>
+                  {users.map(user => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.department})
+                      {user.role === 'admin' && ' - Admin'}
+                    </option>
                   ))}
+                </select>
+              </div>
+
+              {/* PIN */}
+              <div>
+                <Label htmlFor="pin">PIN (4 cifre)</Label>
+                <div className="relative">
+                  <Input
+                    id="pin"
+                    type={showPin ? "text" : "password"}
+                    value={pin}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 4)
+                      setPin(value)
+                      setError('')
+                    }}
+                    maxLength={4}
+                    placeholder="••••"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={() => setShowPin(!showPin)}
+                  >
+                    {showPin ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
                 </div>
               </div>
-            )}
 
-            {cleaningRate < 80 && (
+              {/* Pulsanti */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={handleLogin}
+                  className="flex-1"
+                  disabled={!selectedUser || pin.length !== 4}
+                >
+                  <User className="mr-2 h-4 w-4" />
+                  Entra
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleClose}
+                >
+                  Annulla
+                </Button>
+              </div>
+
+              {/* Aggiungi nuovo utente */}
+              <div className="pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAddUser(true)}
+                  className="w-full"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Aggiungi Nuovo Utente
+                </Button>
+              </div>
+            </div>
+          ) : (
+            // Form Nuovo Utente
+            <div className="space-y-4">
+              {/* Nome */}
               <div>
-                <h4 className="font-medium text-orange-600 mb-2">Pulizie in Ritardo</h4>
-                <p className="text-sm text-orange-600">
-                  Solo {cleaningRate}% delle attività di pulizia sono state completate.
-                  Controllare la sezione Pulizie.
-                </p>
+                <Label htmlFor="new-name">Nome Completo</Label>
+                <Input
+                  id="new-name"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                  placeholder="es. Mario Rossi"
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Ultime Temperature</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {temperatures.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
-                Nessuna temperatura registrata
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {temperatures.slice(-5).reverse().map(temp => (
-                  <div key={temp.id} className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
-                    <div>
-                      <div className="font-medium">{temp.location}</div>
-                      <div className="text-xs text-gray-500">{temp.time}</div>
-                    </div>
-                    <div className={`
-                      px-3 py-1 rounded-full text-sm font-medium
-                      ${temp.status === 'ok' 
-                        ? 'bg-green-100 text-green-800' 
-                        : temp.status === 'warning'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                      }
-                    `}>
-                      {temp.temperature}°C
-                    </div>
-                  </div>
-                ))}
+              {/* PIN */}
+              <div>
+                <Label htmlFor="new-pin">PIN (4 cifre)</Label>
+                <Input
+                  id="new-pin"
+                  type="password"
+                  value={newUser.pin}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 4)
+                    setNewUser({...newUser, pin: value})
+                  }}
+                  maxLength={4}
+                  placeholder="••••"
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Attività Pulizie</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {cleaning.length === 0 ? (
-              <p className="text-muted-foreground text-center py-4">
-                Nessuna attività di pulizia
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {cleaning.slice(-5).reverse().map(task => (
-                  <div key={task.id} className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
-                    <div>
-                      <div className="font-medium">{task.task}</div>
-                      <div className="text-xs text-gray-500">
-                        {task.assignee} • {task.date}
-                      </div>
-                    </div>
-                    <div className={`
-                      w-3 h-3 rounded-full
-                      ${task.completed ? 'bg-green-500' : 'bg-gray-300'}
-                    `} />
-                  </div>
-                ))}
+              {/* Ruolo */}
+              <div>
+                <Label htmlFor="new-role">Ruolo</Label>
+                <select
+                  id="new-role"
+                  value={newUser.role}
+                  onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="employee">Dipendente</option>
+                  <option value="admin">Amministratore</option>
+                </select>
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              {/* Reparto */}
+              <div>
+                <Label htmlFor="new-department">Reparto</Label>
+                <select
+                  id="new-department"
+                  value={newUser.department}
+                  onChange={(e) => setNewUser({...newUser, department: e.target.value})}
+                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  {departments.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Pulsanti */}
+              <div className="flex gap-3 pt-4">
+                <Button
+                  onClick={handleAddUser}
+                  className="flex-1"
+                  disabled={!newUser.name.trim() || newUser.pin.length !== 4}
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Crea Utente
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddUser(false)
+                    setError('')
+                  }}
+                >
+                  Indietro
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
-export default Dashboard
+export default Login
