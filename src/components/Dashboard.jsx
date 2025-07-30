@@ -1,8 +1,8 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
-import { AlertTriangle, CheckCircle, Thermometer, Users, Calendar } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Thermometer, Users, Calendar, Package } from 'lucide-react'
 
-function Dashboard({ temperatures, cleaning, staff }) {
+function Dashboard({ temperatures, cleaning, staff, products = [] }) {
   // Calculate temperature statistics
   const tempStats = temperatures.reduce((acc, temp) => {
     if (temp.status === 'ok') acc.ok++
@@ -23,6 +23,20 @@ function Dashboard({ temperatures, cleaning, staff }) {
   // Get today's date for filtering
   const today = new Date().toLocaleDateString('it-IT')
   const todaysTemps = temperatures.filter(temp => temp.time.includes(today))
+
+  // Calculate inventory statistics
+  const expiringProducts = products.filter(product => {
+    if (!product.expiryDate) return false
+    const today = new Date()
+    const expiry = new Date(product.expiryDate)
+    const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+    return daysUntilExpiry <= 7 && daysUntilExpiry >= 0
+  })
+
+  const expiredProducts = products.filter(product => {
+    if (!product.expiryDate) return false
+    return new Date(product.expiryDate) < new Date()
+  })
 
   return (
     <div className="space-y-6">
@@ -52,6 +66,25 @@ function Dashboard({ temperatures, cleaning, staff }) {
             <div className="text-2xl font-bold">{cleaningRate}%</div>
             <p className="text-xs text-muted-foreground">
               {completedCleaning}/{cleaning.length} completate
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Inventario</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{products.length}</div>
+            <p className="text-xs text-muted-foreground">
+              {expiredProducts.length > 0 && (
+                <span className="text-red-600">⚠️ {expiredProducts.length} scaduti</span>
+              )}
+              {expiredProducts.length === 0 && expiringProducts.length > 0 && (
+                <span className="text-yellow-600">⚠️ {expiringProducts.length} in scadenza</span>
+              )}
+              {expiredProducts.length === 0 && expiringProducts.length === 0 && 'prodotti tracciati'}
             </p>
           </CardContent>
         </Card>
@@ -89,7 +122,7 @@ function Dashboard({ temperatures, cleaning, staff }) {
       </div>
 
       {/* Alerts Section */}
-      {(criticalTemps.length > 0 || cleaningRate < 80) && (
+      {(criticalTemps.length > 0 || cleaningRate < 80 || expiredProducts.length > 0 || expiringProducts.length > 0) && (
         <Card className="border-red-200">
           <CardHeader>
             <CardTitle className="text-red-600 flex items-center gap-2">
@@ -122,12 +155,50 @@ function Dashboard({ temperatures, cleaning, staff }) {
                 </p>
               </div>
             )}
+
+            {expiredProducts.length > 0 && (
+              <div>
+                <h4 className="font-medium text-red-600 mb-2">Prodotti Scaduti</h4>
+                <div className="space-y-2">
+                  {expiredProducts.slice(0, 3).map(product => (
+                    <div key={product.id} className="flex justify-between items-center bg-red-50 p-2 rounded">
+                      <span className="font-medium">{product.name}</span>
+                      <span className="text-red-600 text-sm">
+                        Scaduto il {new Date(product.expiryDate).toLocaleDateString('it-IT')}
+                      </span>
+                    </div>
+                  ))}
+                  {expiredProducts.length > 3 && (
+                    <p className="text-sm text-red-600">...e altri {expiredProducts.length - 3} prodotti scaduti</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {expiringProducts.length > 0 && expiredProducts.length === 0 && (
+              <div>
+                <h4 className="font-medium text-yellow-600 mb-2">Prodotti in Scadenza</h4>
+                <div className="space-y-2">
+                  {expiringProducts.slice(0, 3).map(product => (
+                    <div key={product.id} className="flex justify-between items-center bg-yellow-50 p-2 rounded">
+                      <span className="font-medium">{product.name}</span>
+                      <span className="text-yellow-600 text-sm">
+                        Scade il {new Date(product.expiryDate).toLocaleDateString('it-IT')}
+                      </span>
+                    </div>
+                  ))}
+                  {expiringProducts.length > 3 && (
+                    <p className="text-sm text-yellow-600">...e altri {expiringProducts.length - 3} prodotti in scadenza</p>
+                  )}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
 
       {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Ultime Temperature</CardTitle>
@@ -188,6 +259,54 @@ function Dashboard({ temperatures, cleaning, staff }) {
                     `} />
                   </div>
                 ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Inventario Recente</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {products.length === 0 ? (
+              <p className="text-muted-foreground text-center py-4">
+                Nessun prodotto in inventario
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {products.slice(-5).reverse().map(product => {
+                  const isExpiring = product.expiryDate && (() => {
+                    const today = new Date()
+                    const expiry = new Date(product.expiryDate)
+                    const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+                    return daysUntilExpiry <= 7 && daysUntilExpiry >= 0
+                  })()
+                  
+                  const isExpired = product.expiryDate && new Date(product.expiryDate) < new Date()
+                  
+                  return (
+                    <div key={product.id} className="flex justify-between items-center p-2 rounded hover:bg-gray-50">
+                      <div>
+                        <div className="font-medium">{product.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {product.location} • {product.category}
+                        </div>
+                      </div>
+                      <div className={`
+                        px-2 py-1 rounded-full text-xs font-medium
+                        ${isExpired 
+                          ? 'bg-red-100 text-red-800' 
+                          : isExpiring
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-green-100 text-green-800'
+                        }
+                      `}>
+                        {isExpired ? 'Scaduto' : isExpiring ? 'In scadenza' : 'OK'}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </CardContent>

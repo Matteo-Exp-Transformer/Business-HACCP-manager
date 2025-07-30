@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { BarChart3, Thermometer, Sparkles, Users, Download, Upload } from 'lucide-react'
+import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import Temperature from './components/Temperature'
 import Cleaning from './components/Cleaning'
 import Staff from './components/Staff'
+import Inventory from './components/Inventory'
 import PDFExport from './components/PDFExport'
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/Card'
 import { Button } from './components/ui/Button'
@@ -14,16 +15,19 @@ function App() {
   const [temperatures, setTemperatures] = useState([])
   const [cleaning, setCleaning] = useState([])
   const [staff, setStaff] = useState([])
+  const [products, setProducts] = useState([])
 
   // Load data from localStorage on app start
   useEffect(() => {
     const temps = localStorage.getItem('haccp-temperatures')
     const cleanData = localStorage.getItem('haccp-cleaning')
     const staffData = localStorage.getItem('haccp-staff')
+    const productsData = localStorage.getItem('haccp-products')
     
     if (temps) setTemperatures(JSON.parse(temps))
     if (cleanData) setCleaning(JSON.parse(cleanData))
     if (staffData) setStaff(JSON.parse(staffData))
+    if (productsData) setProducts(JSON.parse(productsData))
   }, [])
 
   // Export all data
@@ -32,6 +36,7 @@ function App() {
       temperatures,
       cleaningTasks: cleaning,
       staff,
+      products,
       exportDate: new Date().toISOString()
     }
     
@@ -70,6 +75,10 @@ function App() {
           setStaff(data.staff)
           localStorage.setItem('haccp-staff', JSON.stringify(data.staff))
         }
+        if (data.products) {
+          setProducts(data.products)
+          localStorage.setItem('haccp-products', JSON.stringify(data.products))
+        }
         alert('Dati importati con successo!')
       } catch (error) {
         alert('Errore durante l\'importazione del file')
@@ -88,9 +97,9 @@ function App() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <CardTitle className="text-2xl font-bold text-primary-700">
-                  Mini-ePackPro
+                  Business HACCP Manager
                 </CardTitle>
-                <p className="text-gray-600 mt-1">Sistema HACCP Digitale</p>
+                <p className="text-gray-600 mt-1">Sistema HACCP Digitale per Ristoranti</p>
               </div>
               <div className="flex gap-2">
                 <Button
@@ -127,10 +136,14 @@ function App() {
         </Card>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 mb-6">
+          <TabsList className="grid w-full grid-cols-5 mb-6">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
+            </TabsTrigger>
+            <TabsTrigger value="inventory" className="flex items-center gap-2">
+              <Package className="h-4 w-4" />
+              <span className="hidden sm:inline">Inventario</span>
             </TabsTrigger>
             <TabsTrigger value="temperature" className="flex items-center gap-2">
               <Thermometer className="h-4 w-4" />
@@ -151,7 +164,12 @@ function App() {
               temperatures={temperatures}
               cleaning={cleaning}
               staff={staff}
+              products={products}
             />
+          </TabsContent>
+
+          <TabsContent value="inventory">
+            <Inventory />
           </TabsContent>
 
           <TabsContent value="temperature">
