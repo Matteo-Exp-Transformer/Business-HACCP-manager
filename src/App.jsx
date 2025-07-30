@@ -17,7 +17,7 @@ function App() {
   const [cleaning, setCleaning] = useState([])
   const [staff, setStaff] = useState([])
   const [products, setProducts] = useState([])
-  
+  const [departments, setDepartments] = useState([])
   // Sistema utenti e login
   const [currentUser, setCurrentUser] = useState(null)
   const [users, setUsers] = useState([])
@@ -29,12 +29,14 @@ function App() {
     const cleaningData = localStorage.getItem('haccp-cleaning')
     const staffData = localStorage.getItem('haccp-staff')
     const productsData = localStorage.getItem('haccp-products')
+	const departmentsData = localStorage.getItem('haccp-departments')
     const usersData = localStorage.getItem('haccp-users')
 
     if (temps) setTemperatures(JSON.parse(temps))
     if (cleaningData) setCleaning(JSON.parse(cleaningData))
     if (staffData) setStaff(JSON.parse(staffData))
     if (productsData) setProducts(JSON.parse(productsData))
+	if (departmentsData) setDepartments(JSON.parse(departmentsData))	
     if (usersData) {
       setUsers(JSON.parse(usersData))
     } else {
@@ -136,12 +138,13 @@ function App() {
   // Export all data
   const exportData = () => {
     const data = {
-      temperatures,
-      cleaningTasks: cleaning,
-      staff,
-      products,
-      exportDate: new Date().toISOString()
-    }
+  temperatures,
+  cleaningTasks: cleaning,
+  staff,
+  products,
+  departments,
+  exportDate: new Date().toISOString()
+}
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -176,6 +179,10 @@ function App() {
           setProducts(data.products)
           localStorage.setItem('haccp-products', JSON.stringify(data.products))
         }
+		if (data.departments) {
+		  setDepartments(data.departments)
+		  localStorage.setItem('haccp-departments', JSON.stringify(data.departments))
+		}
         alert('Dati importati con successo!')
       } catch (error) {
         alert('Errore durante l\'importazione del file')
