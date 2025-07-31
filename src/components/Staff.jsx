@@ -36,6 +36,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   const [showReassignModal, setShowReassignModal] = useState(false)
   const [memberToReassign, setMemberToReassign] = useState(null)
   const [newRole, setNewRole] = useState('')
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false)
 
   // Persist to localStorage whenever staff data changes
   useEffect(() => {
@@ -299,18 +300,34 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
           : member
       )
       setStaff(updatedStaff)
-    } else {
-      // Remove permanently
-      setStaff(staff.filter(member => member.id !== memberToReassign.id))
+      
+      // Close modal and reset
+      setShowReassignModal(false)
+      setMemberToReassign(null)
+      setNewRole('')
     }
+  }
 
+  const requestDelete = () => {
+    setShowDeleteConfirmation(true)
+  }
+
+  const confirmDelete = () => {
+    if (!memberToReassign) return
+    
+    // Remove permanently
+    setStaff(staff.filter(member => member.id !== memberToReassign.id))
+    
+    // Close all modals and reset
     setShowReassignModal(false)
+    setShowDeleteConfirmation(false)
     setMemberToReassign(null)
     setNewRole('')
   }
 
   const cancelReassignment = () => {
     setShowReassignModal(false)
+    setShowDeleteConfirmation(false)
     setMemberToReassign(null)
     setNewRole('')
   }
@@ -752,7 +769,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
       )}
 
       {/* Role Reassignment Modal */}
-      {showReassignModal && memberToReassign && (
+      {showReassignModal && memberToReassign && !showDeleteConfirmation && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">
@@ -760,13 +777,14 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
             </h3>
             
             <p className="text-sm text-gray-600 mb-4">
-              Cosa vuoi fare con questo dipendente?
+              Scegliere <strong>obbligatoriamente</strong> un altro ruolo per questo dipendente, 
+              oppure rimuovi dipendente dall'applicazione.
             </p>
             
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  Riassegna a nuovo ruolo:
+                  Nuovo ruolo per {memberToReassign.name}:
                 </label>
                 <select
                   value={newRole}
@@ -784,28 +802,82 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                 </select>
               </div>
               
-              <div className="bg-red-50 border border-red-200 rounded p-3">
-                <p className="text-sm text-red-800">
-                  <strong>⚠️ Attenzione:</strong> Se non selezioni un nuovo ruolo, 
-                  il dipendente verrà <strong>eliminato definitivamente</strong> dall'app.
-                </p>
-              </div>
+              {newRole && (
+                <div className="bg-green-50 border border-green-200 rounded p-3">
+                  <p className="text-sm text-green-800">
+                    <strong>✅ Confermato:</strong> {memberToReassign.name} verrà spostato 
+                    da "{memberToReassign.role}" a "<strong>{newRole}</strong>".
+                  </p>
+                </div>
+              )}
             </div>
             
             <div className="flex gap-3 mt-6">
               <Button 
                 onClick={handleReassignment}
                 className="flex-1"
-                variant={newRole ? "default" : "destructive"}
+                disabled={!newRole}
+                variant={newRole ? "default" : "outline"}
               >
-                {newRole ? `Riassegna a "${newRole}"` : "Elimina Definitivamente"}
+                {newRole ? "Conferma" : "Seleziona un ruolo"}
               </Button>
               <Button 
+                onClick={requestDelete}
+                variant="destructive"
+                className="flex-1"
+              >
+                Rimuovi Dipendente
+              </Button>
+            </div>
+            
+            <div className="mt-3">
+              <Button 
                 onClick={cancelReassignment}
+                variant="outline"
+                className="w-full"
+                size="sm"
+              >
+                Annulla
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirmation && memberToReassign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4 text-red-600">
+              ⚠️ Conferma Eliminazione
+            </h3>
+            
+            <p className="text-sm text-gray-700 mb-4">
+              Sei sicuro di voler <strong>eliminare definitivamente</strong> il dipendente 
+              <strong className="text-red-600"> "{memberToReassign.name}"</strong> dall'applicazione?
+            </p>
+            
+            <div className="bg-red-50 border border-red-200 rounded p-3 mb-4">
+              <p className="text-sm text-red-800">
+                <strong>⚠️ Attenzione:</strong> Questa azione è <strong>irreversibile</strong>. 
+                Tutti i dati associati a questo dipendente verranno persi permanentemente.
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button 
+                onClick={() => setShowDeleteConfirmation(false)}
                 variant="outline"
                 className="flex-1"
               >
                 Annulla
+              </Button>
+              <Button 
+                onClick={confirmDelete}
+                variant="destructive"
+                className="flex-1"
+              >
+                Elimina Definitivamente
               </Button>
             </div>
           </div>
