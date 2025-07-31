@@ -42,19 +42,31 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     const departmentsData = localStorage.getItem('haccp-departments')
     const departmentsVersion = localStorage.getItem('haccp-departments-version')
     
-    // Force update to new categories if version is old or missing
+    const defaultDepartments = [
+      { id: 'amministratori', name: 'Amministratori', description: 'Gestione e supervisione completa', members: [], assignedTasks: [] },
+      { id: 'responsabili', name: 'Responsabili', description: 'Responsabili di reparto e coordinamento', members: [], assignedTasks: [] },
+      { id: 'dipendenti', name: 'Dipendenti', description: 'Staff fisso e personale regolare', members: [], assignedTasks: [] },
+      { id: 'collaboratori', name: 'Collaboratore Occasionale', description: 'Personale temporaneo e collaborazioni esterne', members: [], assignedTasks: [] }
+    ]
+    
     if (departmentsVersion !== '2.0' || !departmentsData) {
-      const defaultDepartments = [
-        { id: 'amministratori', name: 'Amministratori', description: 'Gestione e supervisione completa', members: [], assignedTasks: [] },
-        { id: 'responsabili', name: 'Responsabili', description: 'Responsabili di reparto e coordinamento', members: [], assignedTasks: [] },
-        { id: 'dipendenti', name: 'Dipendenti', description: 'Staff fisso e personale regolare', members: [], assignedTasks: [] },
-        { id: 'collaboratori', name: 'Collaboratore Occasionale', description: 'Personale temporaneo e collaborazioni esterne', members: [], assignedTasks: [] }
-      ]
+      // First time or old version - set defaults
       setDepartments(defaultDepartments)
       localStorage.setItem('haccp-departments', JSON.stringify(defaultDepartments))
       localStorage.setItem('haccp-departments-version', '2.0')
     } else {
-      setDepartments(JSON.parse(departmentsData))
+      // Load existing data but ensure default categories exist
+      const existingDepartments = JSON.parse(departmentsData)
+      const mergedDepartments = [...defaultDepartments]
+      
+      // Add custom categories that don't conflict with defaults
+      existingDepartments.forEach(dept => {
+        if (!defaultDepartments.find(def => def.id === dept.id)) {
+          mergedDepartments.push(dept)
+        }
+      })
+      
+      setDepartments(mergedDepartments)
     }
   }, [])
 
@@ -62,6 +74,25 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   useEffect(() => {
     localStorage.setItem('haccp-departments', JSON.stringify(departments))
   }, [departments])
+
+  // Sync department member counts with actual staff
+  useEffect(() => {
+    if (departments.length > 0 && staff.length >= 0) {
+      const updatedDepartments = departments.map(dept => ({
+        ...dept,
+        members: staff.filter(member => member.role === dept.name).map(member => member.id)
+      }))
+      
+      // Only update if there's actually a change to avoid infinite loops
+      const hasChanges = updatedDepartments.some((dept, index) => 
+        JSON.stringify(dept.members) !== JSON.stringify(departments[index]?.members || [])
+      )
+      
+      if (hasChanges) {
+        setDepartments(updatedDepartments)
+      }
+    }
+  }, [staff]) // Only depend on staff changes
 
   const addStaffMember = (e) => {
     e.preventDefault()
@@ -504,7 +535,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                         <p className="text-sm text-gray-600 mb-2">{dept.description}</p>
                       )}
                       <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>👥 {dept.members?.length || 0} membri</span>
+                        <span>👥 {staff.filter(member => member.role === dept.name).length} membri</span>
                         <span>📋 {dept.assignedTasks?.length || 0} compiti</span>
                       </div>
                     </div>
