@@ -550,7 +550,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                                     className="h-8 w-8 p-0 text-orange-700 border-orange-300 hover:bg-orange-100 hover:border-orange-400 bg-white shadow-sm"
                                     title="Rimuovi da questo ruolo o riassegna"
                                   >
-                                    <ArrowRightLeft className="h-4 w-4 stroke-2" />
+                                    <ArrowRightLeft className="h-5 w-5 stroke-2" />
                                   </Button>
                                 </div>
                               </div>
