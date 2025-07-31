@@ -4,7 +4,7 @@ import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 // Select component not available, using native HTML select
-import { Trash2, Users, UserCheck, GraduationCap, Edit3, StickyNote } from 'lucide-react'
+import { Trash2, Users, UserCheck, GraduationCap, Edit3, StickyNote, ArrowRightLeft, RotateCw } from 'lucide-react'
 
 function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   const [formData, setFormData] = useState({
@@ -157,7 +157,23 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
       'bg-emerald-100 text-emerald-800',
       'bg-violet-100 text-violet-800',
       'bg-cyan-100 text-cyan-800',
-      'bg-rose-100 text-rose-800'
+      'bg-rose-100 text-rose-800',
+      'bg-lime-100 text-lime-800',
+      'bg-amber-100 text-amber-800',
+      'bg-sky-100 text-sky-800',
+      'bg-fuchsia-100 text-fuchsia-800',
+      'bg-slate-100 text-slate-800',
+      'bg-stone-100 text-stone-800',
+      'bg-zinc-100 text-zinc-800',
+      'bg-neutral-100 text-neutral-800',
+      'bg-red-200 text-red-900',
+      'bg-blue-200 text-blue-900',
+      'bg-green-200 text-green-900',
+      'bg-purple-200 text-purple-900',
+      'bg-yellow-200 text-yellow-900',
+      'bg-indigo-200 text-indigo-900',
+      'bg-pink-200 text-pink-900',
+      'bg-teal-200 text-teal-900'
     ]
     
     // Use hash of role name to pick consistent color
@@ -186,6 +202,22 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     if (roleColor.includes('text-violet-800')) return 'bg-violet-50 border-violet-200'
     if (roleColor.includes('text-cyan-800')) return 'bg-cyan-50 border-cyan-200'
     if (roleColor.includes('text-rose-800')) return 'bg-rose-50 border-rose-200'
+    if (roleColor.includes('text-lime-800')) return 'bg-lime-50 border-lime-200'
+    if (roleColor.includes('text-amber-800')) return 'bg-amber-50 border-amber-200'
+    if (roleColor.includes('text-sky-800')) return 'bg-sky-50 border-sky-200'
+    if (roleColor.includes('text-fuchsia-800')) return 'bg-fuchsia-50 border-fuchsia-200'
+    if (roleColor.includes('text-slate-800')) return 'bg-slate-50 border-slate-200'
+    if (roleColor.includes('text-stone-800')) return 'bg-stone-50 border-stone-200'
+    if (roleColor.includes('text-zinc-800')) return 'bg-zinc-50 border-zinc-200'
+    if (roleColor.includes('text-neutral-800')) return 'bg-neutral-50 border-neutral-200'
+    if (roleColor.includes('text-red-900')) return 'bg-red-100 border-red-300'
+    if (roleColor.includes('text-blue-900')) return 'bg-blue-100 border-blue-300'
+    if (roleColor.includes('text-green-900')) return 'bg-green-100 border-green-300'
+    if (roleColor.includes('text-purple-900')) return 'bg-purple-100 border-purple-300'
+    if (roleColor.includes('text-yellow-900')) return 'bg-yellow-100 border-yellow-300'
+    if (roleColor.includes('text-indigo-900')) return 'bg-indigo-100 border-indigo-300'
+    if (roleColor.includes('text-pink-900')) return 'bg-pink-100 border-pink-300'
+    if (roleColor.includes('text-teal-900')) return 'bg-teal-100 border-teal-300'
     return 'bg-gray-50 border-gray-200'
   }
 
@@ -512,10 +544,10 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                                     onClick={() => removeFromRole(member)}
                                     variant="outline"
                                     size="sm"
-                                    className="h-8 w-8 p-0 text-orange-700 border-orange-300 hover:bg-orange-100 hover:border-orange-400 bg-white"
+                                    className="h-8 w-8 p-0 text-orange-700 border-orange-300 hover:bg-orange-100 hover:border-orange-400 bg-white shadow-sm"
                                     title="Rimuovi da questo ruolo o riassegna"
                                   >
-                                    <Users className="h-4 w-4" />
+                                    <ArrowRightLeft className="h-4 w-4 stroke-2" />
                                   </Button>
                                 </div>
                               </div>
@@ -721,19 +753,19 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                       onClick={() => editStaffMember(member)}
                       variant="outline"
                       size="sm"
-                      className="h-7 w-7 p-0 text-blue-700 border-blue-300 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-400 bg-white shadow-sm"
+                      className="h-8 w-8 p-1 text-blue-700 border-blue-300 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-400 bg-white shadow-sm flex items-center justify-center"
                       title="Modifica dipendente"
                     >
-                      <Edit3 className="h-4 w-4 stroke-2" />
+                      <Edit3 className="h-4 w-4 stroke-[2.5]" />
                     </Button>
                     <Button
                       onClick={() => deleteStaffMember(member.id)}
                       variant="outline"
                       size="sm"
-                      className="h-7 w-7 p-0 text-red-700 border-red-300 hover:bg-red-100 hover:text-red-800 hover:border-red-400 bg-white shadow-sm"
+                      className="h-8 w-8 p-1 text-red-700 border-red-300 hover:bg-red-100 hover:text-red-800 hover:border-red-400 bg-white shadow-sm flex items-center justify-center"
                       title="Elimina dipendente"
                     >
-                      <Trash2 className="h-4 w-4 stroke-2" />
+                      <Trash2 className="h-4 w-4 stroke-[2.5]" />
                     </Button>
                   </div>
                 </div>
