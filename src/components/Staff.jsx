@@ -100,7 +100,6 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     }
   }, [staff]) // Only depend on staff changes
 
-  // Add new staff member function
   const addStaffMember = (e) => {
     e.preventDefault()
     if (!formData.name.trim() || !formData.role.trim()) return
