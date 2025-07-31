@@ -3,13 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Users, UserCheck, GraduationCap } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/Select'
+import { Trash2, Users, UserCheck, GraduationCap, Edit3, StickyNote } from 'lucide-react'
 
 function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   const [formData, setFormData] = useState({
     name: '',
     role: '',
-    certification: ''
+    certification: '',
+    notes: ''
   })
 
   // Department/Category management
@@ -22,6 +24,10 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     members: [],
     assignedTasks: []
   })
+
+  // Staff member editing
+  const [editingMember, setEditingMember] = useState(null)
+  const [showEditForm, setShowEditForm] = useState(false)
 
   // Persist to localStorage whenever staff data changes
   useEffect(() => {
@@ -36,9 +42,10 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     } else {
       // Initialize default departments
       const defaultDepartments = [
-        { id: 'banconisti', name: 'Banconisti', description: 'Gestione bancone e servizio clienti', members: [], assignedTasks: [] },
-        { id: 'cuochi', name: 'Cuochi', description: 'Preparazione e cucina', members: [], assignedTasks: [] },
-        { id: 'amministrazione', name: 'Amministrazione', description: 'Gestione e supervisione', members: [], assignedTasks: [] }
+        { id: 'amministratori', name: 'Amministratori', description: 'Gestione e supervisione completa', members: [], assignedTasks: [] },
+        { id: 'responsabili', name: 'Responsabili', description: 'Responsabili di reparto e coordinamento', members: [], assignedTasks: [] },
+        { id: 'dipendenti', name: 'Dipendenti', description: 'Staff fisso e personale regolare', members: [], assignedTasks: [] },
+        { id: 'collaboratori', name: 'Collaboratore Occasionale', description: 'Personale temporaneo e collaborazioni esterne', members: [], assignedTasks: [] }
       ]
       setDepartments(defaultDepartments)
       localStorage.setItem('haccp-departments', JSON.stringify(defaultDepartments))
@@ -59,12 +66,13 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
       name: formData.name.trim(),
       role: formData.role.trim(),
       certification: formData.certification.trim(),
+      notes: formData.notes.trim(),
       addedDate: new Date().toLocaleDateString('it-IT'),
       addedTime: new Date().toLocaleString('it-IT')
     }
 
     setStaff([...staff, newStaff])
-    setFormData({ name: '', role: '', certification: '' })
+    setFormData({ name: '', role: '', certification: '', notes: '' })
   }
 
   const deleteStaffMember = (id) => {
@@ -143,6 +151,47 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     }
   }
 
+  // Staff member editing functions
+  const editStaffMember = (member) => {
+    setEditingMember(member)
+    setFormData({
+      name: member.name,
+      role: member.role,
+      certification: member.certification || '',
+      notes: member.notes || ''
+    })
+    setShowEditForm(true)
+  }
+
+  const updateStaffMember = (e) => {
+    e.preventDefault()
+    if (!formData.name.trim() || !formData.role.trim()) return
+
+    const updatedStaff = staff.map(member =>
+      member.id === editingMember.id
+        ? {
+            ...member,
+            name: formData.name.trim(),
+            role: formData.role.trim(),
+            certification: formData.certification.trim(),
+            notes: formData.notes.trim(),
+            lastModified: new Date().toLocaleString('it-IT')
+          }
+        : member
+    )
+
+    setStaff(updatedStaff)
+    setFormData({ name: '', role: '', certification: '', notes: '' })
+    setEditingMember(null)
+    setShowEditForm(false)
+  }
+
+  const cancelEdit = () => {
+    setEditingMember(null)
+    setShowEditForm(false)
+    setFormData({ name: '', role: '', certification: '', notes: '' })
+  }
+
   return (
     <div className="space-y-6">
       {/* Add Staff Form */}
@@ -150,11 +199,18 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Aggiungi Membro del Personale
+            {editingMember ? 'Modifica Membro del Personale' : 'Aggiungi Membro del Personale'}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={addStaffMember} className="space-y-4">
+          {showEditForm && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Stai modificando:</strong> {editingMember?.name}
+              </p>
+            </div>
+          )}
+          <form onSubmit={editingMember ? updateStaffMember : addStaffMember} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Nome Completo</Label>
@@ -168,27 +224,50 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Ruolo</Label>
+                <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleziona un ruolo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map(dept => (
+                      <SelectItem key={dept.id} value={dept.name}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="certification">Certificazioni HACCP (opzionale)</Label>
                 <Input
-                  id="role"
-                  placeholder="Es: Cuoco, Chef, Cameriere..."
-                  value={formData.role}
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
-                  required
+                  id="certification"
+                  placeholder="Es: Certificato HACCP livello 2, Corso sicurezza alimentare..."
+                  value={formData.certification}
+                  onChange={(e) => setFormData({...formData, certification: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Note (opzionale)</Label>
+                <Input
+                  id="notes"
+                  placeholder="Es: Turno preferito, competenze particolari..."
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="certification">Certificazioni HACCP (opzionale)</Label>
-              <Input
-                id="certification"
-                placeholder="Es: Certificato HACCP livello 2, Corso sicurezza alimentare..."
-                value={formData.certification}
-                onChange={(e) => setFormData({...formData, certification: e.target.value})}
-              />
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1">
+                {editingMember ? 'Salva Modifiche' : 'Aggiungi al Team'}
+              </Button>
+              {editingMember && (
+                <Button type="button" variant="outline" onClick={cancelEdit} className="flex-1">
+                  Annulla
+                </Button>
+              )}
             </div>
-            <Button type="submit" className="w-full">
-              Aggiungi al Team
-            </Button>
           </form>
         </CardContent>
       </Card>
