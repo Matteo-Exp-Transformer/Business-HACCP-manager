@@ -138,7 +138,29 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   }
 
   const getRoleColor = (role) => {
-    return roleColors[role] || roleColors.default
+    if (roleColors[role]) {
+      return roleColors[role]
+    }
+    
+    // Generate consistent colors for custom roles based on their name
+    const customColors = [
+      'bg-indigo-100 text-indigo-800',
+      'bg-pink-100 text-pink-800',
+      'bg-teal-100 text-teal-800',
+      'bg-orange-100 text-orange-800',
+      'bg-emerald-100 text-emerald-800',
+      'bg-violet-100 text-violet-800',
+      'bg-cyan-100 text-cyan-800',
+      'bg-rose-100 text-rose-800'
+    ]
+    
+    // Use hash of role name to pick consistent color
+    const hash = role.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0)
+      return a & a
+    }, 0)
+    
+    return customColors[Math.abs(hash) % customColors.length]
   }
 
   // Category management functions
@@ -356,26 +378,26 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
       </div>
 
       {/* Interactive Roles Distribution */}
-      {roles.length > 0 && (
+      {departments.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Distribuzione Ruoli</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {roles.map(role => {
-                const roleMembers = staff.filter(member => member.role === role)
+              {departments.map(department => {
+                const roleMembers = staff.filter(member => member.role === department.name)
                 const count = roleMembers.length
-                const isExpanded = expandedRoles[role]
+                const isExpanded = expandedRoles[department.name]
                 
                 return (
-                  <div key={role} className="border rounded-lg overflow-hidden">
+                  <div key={department.id} className="border rounded-lg overflow-hidden">
                     <button
-                      onClick={() => setExpandedRoles(prev => ({...prev, [role]: !prev[role]}))}
-                      className={`w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 ${getRoleColor(role)} border-none`}
+                      onClick={() => setExpandedRoles(prev => ({...prev, [department.name]: !prev[department.name]}))}
+                      className={`w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 ${getRoleColor(department.name)} border-none`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">{role} ({count})</span>
+                        <span className="font-medium">{department.name} ({count})</span>
                         <span className="text-xs">
                           {isExpanded ? '▼' : '▶'}
                         </span>
@@ -384,45 +406,53 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                     
                     {isExpanded && (
                       <div className="px-4 py-3 bg-gray-50 border-t">
-                        <div className="space-y-2">
-                          {roleMembers.map(member => (
-                            <div key={member.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                              <div className="flex-1">
-                                <div className="font-medium">{member.name}</div>
-                                {member.certification && (
-                                  <div className="text-xs text-green-600 flex items-center gap-1">
-                                    <GraduationCap className="h-3 w-3" />
-                                    {member.certification}
-                                  </div>
-                                )}
-                                {member.notes && (
-                                  <div className="text-xs text-blue-600 flex items-center gap-1">
-                                    <StickyNote className="h-3 w-3" />
-                                    {member.notes}
-                                  </div>
-                                )}
+                        {count === 0 ? (
+                          <div className="text-center py-4 text-gray-500">
+                            <Users className="h-6 w-6 mx-auto mb-2 text-gray-400" />
+                            <p className="text-sm">Nessun dipendente in questo ruolo</p>
+                            <p className="text-xs">Aggiungi membri selezionando "{department.name}" nel form sopra</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {roleMembers.map(member => (
+                              <div key={member.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                                <div className="flex-1">
+                                  <div className="font-medium">{member.name}</div>
+                                  {member.certification && (
+                                    <div className="text-xs text-green-600 flex items-center gap-1">
+                                      <GraduationCap className="h-3 w-3" />
+                                      {member.certification}
+                                    </div>
+                                  )}
+                                  {member.notes && (
+                                    <div className="text-xs text-blue-600 flex items-center gap-1">
+                                      <StickyNote className="h-3 w-3" />
+                                      {member.notes}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex gap-1">
+                                  <Button
+                                    onClick={() => editStaffMember(member)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-blue-500 hover:text-blue-700"
+                                  >
+                                    <Edit3 className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    onClick={() => deleteStaffMember(member.id)}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
                               </div>
-                              <div className="flex gap-1">
-                                <Button
-                                  onClick={() => editStaffMember(member)}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0 text-blue-500 hover:text-blue-700"
-                                >
-                                  <Edit3 className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  onClick={() => deleteStaffMember(member.id)}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
