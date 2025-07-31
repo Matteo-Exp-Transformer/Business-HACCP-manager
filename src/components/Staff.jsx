@@ -12,10 +12,43 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     certification: ''
   })
 
+  // Department/Category management
+  const [departments, setDepartments] = useState([])
+  const [showCategoryForm, setShowCategoryForm] = useState(false)
+  const [editingCategory, setEditingCategory] = useState(null)
+  const [categoryFormData, setCategoryFormData] = useState({
+    name: '',
+    description: '',
+    members: [],
+    assignedTasks: []
+  })
+
   // Persist to localStorage whenever staff data changes
   useEffect(() => {
     localStorage.setItem('haccp-staff', JSON.stringify(staff))
   }, [staff])
+
+  // Load departments from localStorage
+  useEffect(() => {
+    const departmentsData = localStorage.getItem('haccp-departments')
+    if (departmentsData) {
+      setDepartments(JSON.parse(departmentsData))
+    } else {
+      // Initialize default departments
+      const defaultDepartments = [
+        { id: 'banconisti', name: 'Banconisti', description: 'Gestione bancone e servizio clienti', members: [], assignedTasks: [] },
+        { id: 'cuochi', name: 'Cuochi', description: 'Preparazione e cucina', members: [], assignedTasks: [] },
+        { id: 'amministrazione', name: 'Amministrazione', description: 'Gestione e supervisione', members: [], assignedTasks: [] }
+      ]
+      setDepartments(defaultDepartments)
+      localStorage.setItem('haccp-departments', JSON.stringify(defaultDepartments))
+    }
+  }, [])
+
+  // Persist departments
+  useEffect(() => {
+    localStorage.setItem('haccp-departments', JSON.stringify(departments))
+  }, [departments])
 
   const addStaffMember = (e) => {
     e.preventDefault()
