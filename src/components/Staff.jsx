@@ -58,6 +58,58 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     return roleColors[role] || roleColors.default
   }
 
+  // Category management functions
+  const addCategory = (e) => {
+    e.preventDefault()
+    if (!categoryFormData.name.trim()) return
+
+    const newCategory = {
+      id: Date.now(),
+      name: categoryFormData.name.trim(),
+      description: categoryFormData.description.trim(),
+      members: [],
+      assignedTasks: [],
+      createdAt: new Date().toISOString()
+    }
+
+    setDepartments([...departments, newCategory])
+    setCategoryFormData({ name: '', description: '', members: [], assignedTasks: [] })
+    setShowCategoryForm(false)
+  }
+
+  const editCategory = (category) => {
+    setEditingCategory(category)
+    setCategoryFormData({
+      name: category.name,
+      description: category.description,
+      members: category.members || [],
+      assignedTasks: category.assignedTasks || []
+    })
+    setShowCategoryForm(true)
+  }
+
+  const updateCategory = (e) => {
+    e.preventDefault()
+    if (!categoryFormData.name.trim()) return
+
+    const updatedDepartments = departments.map(dept =>
+      dept.id === editingCategory.id 
+        ? { ...dept, name: categoryFormData.name.trim(), description: categoryFormData.description.trim() }
+        : dept
+    )
+    
+    setDepartments(updatedDepartments)
+    setCategoryFormData({ name: '', description: '', members: [], assignedTasks: [] })
+    setEditingCategory(null)
+    setShowCategoryForm(false)
+  }
+
+  const deleteCategory = (categoryId) => {
+    if (confirm('Sei sicuro di voler eliminare questa categoria?')) {
+      setDepartments(departments.filter(dept => dept.id !== categoryId))
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Add Staff Form */}
