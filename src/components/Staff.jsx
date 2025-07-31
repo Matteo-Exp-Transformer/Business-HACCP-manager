@@ -550,7 +550,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                                     className="h-8 w-8 p-0 text-orange-700 border-orange-300 hover:bg-orange-100 hover:border-orange-400 bg-white shadow-sm"
                                     title="Rimuovi da questo ruolo o riassegna"
                                   >
-                                    <ArrowRightLeft className="h-5 w-5 stroke-2" />
+                                    <ArrowRightLeft className="h-6 w-6 stroke-[3]" style={{color: 'red'}} />
                                   </Button>
                                 </div>
                               </div>
@@ -759,7 +759,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                       className="h-8 w-8 p-1 text-blue-700 border-blue-300 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-400 bg-white shadow-sm flex items-center justify-center"
                       title="Modifica dipendente"
                     >
-                      <Edit3 className="h-5 w-5 stroke-[2.5]" />
+                      <Edit3 className="h-6 w-6 stroke-[3]" style={{color: 'blue'}} />
                     </Button>
                     <Button
                       onClick={() => deleteStaffMember(member.id)}
@@ -768,7 +768,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                       className="h-8 w-8 p-1 text-red-700 border-red-300 hover:bg-red-100 hover:text-red-800 hover:border-red-400 bg-white shadow-sm flex items-center justify-center"
                       title="Elimina dipendente"
                     >
-                      <Trash2 className="h-5 w-5 stroke-[2.5]" />
+                      <Trash2 className="h-6 w-6 stroke-[3]" style={{color: 'green'}} />
                     </Button>
                   </div>
                 </div>
