@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/Select'
+// Select component not available, using native HTML select
 import { Trash2, Users, UserCheck, GraduationCap, Edit3, StickyNote } from 'lucide-react'
 
 function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
@@ -229,18 +229,20 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="role">Ruolo</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleziona un ruolo..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {departments.map(dept => (
-                      <SelectItem key={dept.id} value={dept.name}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  id="role"
+                  value={formData.role}
+                  onChange={(e) => setFormData({...formData, role: e.target.value})}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                >
+                  <option value="">Seleziona un ruolo...</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.name}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
