@@ -168,6 +168,26 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     return customColors[Math.abs(hash) % customColors.length]
   }
 
+  // Get background color for category cards
+  const getCategoryCardColor = (role) => {
+    const roleColor = getRoleColor(role)
+    // Convert text color to card background color
+    if (roleColor.includes('text-red-800')) return 'bg-red-50 border-red-200'
+    if (roleColor.includes('text-purple-800')) return 'bg-purple-50 border-purple-200'
+    if (roleColor.includes('text-blue-800')) return 'bg-blue-50 border-blue-200'
+    if (roleColor.includes('text-yellow-800')) return 'bg-yellow-50 border-yellow-200'
+    if (roleColor.includes('text-green-800')) return 'bg-green-50 border-green-200'
+    if (roleColor.includes('text-indigo-800')) return 'bg-indigo-50 border-indigo-200'
+    if (roleColor.includes('text-pink-800')) return 'bg-pink-50 border-pink-200'
+    if (roleColor.includes('text-teal-800')) return 'bg-teal-50 border-teal-200'
+    if (roleColor.includes('text-orange-800')) return 'bg-orange-50 border-orange-200'
+    if (roleColor.includes('text-emerald-800')) return 'bg-emerald-50 border-emerald-200'
+    if (roleColor.includes('text-violet-800')) return 'bg-violet-50 border-violet-200'
+    if (roleColor.includes('text-cyan-800')) return 'bg-cyan-50 border-cyan-200'
+    if (roleColor.includes('text-rose-800')) return 'bg-rose-50 border-rose-200'
+    return 'bg-gray-50 border-gray-200'
+  }
+
   // Category management functions
   const addCategory = (e) => {
     e.preventDefault()
@@ -470,33 +490,15 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                                     </div>
                                   )}
                                 </div>
-                                <div className="flex gap-1">
-                                  <Button
-                                    onClick={() => editStaffMember(member)}
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 w-7 p-0 text-blue-600 border-blue-200 hover:bg-blue-50"
-                                    title="Modifica dipendente"
-                                  >
-                                    <Edit3 className="h-3 w-3" />
-                                  </Button>
+                                <div className="flex justify-center">
                                   <Button
                                     onClick={() => removeFromRole(member)}
                                     variant="outline"
                                     size="sm"
-                                    className="h-7 w-7 p-0 text-orange-600 border-orange-200 hover:bg-orange-50"
-                                    title="Rimuovi da questo ruolo"
+                                    className="h-8 w-8 p-0 text-orange-700 border-orange-300 hover:bg-orange-100 hover:border-orange-400 bg-white"
+                                    title="Rimuovi da questo ruolo o riassegna"
                                   >
-                                    <Users className="h-3 w-3" />
-                                  </Button>
-                                  <Button
-                                    onClick={() => deleteStaffMember(member.id)}
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-7 w-7 p-0 text-red-600 border-red-200 hover:bg-red-50"
-                                    title="Elimina definitivamente"
-                                  >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Users className="h-4 w-4" />
                                   </Button>
                                 </div>
                               </div>
@@ -589,9 +591,14 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {departments.map(dept => (
-                    <div key={dept.id} className="p-4 border rounded-lg bg-gray-50">
+                    <div key={dept.id} className={`p-4 border rounded-lg ${getCategoryCardColor(dept.name)}`}>
                       <div className="flex justify-between items-start mb-2">
-                        <h5 className="font-medium text-lg">{dept.name}</h5>
+                        <div className="flex items-center gap-2">
+                          <h5 className="font-medium text-lg">{dept.name}</h5>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(dept.name)}`}>
+                            {dept.name}
+                          </span>
+                        </div>
                         <div className="flex gap-1">
                           <Button
                             onClick={() => editCategory(dept)}
@@ -697,17 +704,19 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                       onClick={() => editStaffMember(member)}
                       variant="outline"
                       size="sm"
-                      className="h-7 w-7 p-0 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
+                      className="h-7 w-7 p-0 text-blue-700 border-blue-300 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-400 bg-white shadow-sm"
+                      title="Modifica dipendente"
                     >
-                      <Edit3 className="h-3 w-3" />
+                      <Edit3 className="h-4 w-4 stroke-2" />
                     </Button>
                     <Button
                       onClick={() => deleteStaffMember(member.id)}
                       variant="outline"
                       size="sm"
-                      className="h-7 w-7 p-0 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                      className="h-7 w-7 p-0 text-red-700 border-red-300 hover:bg-red-100 hover:text-red-800 hover:border-red-400 bg-white shadow-sm"
+                      title="Elimina dipendente"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-4 w-4 stroke-2" />
                     </Button>
                   </div>
                 </div>
