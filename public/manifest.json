@@ -1,6 +1,6 @@
 {
-  "name": "Mini-ePackPro - Sistema HACCP",
-  "short_name": "Mini-ePackPro",
+  "name": "Business HACCP Manager",
+  "short_name": "Business HACCP",
   "description": "Sistema digitale per la gestione HACCP nei ristoranti e attività alimentari",
   "start_url": "./index.html",
   "display": "standalone",

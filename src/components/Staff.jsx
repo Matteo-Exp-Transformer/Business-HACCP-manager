@@ -5,7 +5,7 @@ import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Trash2, Users, UserCheck, GraduationCap } from 'lucide-react'
 
-function Staff({ staff, setStaff }) {
+function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   const [formData, setFormData] = useState({
     name: '',
     role: '',

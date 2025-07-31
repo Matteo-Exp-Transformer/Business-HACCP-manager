@@ -414,12 +414,10 @@ function App() {
               <Package className="h-4 w-4" />
               Inventario
             </TabsTrigger>
-            {isAdmin() && (
-              <TabsTrigger value="staff" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                Gestione
-              </TabsTrigger>
-            )}
+            <TabsTrigger value="staff" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Gestione
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab Content */}
@@ -457,17 +455,16 @@ function App() {
             />
           </TabsContent>
 
-          {isAdmin() && (
-            <TabsContent value="staff">
-              <Staff 
-                staff={staff} 
-                setStaff={setStaff}
-                users={users}
-                setUsers={setUsers}
-                currentUser={currentUser}
-              />
-            </TabsContent>
-          )}
+          <TabsContent value="staff">
+            <Staff 
+              staff={staff} 
+              setStaff={setStaff}
+              users={users}
+              setUsers={setUsers}
+              currentUser={currentUser}
+              isAdmin={isAdmin()}
+            />
+          </TabsContent>
         </Tabs>
 
         {/* PDF Export Floating Button */}
