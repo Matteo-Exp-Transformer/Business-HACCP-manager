@@ -28,6 +28,9 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   // Staff member editing
   const [editingMember, setEditingMember] = useState(null)
   const [showEditForm, setShowEditForm] = useState(false)
+  
+  // Role distribution expansion
+  const [expandedRoles, setExpandedRoles] = useState({})
 
   // Persist to localStorage whenever staff data changes
   useEffect(() => {
@@ -37,10 +40,10 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   // Load departments from localStorage
   useEffect(() => {
     const departmentsData = localStorage.getItem('haccp-departments')
-    if (departmentsData) {
-      setDepartments(JSON.parse(departmentsData))
-    } else {
-      // Initialize default departments
+    const departmentsVersion = localStorage.getItem('haccp-departments-version')
+    
+    // Force update to new categories if version is old or missing
+    if (departmentsVersion !== '2.0' || !departmentsData) {
       const defaultDepartments = [
         { id: 'amministratori', name: 'Amministratori', description: 'Gestione e supervisione completa', members: [], assignedTasks: [] },
         { id: 'responsabili', name: 'Responsabili', description: 'Responsabili di reparto e coordinamento', members: [], assignedTasks: [] },
@@ -49,6 +52,9 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
       ]
       setDepartments(defaultDepartments)
       localStorage.setItem('haccp-departments', JSON.stringify(defaultDepartments))
+      localStorage.setItem('haccp-departments-version', '2.0')
+    } else {
+      setDepartments(JSON.parse(departmentsData))
     }
   }, [])
 
@@ -318,22 +324,76 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
         </Card>
       </div>
 
-      {/* Roles Overview */}
+      {/* Interactive Roles Distribution */}
       {roles.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Distribuzione Ruoli</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-wrap gap-2">
+            <div className="space-y-3">
               {roles.map(role => {
-                const count = staff.filter(member => member.role === role).length
+                const roleMembers = staff.filter(member => member.role === role)
+                const count = roleMembers.length
+                const isExpanded = expandedRoles[role]
+                
                 return (
-                  <div
-                    key={role}
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${getRoleColor(role)}`}
-                  >
-                    {role} ({count})
+                  <div key={role} className="border rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => setExpandedRoles(prev => ({...prev, [role]: !prev[role]}))}
+                      className={`w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 ${getRoleColor(role)} border-none`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{role} ({count})</span>
+                        <span className="text-xs">
+                          {isExpanded ? '▼' : '▶'}
+                        </span>
+                      </div>
+                    </button>
+                    
+                    {isExpanded && (
+                      <div className="px-4 py-3 bg-gray-50 border-t">
+                        <div className="space-y-2">
+                          {roleMembers.map(member => (
+                            <div key={member.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                              <div className="flex-1">
+                                <div className="font-medium">{member.name}</div>
+                                {member.certification && (
+                                  <div className="text-xs text-green-600 flex items-center gap-1">
+                                    <GraduationCap className="h-3 w-3" />
+                                    {member.certification}
+                                  </div>
+                                )}
+                                {member.notes && (
+                                  <div className="text-xs text-blue-600 flex items-center gap-1">
+                                    <StickyNote className="h-3 w-3" />
+                                    {member.notes}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex gap-1">
+                                <Button
+                                  onClick={() => editStaffMember(member)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-blue-500 hover:text-blue-700"
+                                >
+                                  <Edit3 className="h-3 w-3" />
+                                </Button>
+                                <Button
+                                  onClick={() => deleteStaffMember(member.id)}
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -456,10 +516,10 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
         </Card>
       )}
 
-      {/* Staff List - Grouped by Category */}
+      {/* Compact Staff List - Optimized for 35+ employees */}
       <Card>
         <CardHeader>
-          <CardTitle>Elenco Personale ({staff.length})</CardTitle>
+          <CardTitle>Elenco Personale Completo ({staff.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {staff.length === 0 ? (
@@ -471,80 +531,76 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
-              {departments.map(category => {
-                const categoryMembers = staff.filter(member => member.role === category.name)
-                
-                if (categoryMembers.length === 0) return null
-                
-                return (
-                  <div key={category.id} className="space-y-3">
-                    <div className="flex items-center gap-2 pb-2 border-b">
-                      <h3 className="font-semibold text-lg">{category.name}</h3>
-                      <span className="text-sm text-gray-500">({categoryMembers.length})</span>
-                    </div>
-                    
-                    <div className="space-y-3">
-                      {categoryMembers.map(member => (
-                        <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="font-medium text-lg">{member.name}</div>
-                              <div className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
-                                {member.role}
-                              </div>
-                            </div>
-                            
-                            {member.certification && (
-                              <div className="flex items-center gap-2 mb-1">
-                                <GraduationCap className="h-4 w-4 text-green-600" />
-                                <span className="text-sm text-green-800 font-medium">
-                                  {member.certification}
-                                </span>
-                              </div>
-                            )}
-
-                            {member.notes && (
-                              <div className="flex items-center gap-2 mb-1">
-                                <StickyNote className="h-4 w-4 text-blue-600" />
-                                <span className="text-sm text-blue-800">
-                                  {member.notes}
-                                </span>
-                              </div>
-                            )}
-                            
-                            <div className="text-xs text-gray-500">
-                              Aggiunto: {member.addedTime}
-                              {member.lastModified && (
-                                <span className="ml-2">• Modificato: {member.lastModified}</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-2">
-                            <Button
-                              onClick={() => editStaffMember(member)}
-                              variant="ghost"
-                              size="icon"
-                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                            >
-                              <Edit3 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              onClick={() => deleteStaffMember(member.id)}
-                              variant="ghost"
-                              size="icon"
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+            <div className="space-y-2">
+              {/* Compact table-like layout */}
+              <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-100 rounded text-xs font-medium text-gray-600">
+                <div className="col-span-3">Nome</div>
+                <div className="col-span-2">Ruolo</div>
+                <div className="col-span-3">Certificazione</div>
+                <div className="col-span-3">Note</div>
+                <div className="col-span-1">Azioni</div>
+              </div>
+              
+              {staff.map(member => (
+                <div key={member.id} className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-50 hover:bg-gray-100 rounded border border-gray-200 transition-colors text-sm">
+                  <div className="col-span-3 flex items-center">
+                    <div>
+                      <div className="font-medium">{member.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {member.addedDate}
+                        {member.lastModified && ' • Mod.'}
+                      </div>
                     </div>
                   </div>
-                )
-              })}
+                  
+                  <div className="col-span-2 flex items-center">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
+                      {member.role}
+                    </span>
+                  </div>
+                  
+                  <div className="col-span-3 flex items-center">
+                    {member.certification ? (
+                      <div className="flex items-center gap-1 text-green-700">
+                        <GraduationCap className="h-3 w-3" />
+                        <span className="truncate">{member.certification}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">Nessuna</span>
+                    )}
+                  </div>
+                  
+                  <div className="col-span-3 flex items-center">
+                    {member.notes ? (
+                      <div className="flex items-center gap-1 text-blue-700">
+                        <StickyNote className="h-3 w-3" />
+                        <span className="truncate">{member.notes}</span>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs">-</span>
+                    )}
+                  </div>
+                  
+                  <div className="col-span-1 flex items-center justify-end gap-1">
+                    <Button
+                      onClick={() => editStaffMember(member)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
+                    >
+                      <Edit3 className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      onClick={() => deleteStaffMember(member.id)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
