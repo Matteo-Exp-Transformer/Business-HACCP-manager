@@ -31,6 +31,11 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   
   // Role distribution expansion
   const [expandedRoles, setExpandedRoles] = useState({})
+  
+  // Role reassignment modal
+  const [showReassignModal, setShowReassignModal] = useState(false)
+  const [memberToReassign, setMemberToReassign] = useState(null)
+  const [newRole, setNewRole] = useState('')
 
   // Persist to localStorage whenever staff data changes
   useEffect(() => {
@@ -256,6 +261,40 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     setFormData({ name: '', role: '', certification: '', notes: '' })
   }
 
+  // Role reassignment functions
+  const removeFromRole = (member) => {
+    setMemberToReassign(member)
+    setNewRole('')
+    setShowReassignModal(true)
+  }
+
+  const handleReassignment = () => {
+    if (!memberToReassign) return
+
+    if (newRole) {
+      // Reassign to new role
+      const updatedStaff = staff.map(member =>
+        member.id === memberToReassign.id
+          ? { ...member, role: newRole, lastModified: new Date().toLocaleString('it-IT') }
+          : member
+      )
+      setStaff(updatedStaff)
+    } else {
+      // Remove permanently
+      setStaff(staff.filter(member => member.id !== memberToReassign.id))
+    }
+
+    setShowReassignModal(false)
+    setMemberToReassign(null)
+    setNewRole('')
+  }
+
+  const cancelReassignment = () => {
+    setShowReassignModal(false)
+    setMemberToReassign(null)
+    setNewRole('')
+  }
+
   return (
     <div className="space-y-6">
       {/* Add Staff Form */}
@@ -434,17 +473,28 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                                 <div className="flex gap-1">
                                   <Button
                                     onClick={() => editStaffMember(member)}
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
-                                    className="h-7 w-7 p-0 text-blue-500 hover:text-blue-700"
+                                    className="h-7 w-7 p-0 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                    title="Modifica dipendente"
                                   >
                                     <Edit3 className="h-3 w-3" />
                                   </Button>
                                   <Button
-                                    onClick={() => deleteStaffMember(member.id)}
-                                    variant="ghost"
+                                    onClick={() => removeFromRole(member)}
+                                    variant="outline"
                                     size="sm"
-                                    className="h-7 w-7 p-0 text-red-500 hover:text-red-700"
+                                    className="h-7 w-7 p-0 text-orange-600 border-orange-200 hover:bg-orange-50"
+                                    title="Rimuovi da questo ruolo"
+                                  >
+                                    <Users className="h-3 w-3" />
+                                  </Button>
+                                  <Button
+                                    onClick={() => deleteStaffMember(member.id)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 w-7 p-0 text-red-600 border-red-200 hover:bg-red-50"
+                                    title="Elimina definitivamente"
                                   >
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
@@ -645,17 +695,17 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                   <div className="col-span-1 flex items-center justify-end gap-1">
                     <Button
                       onClick={() => editStaffMember(member)}
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-6 w-6 p-0 text-blue-500 hover:text-blue-700"
+                      className="h-7 w-7 p-0 text-blue-600 border-blue-200 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300"
                     >
                       <Edit3 className="h-3 w-3" />
                     </Button>
                     <Button
                       onClick={() => deleteStaffMember(member.id)}
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                      className="h-7 w-7 p-0 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -690,6 +740,67 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Role Reassignment Modal */}
+      {showReassignModal && memberToReassign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">
+              Rimuovi "{memberToReassign.name}" da "{memberToReassign.role}"
+            </h3>
+            
+            <p className="text-sm text-gray-600 mb-4">
+              Cosa vuoi fare con questo dipendente?
+            </p>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Riassegna a nuovo ruolo:
+                </label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="w-full h-10 rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">-- Seleziona nuovo ruolo --</option>
+                  {departments
+                    .filter(dept => dept.name !== memberToReassign.role)
+                    .map(dept => (
+                      <option key={dept.id} value={dept.name}>
+                        {dept.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+              
+              <div className="bg-red-50 border border-red-200 rounded p-3">
+                <p className="text-sm text-red-800">
+                  <strong>⚠️ Attenzione:</strong> Se non selezioni un nuovo ruolo, 
+                  il dipendente verrà <strong>eliminato definitivamente</strong> dall'app.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <Button 
+                onClick={handleReassignment}
+                className="flex-1"
+                variant={newRole ? "default" : "destructive"}
+              >
+                {newRole ? `Riassegna a "${newRole}"` : "Elimina Definitivamente"}
+              </Button>
+              <Button 
+                onClick={cancelReassignment}
+                variant="outline"
+                className="flex-1"
+              >
+                Annulla
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
