@@ -493,7 +493,10 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {departments.map(department => {
+              {departments
+                .slice()
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(department => {
                 const roleMembers = staff.filter(member => member.role === department.name)
                 const count = roleMembers.length
                 const isExpanded = expandedRoles[department.name]
