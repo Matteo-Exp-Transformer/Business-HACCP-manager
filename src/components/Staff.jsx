@@ -86,6 +86,11 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   const certifiedStaff = staff.filter(member => member.certification.trim() !== '')
 
   const roleColors = {
+    'Amministratori': 'bg-red-100 text-red-800',
+    'Responsabili': 'bg-purple-100 text-purple-800',
+    'Dipendenti': 'bg-blue-100 text-blue-800',
+    'Collaboratore Occasionale': 'bg-yellow-100 text-yellow-800',
+    // Legacy colors for backward compatibility
     'Cuoco': 'bg-blue-100 text-blue-800',
     'Sous Chef': 'bg-purple-100 text-purple-800',
     'Chef': 'bg-red-100 text-red-800',
@@ -449,7 +454,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
         </Card>
       )}
 
-      {/* Staff List */}
+      {/* Staff List - Grouped by Category */}
       <Card>
         <CardHeader>
           <CardTitle>Elenco Personale ({staff.length})</CardTitle>
@@ -464,41 +469,80 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {staff.map(member => (
-                <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="font-medium text-lg">{member.name}</div>
-                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
-                        {member.role}
-                      </div>
+            <div className="space-y-6">
+              {departments.map(category => {
+                const categoryMembers = staff.filter(member => member.role === category.name)
+                
+                if (categoryMembers.length === 0) return null
+                
+                return (
+                  <div key={category.id} className="space-y-3">
+                    <div className="flex items-center gap-2 pb-2 border-b">
+                      <h3 className="font-semibold text-lg">{category.name}</h3>
+                      <span className="text-sm text-gray-500">({categoryMembers.length})</span>
                     </div>
                     
-                    {member.certification && (
-                      <div className="flex items-center gap-2 mb-1">
-                        <GraduationCap className="h-4 w-4 text-green-600" />
-                        <span className="text-sm text-green-800 font-medium">
-                          {member.certification}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="text-xs text-gray-500">
-                      Aggiunto: {member.addedTime}
+                    <div className="space-y-3">
+                      {categoryMembers.map(member => (
+                        <div key={member.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="font-medium text-lg">{member.name}</div>
+                              <div className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
+                                {member.role}
+                              </div>
+                            </div>
+                            
+                            {member.certification && (
+                              <div className="flex items-center gap-2 mb-1">
+                                <GraduationCap className="h-4 w-4 text-green-600" />
+                                <span className="text-sm text-green-800 font-medium">
+                                  {member.certification}
+                                </span>
+                              </div>
+                            )}
+
+                            {member.notes && (
+                              <div className="flex items-center gap-2 mb-1">
+                                <StickyNote className="h-4 w-4 text-blue-600" />
+                                <span className="text-sm text-blue-800">
+                                  {member.notes}
+                                </span>
+                              </div>
+                            )}
+                            
+                            <div className="text-xs text-gray-500">
+                              Aggiunto: {member.addedTime}
+                              {member.lastModified && (
+                                <span className="ml-2">• Modificato: {member.lastModified}</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => editStaffMember(member)}
+                              variant="ghost"
+                              size="icon"
+                              className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              onClick={() => deleteStaffMember(member.id)}
+                              variant="ghost"
+                              size="icon"
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  
-                  <Button
-                    onClick={() => deleteStaffMember(member.id)}
-                    variant="ghost"
-                    size="icon"
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </CardContent>
