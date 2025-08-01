@@ -42,10 +42,10 @@ code {
   background: #a1a1a1;
 }
 
-/* Fix per icone nei pulsanti - Force larger icons */
+/* Fix per icone nei pulsanti - Standard app size */
 button svg {
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  min-height: 28px !important;
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  min-height: 16px !important;
 }
