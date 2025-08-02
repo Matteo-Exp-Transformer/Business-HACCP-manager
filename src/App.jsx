@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react'
-import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings } from 'lucide-react'
+import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, QrCode, Bot } from 'lucide-react'
 import Dashboard from './components/Dashboard'
-import Temperature from './components/Temperature'
 import Cleaning from './components/Cleaning'
+import Refrigerators from './components/Refrigerators'
 import Staff from './components/Staff'
 import Inventory from './components/Inventory'
+import ProductLabels from './components/ProductLabels'
+import AIAssistant from './components/AIAssistant'
+import AIAssistantSection from './components/AIAssistantSection'
+import ExpiryAlertAutomation from './components/automations/ExpiryAlertAutomation'
+import StorageManager from './components/StorageManager'
+import PWAInstallPrompt from './components/PWAInstallPrompt'
+
 import Login from './components/Login'
 import PDFExport from './components/PDFExport'
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/Card'
@@ -15,9 +22,11 @@ function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [temperatures, setTemperatures] = useState([])
   const [cleaning, setCleaning] = useState([])
+  const [refrigerators, setRefrigerators] = useState([])
   const [staff, setStaff] = useState([])
   const [products, setProducts] = useState([])
   const [departments, setDepartments] = useState([])
+  const [productLabels, setProductLabels] = useState([])
   // Sistema utenti e login
   const [currentUser, setCurrentUser] = useState(null)
   const [users, setUsers] = useState([])
@@ -27,16 +36,20 @@ function App() {
   useEffect(() => {
     const temps = localStorage.getItem('haccp-temperatures')
     const cleaningData = localStorage.getItem('haccp-cleaning')
+    const refrigeratorsData = localStorage.getItem('haccp-refrigerators')
     const staffData = localStorage.getItem('haccp-staff')
     const productsData = localStorage.getItem('haccp-products')
 	const departmentsData = localStorage.getItem('haccp-departments')
+    const productLabelsData = localStorage.getItem('haccp-product-labels')
     const usersData = localStorage.getItem('haccp-users')
 
     if (temps) setTemperatures(JSON.parse(temps))
     if (cleaningData) setCleaning(JSON.parse(cleaningData))
+    if (refrigeratorsData) setRefrigerators(JSON.parse(refrigeratorsData))
     if (staffData) setStaff(JSON.parse(staffData))
     if (productsData) setProducts(JSON.parse(productsData))
 	if (departmentsData) setDepartments(JSON.parse(departmentsData))	
+    if (productLabelsData) setProductLabels(JSON.parse(productLabelsData))
     if (usersData) {
       setUsers(JSON.parse(usersData))
     } else {
@@ -53,6 +66,35 @@ function App() {
       localStorage.setItem('haccp-users', JSON.stringify([defaultAdmin]))
     }
   }, [])
+
+  // Save data to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('haccp-temperatures', JSON.stringify(temperatures))
+  }, [temperatures])
+
+  useEffect(() => {
+    localStorage.setItem('haccp-refrigerators', JSON.stringify(refrigerators))
+  }, [refrigerators])
+
+  useEffect(() => {
+    localStorage.setItem('haccp-cleaning', JSON.stringify(cleaning))
+  }, [cleaning])
+
+  useEffect(() => {
+    localStorage.setItem('haccp-staff', JSON.stringify(staff))
+  }, [staff])
+
+  useEffect(() => {
+    localStorage.setItem('haccp-products', JSON.stringify(products))
+  }, [products])
+
+  useEffect(() => {
+    localStorage.setItem('haccp-departments', JSON.stringify(departments))
+  }, [departments])
+
+  useEffect(() => {
+    localStorage.setItem('haccp-product-labels', JSON.stringify(productLabels))
+  }, [productLabels])
 
   // Funzioni gestione utenti
   const handleLogin = (user) => {
@@ -105,6 +147,27 @@ function App() {
     const updatedUsers = [...users, newUser]
     setUsers(updatedUsers)
     localStorage.setItem('haccp-users', JSON.stringify(updatedUsers))
+    
+    // Integra l'utente registrato nella sezione Staff
+    const newStaffMember = {
+      id: `staff_${Date.now()}`,
+      name: userData.name,
+      role: userData.role === 'admin' ? 'Amministratore' : 
+            userData.role === 'dipendente' ? 'Dipendente' :
+            userData.role === 'responsabile' ? 'Responsabile' :
+            userData.role === 'collaboratore' ? 'Collaboratore Occasionale' : 'Dipendente',
+      department: userData.department || 'Non assegnato',
+      certification: '',
+      notes: `Utente registrato il ${new Date().toLocaleDateString('it-IT')}`,
+      addedDate: new Date().toLocaleDateString('it-IT'),
+      addedTime: new Date().toLocaleString('it-IT'),
+      isRegisteredUser: true,
+      userId: newUser.id
+    }
+    
+    const updatedStaff = [...staff, newStaffMember]
+    setStaff(updatedStaff)
+    localStorage.setItem('haccp-staff', JSON.stringify(updatedStaff))
   }
 
   // Funzione per verificare se l'utente è admin
@@ -143,6 +206,7 @@ function App() {
   staff,
   products,
   departments,
+  productLabels,
   exportDate: new Date().toISOString()
 }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -183,6 +247,10 @@ function App() {
 		  setDepartments(data.departments)
 		  localStorage.setItem('haccp-departments', JSON.stringify(data.departments))
 		}
+        if (data.productLabels) {
+          setProductLabels(data.productLabels)
+          localStorage.setItem('haccp-product-labels', JSON.stringify(data.productLabels))
+        }
         alert('Dati importati con successo!')
       } catch (error) {
         alert('Errore durante l\'importazione del file')
@@ -336,13 +404,7 @@ function App() {
               Business HACCP Manager
             </h1>
             <p className="text-gray-600">
-              Benvenuto, {currentUser.name} 
-              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">
-                {currentUser.role === 'admin' ? 'Admin' : 'Dipendente'}
-              </span>
-              <span className="ml-2 text-sm">
-                ({currentUser.department})
-              </span>
+              Benvenuto, <span className="font-['Dancing_Script'] font-semibold text-2xl text-purple-600">{currentUser.name} - {currentUser.role === 'admin' ? 'Admin' : 'Dipendente'}</span>
             </p>
           </div>
           
@@ -375,51 +437,65 @@ function App() {
                 className="hidden"
               />
             </label>
-            {isAdmin() && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setActiveTab('staff')}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Esci
-            </Button>
+
           </div>
         </div>
 
         {/* Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-8">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 md:grid-cols-8' : 'grid-cols-3 md:grid-cols-7'} gap-1 mb-8`}>
+            <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <BarChart3 className="h-4 w-4" />
-              Dashboard
+              <span className="hidden sm:inline">Dashboard</span>
             </TabsTrigger>
-            <TabsTrigger value="temperature" className="flex items-center gap-2">
+            <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Thermometer className="h-4 w-4" />
-              Temperature
+              <span className="hidden sm:inline">Frigoriferi e Freezer</span>
             </TabsTrigger>
-            <TabsTrigger value="cleaning" className="flex items-center gap-2">
+            <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Sparkles className="h-4 w-4" />
-              Pulizie
+              <span className="hidden sm:inline">Attività e Mansioni</span>
             </TabsTrigger>
-            <TabsTrigger value="inventory" className="flex items-center gap-2">
+            <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Package className="h-4 w-4" />
-              Inventario
+              <span className="hidden sm:inline">Inventario</span>
+            </TabsTrigger>
+            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <QrCode className="h-4 w-4" />
+              <span className="hidden sm:inline">Etichette</span>
+            </TabsTrigger>
+            <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <Bot className="h-4 w-4" />
+              <span className="hidden sm:inline">IA Assistant</span>
             </TabsTrigger>
             {isAdmin() && (
-              <TabsTrigger value="staff" className="flex items-center gap-2">
+              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
                 <Users className="h-4 w-4" />
-                Gestione
+                <span className="hidden sm:inline">Gestione</span>
               </TabsTrigger>
             )}
+            <div className="flex flex-col gap-1">
+              {isAdmin() && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setActiveTab('staff')}
+                  className="flex items-center gap-1 md:gap-2 text-xs md:text-sm h-9 px-3"
+                >
+                  <Settings className="h-4 w-4" />
+                  <span className="hidden sm:inline">Impostazioni</span>
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleLogout}
+                className="flex items-center gap-1 md:gap-2 text-xs md:text-sm h-9 px-3"
+              >
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Esci</span>
+              </Button>
+            </div>
           </TabsList>
 
           {/* Tab Content */}
@@ -427,17 +503,20 @@ function App() {
             <Dashboard 
               temperatures={temperatures} 
               cleaning={cleaning} 
-              staff={staff}
-              products={products}
+              staff={staff} 
+              products={products} 
               currentUser={currentUser}
+              setActiveTab={setActiveTab}
             />
           </TabsContent>
 
-          <TabsContent value="temperature">
-            <Temperature 
-              temperatures={temperatures} 
+          <TabsContent value="refrigerators">
+            <Refrigerators 
+              temperatures={temperatures}
               setTemperatures={setTemperatures}
               currentUser={currentUser}
+              refrigerators={refrigerators}
+              setRefrigerators={setRefrigerators}
             />
           </TabsContent>
 
@@ -445,7 +524,11 @@ function App() {
             <Cleaning 
               cleaning={cleaning} 
               setCleaning={setCleaning}
+              temperatures={temperatures}
+              setTemperatures={setTemperatures}
               currentUser={currentUser}
+              refrigerators={refrigerators}
+              setRefrigerators={setRefrigerators}
             />
           </TabsContent>
 
@@ -454,18 +537,56 @@ function App() {
               products={products} 
               setProducts={setProducts}
               currentUser={currentUser}
+              refrigerators={refrigerators}
+            />
+          </TabsContent>
+
+          <TabsContent value="labels">
+            <ProductLabels 
+              productLabels={productLabels}
+              setProductLabels={setProductLabels}
+              products={products}
+              currentUser={currentUser}
+            />
+          </TabsContent>
+
+          <TabsContent value="ai-assistant">
+            <AIAssistantSection 
+              currentUser={currentUser}
+              products={products}
+              temperatures={temperatures}
+              cleaning={cleaning}
+              staff={staff}
+              onAction={(action) => {
+                console.log('AI Action:', action)
+                // Qui implementeremo le azioni dell'IA
+              }}
             />
           </TabsContent>
 
           {isAdmin() && (
             <TabsContent value="staff">
-              <Staff 
-                staff={staff} 
-                setStaff={setStaff}
-                users={users}
-                setUsers={setUsers}
-                currentUser={currentUser}
-              />
+              <div className="space-y-6">
+                <Staff 
+                  staff={staff} 
+                  setStaff={setStaff}
+                  users={users}
+                  setUsers={setUsers}
+                  currentUser={currentUser}
+                  cleaning={cleaning}
+                  setCleaning={setCleaning}
+                />
+                <StorageManager
+                  temperatures={temperatures}
+                  cleaning={cleaning}
+                  products={products}
+                  refrigerators={refrigerators}
+                  setTemperatures={setTemperatures}
+                  setCleaning={setCleaning}
+                  setProducts={setProducts}
+                  setRefrigerators={setRefrigerators}
+                />
+              </div>
             </TabsContent>
           )}
         </Tabs>
@@ -475,6 +596,36 @@ function App() {
           activeTab={activeTab}
           temperatures={temperatures}
         />
+
+        {/* AI Assistant */}
+        {currentUser && (
+          <AIAssistant
+            currentUser={currentUser}
+            currentSection={activeTab}
+            products={products}
+            temperatures={temperatures}
+            cleaning={cleaning}
+            staff={staff}
+            onAction={(action) => {
+              console.log('AI Action:', action)
+              // Qui implementeremo le azioni dell'IA
+            }}
+          />
+        )}
+
+        {/* Automatizzazioni */}
+        {currentUser && (
+          <ExpiryAlertAutomation
+            products={products}
+            onRecipeSuggestion={(recipes) => {
+              console.log('Recipe suggestions:', recipes)
+              // Qui implementeremo la gestione delle ricette
+            }}
+          />
+        )}
+
+        {/* PWA Install Prompt */}
+        <PWAInstallPrompt />
       </div>
     </div>
   )

@@ -4,6 +4,9 @@ export function Tabs({ value, onValueChange, children }) {
   return (
     <div className="w-full">
       {React.Children.map(children, child => {
+        // Controllo sicurezza per evitare errori
+        if (!child || !child.type) return child
+        
         if (child.type === TabsList) {
           return React.cloneElement(child, { value, onValueChange })
         }
@@ -20,6 +23,9 @@ export function TabsList({ value, onValueChange, children, className = "" }) {
   return (
     <div className={`flex p-1 bg-gray-100 rounded-xl shadow-sm ${className}`}>
       {React.Children.map(children, child => {
+        // Controllo sicurezza per evitare errori
+        if (!child || !child.type) return child
+        
         if (child.type === TabsTrigger) {
           return React.cloneElement(child, { 
             currentValue: value, 
