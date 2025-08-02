@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { X, User, Plus, Eye, EyeOff } from 'lucide-react'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
@@ -16,10 +16,54 @@ function Login({ isOpen, onClose, onLogin, users, onAddUser }) {
     name: '',
     pin: '',
     role: 'employee',
-    department: 'Cuochi'
+    department: ''
   })
 
-  const departments = ['Banconisti', 'Cuochi', 'Amministrazione']
+  // Stati per i reparti dinamici
+  const [departments, setDepartments] = useState([])
+  const [suggestedDepartments, setSuggestedDepartments] = useState([])
+
+  // Carica reparti dal localStorage
+  useEffect(() => {
+    const departmentsData = localStorage.getItem('haccp-departments')
+    const departmentsVersion = localStorage.getItem('haccp-departments-version')
+    
+    // Reparti consigliati e provvisori
+    const suggestedDepartments = [
+      'Banconisti',
+      'Cuochi', 
+      'Amministrazione'
+    ]
+    
+    if (departmentsVersion !== '2.0' || !departmentsData) {
+      // Prima volta o versione vecchia - usa solo i consigliati
+      setDepartments(suggestedDepartments)
+      setSuggestedDepartments(suggestedDepartments)
+    } else {
+      // Carica reparti esistenti dal localStorage
+      try {
+        const existingDepartments = JSON.parse(departmentsData)
+        const customDepartments = existingDepartments
+          .filter(dept => dept.isCustom)
+          .map(dept => dept.name)
+        
+        // Combina reparti personalizzati con quelli consigliati (se non esistono già)
+        const allDepartments = [...customDepartments]
+        suggestedDepartments.forEach(suggested => {
+          if (!customDepartments.includes(suggested)) {
+            allDepartments.push(suggested)
+          }
+        })
+        
+        setDepartments(allDepartments)
+        setSuggestedDepartments(suggestedDepartments)
+      } catch (error) {
+        console.error('Errore nel caricamento reparti:', error)
+        setDepartments(suggestedDepartments)
+        setSuggestedDepartments(suggestedDepartments)
+      }
+    }
+  }, [])
 
   const handleLogin = () => {
     if (!selectedUser || !pin) {
@@ -65,7 +109,7 @@ function Login({ isOpen, onClose, onLogin, users, onAddUser }) {
       name: '',
       pin: '',
       role: 'employee',
-      department: 'Cuochi'
+      department: ''
     })
     setError('')
   }
@@ -233,9 +277,15 @@ function Login({ isOpen, onClose, onLogin, users, onAddUser }) {
                   onChange={(e) => setNewUser({...newUser, role: e.target.value})}
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
-                  <option value="employee">Dipendente</option>
-                  <option value="admin">Amministratore</option>
+                  <option value="">-- Seleziona ruolo --</option>
+                  <option value="dipendente">Dipendente (Staff Fisso) (Consigliato)</option>
+                  <option value="responsabile">Responsabile (Consigliato)</option>
+                  <option value="collaboratore">Collaboratore Occasionale (Consigliato)</option>
+                  <option value="admin">Amministratore (Consigliato)</option>
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  I ruoli contrassegnati come "Consigliato" sono provvisori e verranno sostituiti dalle categorie create dall'amministratore.
+                </p>
               </div>
 
               {/* Reparto */}
@@ -247,10 +297,19 @@ function Login({ isOpen, onClose, onLogin, users, onAddUser }) {
                   onChange={(e) => setNewUser({...newUser, department: e.target.value})}
                   className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
-                  {departments.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
+                  <option value="">-- Seleziona reparto --</option>
+                  {departments.map(dept => {
+                    const isSuggested = suggestedDepartments.includes(dept)
+                    return (
+                      <option key={dept} value={dept}>
+                        {dept} {isSuggested ? '(Consigliato)' : ''}
+                      </option>
+                    )
+                  })}
                 </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  I reparti contrassegnati come "Consigliato" sono provvisori e verranno sostituiti dalle categorie create dall'amministratore.
+                </p>
               </div>
 
               {/* Pulsanti */}

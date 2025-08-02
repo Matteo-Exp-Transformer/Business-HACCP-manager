@@ -3,40 +3,112 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Sparkles, CheckCircle, Clock } from 'lucide-react'
+import { Trash2, Sparkles, CheckCircle, Clock, Thermometer, AlertTriangle, User } from 'lucide-react'
 
-function Cleaning({ cleaning, setCleaning }) {
+function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, currentUser, refrigerators = [], setRefrigerators }) {
   const [formData, setFormData] = useState({
     task: '',
-    assignee: ''
+    assignee: '',
+    frequency: ''
   })
+  
+  const [tempFormData, setTempFormData] = useState({
+    location: '',
+    temperature: ''
+  })
+
+  const [activeTab, setActiveTab] = useState('daily')
 
   // Persist to localStorage whenever cleaning data changes
   useEffect(() => {
     localStorage.setItem('haccp-cleaning', JSON.stringify(cleaning))
   }, [cleaning])
 
+  // Save temperatures to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('haccp-temperatures', JSON.stringify(temperatures))
+  }, [temperatures])
+
+  const getTemperatureStatus = (temp) => {
+    if (temp < 0 || temp > 8) return 'danger'
+    if (temp >= 6 && temp <= 8) return 'warning'
+    return 'ok'
+  }
+
   const addCleaningTask = (e) => {
     e.preventDefault()
-    if (!formData.task.trim() || !formData.assignee.trim()) return
+    if (!formData.task.trim() || !formData.assignee.trim() || !formData.frequency) return
 
     const newTask = {
       id: Date.now(),
       task: formData.task.trim(),
       assignee: formData.assignee.trim(),
+      frequency: formData.frequency,
       completed: false,
       date: new Date().toLocaleDateString('it-IT'),
-      createdAt: new Date().toLocaleString('it-IT')
+      createdAt: new Date().toLocaleString('it-IT'),
+      createdBy: currentUser?.name || 'Unknown'
     }
 
     setCleaning([...cleaning, newTask])
-    setFormData({ task: '', assignee: '' })
+    setFormData({ task: '', assignee: '', frequency: '' })
+  }
+
+  const addTemperature = (e) => {
+    e.preventDefault()
+    
+    if (!tempFormData.location.trim() || !tempFormData.temperature.trim()) {
+      return
+    }
+
+    const tempValue = parseFloat(tempFormData.temperature)
+    if (isNaN(tempValue)) {
+      return
+    }
+
+    const newTemperature = {
+      id: Date.now(),
+      location: tempFormData.location.trim(),
+      temperature: tempValue,
+      status: getTemperatureStatus(tempValue),
+      timestamp: new Date().toISOString(),
+      time: new Date().toLocaleString('it-IT'),
+      user: currentUser?.id,
+      userName: currentUser?.name,
+      userDepartment: currentUser?.department
+    }
+
+    setTemperatures([...temperatures, newTemperature])
+    
+    // Registra l'azione nel log
+    const action = {
+      id: Date.now() + 1,
+      timestamp: new Date().toISOString(),
+      user: currentUser?.id,
+      userName: currentUser?.name,
+      type: 'temperature_check',
+      description: `Controllo temperatura ${tempFormData.location}: ${tempValue}°C`,
+      location: tempFormData.location,
+      value: tempValue,
+      status: getTemperatureStatus(tempValue)
+    }
+    
+    const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
+    actions.push(action)
+    localStorage.setItem('haccp-actions', JSON.stringify(actions))
+
+    setTempFormData({ location: '', temperature: '' })
   }
 
   const toggleTaskCompletion = (id) => {
     setCleaning(cleaning.map(task => 
       task.id === id 
-        ? { ...task, completed: !task.completed, completedAt: !task.completed ? new Date().toLocaleString('it-IT') : null }
+        ? { 
+            ...task, 
+            completed: !task.completed, 
+            completedAt: !task.completed ? new Date().toLocaleString('it-IT') : null,
+            completedBy: !task.completed ? currentUser?.name || 'Unknown' : null
+          }
         : task
     ))
   }
@@ -47,9 +119,54 @@ function Cleaning({ cleaning, setCleaning }) {
     }
   }
 
+  const deleteTemperature = (id) => {
+    setTemperatures(temperatures.filter(temp => temp.id !== id))
+    
+    // Registra l'azione di cancellazione
+    const action = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      user: currentUser?.id,
+      userName: currentUser?.name,
+      type: 'temperature_delete',
+      description: `Eliminato controllo temperatura`
+    }
+    
+    const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
+    actions.push(action)
+    localStorage.setItem('haccp-actions', JSON.stringify(actions))
+  }
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      ok: <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-medium">OK</span>,
+      warning: <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-medium">Attenzione</span>,
+      danger: <span className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full font-medium">Critica</span>
+    }
+    return badges[status]
+  }
+
+  const getStatusDot = (status) => {
+    const colors = {
+      ok: 'bg-green-500',
+      warning: 'bg-orange-500',
+      danger: 'bg-red-500'
+    }
+    return <div className={`w-4 h-4 rounded-full ${colors[status]} shadow-sm`}></div>
+  }
+
   // Separate completed and pending tasks
   const pendingTasks = cleaning.filter(task => !task.completed)
   const completedTasks = cleaning.filter(task => task.completed)
+
+  // Filter tasks by frequency
+  const dailyTasks = pendingTasks.filter(task => task.frequency === 'daily')
+  const weeklyTasks = pendingTasks.filter(task => task.frequency === 'weekly')
+  const monthlyTasks = pendingTasks.filter(task => task.frequency === 'monthly')
+  const yearlyTasks = pendingTasks.filter(task => task.frequency === 'yearly')
+
+  // Check if user is admin
+  const isAdmin = currentUser?.role === 'admin'
 
   return (
     <div className="space-y-6">
@@ -58,12 +175,12 @@ function Cleaning({ cleaning, setCleaning }) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            Nuova Attività di Pulizia
+            Nuove Attività / Mansioni
           </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={addCleaningTask} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="task">Attività</Label>
                 <Input
@@ -84,6 +201,25 @@ function Cleaning({ cleaning, setCleaning }) {
                   required
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="frequency">Frequenza</Label>
+                <select
+                  id="frequency"
+                  value={formData.frequency}
+                  onChange={(e) => setFormData({...formData, frequency: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">-- Seleziona Frequenza --</option>
+                  <option value="daily">Giornalmente</option>
+                  <option value="weekly">Settimanalmente</option>
+                  <option value="monthly">Mensilmente</option>
+                  <option value="yearly">Annualmente</option>
+                  {currentUser?.role === 'admin' && (
+                    <option value="all">Tutti</option>
+                  )}
+                </select>
+              </div>
             </div>
             <Button type="submit" className="w-full">
               Aggiungi Attività
@@ -92,132 +228,185 @@ function Cleaning({ cleaning, setCleaning }) {
         </CardContent>
       </Card>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Totale Attività</p>
-                <p className="text-2xl font-bold">{cleaning.length}</p>
-              </div>
-              <Sparkles className="h-8 w-8 text-blue-500" />
+      {/* Pending Tasks with Tabs */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Attività da Svolgere ({pendingTasks.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {pendingTasks.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <CheckCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+              <p>Nessuna attività da svolgere</p>
+              <p className="text-sm">Tutte le attività sono completate!</p>
             </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">In Sospeso</p>
-                <p className="text-2xl font-bold text-orange-600">{pendingTasks.length}</p>
+          ) : (
+            <div className="space-y-4">
+              {/* Frequency Tabs */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setActiveTab('daily')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === 'daily' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Giornaliere ({dailyTasks.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('weekly')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === 'weekly' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Settimanali ({weeklyTasks.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('monthly')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === 'monthly' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Mensili ({monthlyTasks.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('yearly')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    activeTab === 'yearly' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Annuali ({yearlyTasks.length})
+                </button>
+                {currentUser?.role === 'admin' && (
+                  <button
+                    onClick={() => setActiveTab('all')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      activeTab === 'all' 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Tutti ({pendingTasks.length})
+                  </button>
+                )}
               </div>
-              <Clock className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Completate</p>
-                <p className="text-2xl font-bold text-green-600">{completedTasks.length}</p>
-              </div>
-              <CheckCircle className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Pending Tasks */}
-      {pendingTasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-orange-500" />
-              Attività in Sospeso ({pendingTasks.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {pendingTasks.map(task => (
-                <div key={task.id} className="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                  <div className="flex-1">
-                    <div className="font-medium">{task.task}</div>
-                    <div className="text-sm text-gray-600">
-                      Assegnato a: <span className="font-medium">{task.assignee}</span>
+              {/* Tasks List */}
+              <div className="space-y-3">
+                {(() => {
+                  let tasksToShow = []
+                  switch(activeTab) {
+                    case 'daily':
+                      tasksToShow = dailyTasks
+                      break
+                    case 'weekly':
+                      tasksToShow = weeklyTasks
+                      break
+                    case 'monthly':
+                      tasksToShow = monthlyTasks
+                      break
+                    case 'yearly':
+                      tasksToShow = yearlyTasks
+                      break
+                    case 'all':
+                      tasksToShow = pendingTasks
+                      break
+                    default:
+                      tasksToShow = dailyTasks
+                  }
+                  
+                  return tasksToShow.map(task => (
+                    <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <h3 className="font-medium">{task.task}</h3>
+                        <p className="text-sm text-gray-600">
+                          Assegnato a: {task.assignee} • {task.date}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => toggleTaskCompletion(task.id)}
+                          className="bg-green-600 hover:bg-green-700 p-2 md:p-1"
+                        >
+                          <CheckCircle className="h-6 w-6 md:h-4 md:w-4 mr-1" />
+                          <span className="hidden sm:inline">Completata</span>
+                        </Button>
+                        {isAdmin && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => deleteTask(task.id)}
+                            className="text-red-600 hover:text-red-700 p-2 md:p-1"
+                          >
+                            <Trash2 className="h-6 w-6 md:h-4 md:w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500">{task.createdAt}</div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      onClick={() => toggleTaskCompletion(task.id)}
-                      variant="outline"
-                      size="sm"
-                      className="text-green-600 border-green-600 hover:bg-green-50"
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Completa
-                    </Button>
-                    <Button
-                      onClick={() => deleteTask(task.id)}
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                  ))
+                })()}
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {/* Completed Tasks */}
       {completedTasks.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-green-500" />
+            <CardTitle className="flex items-center justify-between">
               Attività Completate ({completedTasks.length})
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (confirm('Sei sicuro di voler eliminare tutte le attività completate? Questa azione non può essere annullata.')) {
+                      setCleaning(cleaning.filter(task => !task.completed))
+                    }
+                  }}
+                  className="text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Elimina Tutte
+                </Button>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {completedTasks.slice().reverse().map(task => (
-                <div key={task.id} className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+              {completedTasks.map(task => (
+                <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
                   <div className="flex-1">
-                    <div className="font-medium text-green-800">{task.task}</div>
-                    <div className="text-sm text-green-700">
-                      Completato da: <span className="font-medium">{task.assignee}</span>
-                    </div>
-                    <div className="text-xs text-green-600">
-                      {task.completedAt && `Completato: ${task.completedAt}`}
-                    </div>
+                    <h3 className="font-medium line-through">{task.task}</h3>
+                    <p className="text-sm text-gray-600">
+                      Assegnato a: {task.assignee} • Completata: {task.completedAt}
+                      {task.completedBy && (
+                        <span className="ml-2 text-blue-600">
+                          • Completata da: {task.completedBy}
+                        </span>
+                      )}
+                    </p>
                   </div>
-                  <div className="flex items-center gap-2">
+                  {isAdmin && (
                     <Button
-                      onClick={() => toggleTaskCompletion(task.id)}
-                      variant="outline"
                       size="sm"
-                      className="text-orange-600 border-orange-600 hover:bg-orange-50"
-                    >
-                      <Clock className="h-4 w-4 mr-1" />
-                      Riapri
-                    </Button>
-                    <Button
+                      variant="outline"
                       onClick={() => deleteTask(task.id)}
-                      variant="ghost"
-                      size="icon"
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                      className="text-red-600 hover:text-red-700 p-2 md:p-1"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-6 w-6 md:h-4 md:w-4" />
                     </Button>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -225,18 +414,128 @@ function Cleaning({ cleaning, setCleaning }) {
         </Card>
       )}
 
-      {/* Empty State */}
-      {cleaning.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-8">
-            <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-2">Nessuna attività di pulizia registrata</p>
-            <p className="text-sm text-gray-500">
-              Aggiungi la prima attività per iniziare a tracciare le pulizie HACCP
+      {/* Temperature Registration Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Thermometer className="h-5 w-5" />
+            Registra Temperatura Frigorifero/Freezer
+          </CardTitle>
+          {currentUser && (
+            <p className="text-sm text-gray-600">
+              Registrando come: <span className="font-medium">{currentUser.name}</span> ({currentUser.department})
             </p>
+          )}
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={addTemperature} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="temp-location">Frigorifero / Freezer</Label>
+                {refrigerators.length === 0 ? (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      Nessun frigorifero registrato. Aggiungi prima un frigorifero nella sezione "Frigoriferi e Freezer".
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    id="temp-location"
+                    value={tempFormData.location}
+                    onChange={(e) => setTempFormData({...tempFormData, location: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">-- Seleziona Frigorifero/Freezer --</option>
+                    {refrigerators.map(refrigerator => (
+                      <option key={refrigerator.id} value={refrigerator.name}>
+                        {refrigerator.name} ({refrigerator.location || 'Posizione non specificata'})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="temp-temperature">Temperatura (°C)</Label>
+                <Input
+                  id="temp-temperature"
+                  type="number"
+                  step="0.1"
+                  value={tempFormData.temperature}
+                  onChange={(e) => setTempFormData({...tempFormData, temperature: e.target.value})}
+                  placeholder="es. 4.2"
+                  required
+                />
+              </div>
+            </div>
+            <Button 
+              type="submit" 
+              className="w-full md:w-auto"
+              disabled={refrigerators.length === 0}
+            >
+              <Thermometer className="mr-2 h-4 w-4" />
+              Registra Temperatura
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Mansioni da Svolgere</p>
+                <p className="text-2xl font-bold text-yellow-600">{pendingTasks.length}</p>
+              </div>
+              <Clock className="h-10 w-10 md:h-8 md:w-8 text-yellow-500" />
+            </div>
           </CardContent>
         </Card>
-      )}
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Mansioni Completate</p>
+                <p className="text-2xl font-bold text-green-600">{completedTasks.length}</p>
+              </div>
+              <CheckCircle className="h-10 w-10 md:h-8 md:w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Temperature OK</p>
+                <p className="text-2xl font-bold text-green-600">
+                  {temperatures.filter(t => t.status === 'ok').length}
+                </p>
+              </div>
+              <CheckCircle className="h-10 w-10 md:h-8 md:w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Temperature da Monitorare</p>
+                <p className="text-2xl font-bold text-red-600">
+                  {temperatures.filter(t => t.status === 'danger' || t.status === 'warning').length}
+                </p>
+              </div>
+              <AlertTriangle className="h-10 w-10 md:h-8 md:w-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+
     </div>
   )
 }
