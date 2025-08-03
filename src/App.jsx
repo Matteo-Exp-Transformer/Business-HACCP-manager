@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, QrCode, Bot } from 'lucide-react'
+import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, QrCode, Bot, ShoppingCart, FileText } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import Cleaning from './components/Cleaning'
 import Refrigerators from './components/Refrigerators'
@@ -11,6 +11,8 @@ import AIAssistantSection from './components/AIAssistantSection'
 import ExpiryAlertAutomation from './components/automations/ExpiryAlertAutomation'
 import StorageManager from './components/StorageManager'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
+import OrdersAndShopping from './components/OrdersAndShopping'
+import MobileNavigation from './components/MobileNavigation'
 
 import Login from './components/Login'
 import PDFExport from './components/PDFExport'
@@ -34,6 +36,35 @@ function App() {
 
   // Load data from localStorage on app start
   useEffect(() => {
+    // Sincronizzazione automatica con data/ora del dispositivo
+    // L'app usa new Date() che prende automaticamente la data/ora del dispositivo
+    console.log('Data/ora dispositivo:', new Date().toLocaleString('it-IT'))
+    
+    // Tracking accessi
+    const trackAccess = () => {
+      const accessData = {
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        screenSize: `${window.screen.width}x${window.screen.height}`,
+        language: navigator.language,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      }
+      
+      // Salva accesso in localStorage
+      const existingAccesses = JSON.parse(localStorage.getItem('haccp-access-log') || '[]')
+      existingAccesses.push(accessData)
+      
+      // Mantieni solo gli ultimi 100 accessi
+      if (existingAccesses.length > 100) {
+        existingAccesses.splice(0, existingAccesses.length - 100)
+      }
+      
+      localStorage.setItem('haccp-access-log', JSON.stringify(existingAccesses))
+      console.log('Accesso tracciato:', accessData)
+    }
+    
+    trackAccess()
+    
     const temps = localStorage.getItem('haccp-temperatures')
     const cleaningData = localStorage.getItem('haccp-cleaning')
     const refrigeratorsData = localStorage.getItem('haccp-refrigerators')
@@ -207,14 +238,36 @@ function App() {
   products,
   departments,
   productLabels,
+  accessLog: JSON.parse(localStorage.getItem('haccp-access-log') || '[]'),
   exportDate: new Date().toISOString()
 }
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `haccp-data-${new Date().toISOString().split('T')[0]}.json`
+    a.download = `haccp-data-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
     a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  // Export access log only
+  const exportAccessLog = () => {
+    const accessLog = JSON.parse(localStorage.getItem('haccp-access-log') || '[]')
+    const data = {
+      accessLog,
+      exportDate: new Date().toISOString(),
+      totalAccesses: accessLog.length
+    }
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `haccp-access-log-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
 
@@ -327,7 +380,7 @@ function App() {
                     className="flex items-center gap-2"
                   >
                     <Download className="h-4 w-4" />
-                    Esporta
+                    Esporta Dati
                   </Button>
                   <label className="cursor-pointer">
                     <Button
@@ -338,7 +391,7 @@ function App() {
                     >
                       <span>
                         <Upload className="h-4 w-4" />
-                        Importa
+                        Importa Dati
                       </span>
                     </Button>
                     <input
@@ -396,38 +449,40 @@ function App() {
   // Se utente è loggato, mostra l'app completa
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
         {/* Header con info utente */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
+          <div className="flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
               Business HACCP Manager
             </h1>
-            <p className="text-gray-600">
-              Benvenuto, <span className="font-['Dancing_Script'] font-semibold text-2xl text-purple-600">{currentUser.name} - {currentUser.role === 'admin' ? 'Admin' : 'Dipendente'}</span>
+            <p className="text-sm sm:text-base text-gray-600">
+              Benvenuto, <span className="font-['Dancing_Script'] font-semibold text-lg sm:text-2xl text-purple-600">{currentUser.name} - {currentUser.role === 'admin' ? 'Admin' : 'Dipendente'}</span>
             </p>
           </div>
           
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <Button
               onClick={exportData}
               variant="outline"
               size="sm"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 flex-1 sm:flex-none"
             >
               <Download className="h-4 w-4" />
-              Esporta
+              <span className="hidden sm:inline">Esporta Dati</span>
+              <span className="sm:hidden">Esporta</span>
             </Button>
-            <label className="cursor-pointer">
+            <label className="cursor-pointer flex-1 sm:flex-none">
               <Button
                 variant="outline"
                 size="sm"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 w-full"
                 asChild
               >
                 <span>
                   <Upload className="h-4 w-4" />
-                  Importa
+                  <span className="hidden sm:inline">Importa Dati</span>
+                  <span className="sm:hidden">Importa</span>
                 </span>
               </Button>
               <input
@@ -437,65 +492,59 @@ function App() {
                 className="hidden"
               />
             </label>
-
+            {isAdmin() && (
+              <Button
+                onClick={exportAccessLog}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 flex-1 sm:flex-none"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">Log Accessi</span>
+                <span className="sm:hidden">Log</span>
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 md:grid-cols-8' : 'grid-cols-3 md:grid-cols-7'} gap-1 mb-8`}>
+          {/* Desktop Navigation - sempre visibile */}
+          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-2 sm:grid-cols-4 md:grid-cols-8' : 'grid-cols-2 sm:grid-cols-4 md:grid-cols-7'} gap-1 mb-6 sm:mb-8`}>
             <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Dashboard</span>
+              <span>Dashboard</span>
             </TabsTrigger>
             <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Thermometer className="h-4 w-4" />
-              <span className="hidden sm:inline">Frigoriferi e Freezer</span>
+              <span>Temperature</span>
             </TabsTrigger>
             <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">Attività e Mansioni</span>
+              <span>Pulizie</span>
             </TabsTrigger>
             <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Inventario</span>
+              <span>Inventario</span>
+            </TabsTrigger>
+            <TabsTrigger value="orders-shopping" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <ShoppingCart className="h-4 w-4" />
+              <span>Ordini</span>
             </TabsTrigger>
             <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <QrCode className="h-4 w-4" />
-              <span className="hidden sm:inline">Etichette</span>
+              <span>Etichette</span>
             </TabsTrigger>
             <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Bot className="h-4 w-4" />
-              <span className="hidden sm:inline">IA Assistant</span>
+              <span>IA</span>
             </TabsTrigger>
             {isAdmin() && (
               <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
                 <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Gestione</span>
+                <span>Gestione</span>
               </TabsTrigger>
             )}
-            <div className="flex flex-col gap-1">
-              {isAdmin() && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setActiveTab('staff')}
-                  className="flex items-center gap-1 md:gap-2 text-xs md:text-sm h-9 px-3"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span className="hidden sm:inline">Impostazioni</span>
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleLogout}
-                className="flex items-center gap-1 md:gap-2 text-xs md:text-sm h-9 px-3"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Esci</span>
-              </Button>
-            </div>
           </TabsList>
 
           {/* Tab Content */}
@@ -507,28 +556,32 @@ function App() {
               products={products} 
               currentUser={currentUser}
               setActiveTab={setActiveTab}
+              onLogout={handleLogout}
+              onSettings={() => setActiveTab('staff')}
             />
           </TabsContent>
 
-          <TabsContent value="refrigerators">
+                    <TabsContent value="refrigerators">
             <Refrigerators 
-              temperatures={temperatures}
-              setTemperatures={setTemperatures}
+              temperatures={temperatures} 
+              setTemperatures={setTemperatures} 
               currentUser={currentUser}
               refrigerators={refrigerators}
               setRefrigerators={setRefrigerators}
+              staff={staff}
             />
           </TabsContent>
 
-          <TabsContent value="cleaning">
+                    <TabsContent value="cleaning">
             <Cleaning 
               cleaning={cleaning} 
-              setCleaning={setCleaning}
-              temperatures={temperatures}
-              setTemperatures={setTemperatures}
+              setCleaning={setCleaning} 
+              temperatures={temperatures} 
+              setTemperatures={setTemperatures} 
               currentUser={currentUser}
               refrigerators={refrigerators}
               setRefrigerators={setRefrigerators}
+              staff={staff}
             />
           </TabsContent>
 
@@ -538,6 +591,14 @@ function App() {
               setProducts={setProducts}
               currentUser={currentUser}
               refrigerators={refrigerators}
+            />
+          </TabsContent>
+
+          <TabsContent value="orders-shopping">
+            <OrdersAndShopping 
+              products={products} 
+              setProducts={setProducts}
+              currentUser={currentUser}
             />
           </TabsContent>
 

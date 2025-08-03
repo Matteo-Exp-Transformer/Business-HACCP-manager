@@ -3,9 +3,9 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit } from 'lucide-react'
+import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, Clock } from 'lucide-react'
 
-function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerators, setRefrigerators }) {
+function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerators, setRefrigerators, staff = [] }) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingRefrigerator, setEditingRefrigerator] = useState(null)
@@ -17,6 +17,12 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     nextMaintenance: ''
   })
   const [searchTerm, setSearchTerm] = useState('')
+  
+  // Stati per registrazione temperature
+  const [tempFormData, setTempFormData] = useState({
+    location: '',
+    temperature: ''
+  })
 
 
 
@@ -48,18 +54,42 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       setTemperature: setTempValue,
       location: formData.location.trim(),
       dedicatedTo: formData.dedicatedTo.trim(),
-      nextMaintenance: formData.nextMaintenance.trim(),
+      cleaningDate: formData.cleaningDate,
+      cleaningAssignee: formData.cleaningAssignee,
+      cleaningFrequency: formData.cleaningFrequency,
       createdAt: new Date().toISOString(),
       createdBy: currentUser?.name || 'Unknown'
     }
 
     setRefrigerators([...refrigerators, newRefrigerator])
+    
+    // Se è stata configurata una pulizia straordinaria, crea un'attività
+    if (formData.cleaningDate && formData.cleaningAssignee && formData.cleaningFrequency) {
+      const cleaningTask = {
+        id: Date.now() + 1,
+        task: `Pulizia straordinaria frigorifero: ${formData.name}`,
+        assignee: formData.cleaningAssignee,
+        frequency: formData.cleaningFrequency,
+        date: formData.cleaningDate,
+        completed: false,
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.name,
+        type: 'cleaning_task'
+      }
+      
+      const currentCleaning = JSON.parse(localStorage.getItem('haccp-cleaning') || '[]')
+      currentCleaning.push(cleaningTask)
+      localStorage.setItem('haccp-cleaning', JSON.stringify(currentCleaning))
+    }
+    
     setFormData({
       name: '',
       setTemperature: '',
       location: '',
       dedicatedTo: '',
-      nextMaintenance: ''
+      cleaningDate: '',
+      cleaningAssignee: '',
+      cleaningFrequency: ''
     })
     setShowAddModal(false)
   }
@@ -77,7 +107,9 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       setTemperature: refrigerator.setTemperature.toString(),
       location: refrigerator.location || '',
       dedicatedTo: refrigerator.dedicatedTo || '',
-      nextMaintenance: refrigerator.nextMaintenance || ''
+      cleaningDate: refrigerator.cleaningDate || '',
+      cleaningAssignee: refrigerator.cleaningAssignee || '',
+      cleaningFrequency: refrigerator.cleaningFrequency || ''
     })
     setShowEditModal(true)
   }
@@ -111,7 +143,9 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       setTemperature: setTempValue,
       location: formData.location.trim(),
       dedicatedTo: formData.dedicatedTo.trim(),
-      nextMaintenance: formData.nextMaintenance.trim(),
+      cleaningDate: formData.cleaningDate,
+      cleaningAssignee: formData.cleaningAssignee,
+      cleaningFrequency: formData.cleaningFrequency,
       updatedAt: new Date().toISOString(),
       updatedBy: currentUser?.name || 'Unknown'
     }
@@ -165,6 +199,79 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       'no-data': 'Nessun dato'
     }
     return texts[status]
+  }
+
+  // Funzione per determinare lo stato di una singola temperatura
+  const getSingleTemperatureStatus = (temp) => {
+    if (temp < 0 || temp > 8) return 'danger'
+    if (temp >= 6 && temp <= 8) return 'warning'
+    return 'ok'
+  }
+
+
+
+  const addTemperature = (e) => {
+    e.preventDefault()
+    
+    if (!tempFormData.location.trim() || !tempFormData.temperature.trim()) {
+      return
+    }
+
+    const tempValue = parseFloat(tempFormData.temperature)
+    if (isNaN(tempValue)) {
+      return
+    }
+
+    const newTemperature = {
+      id: Date.now(),
+      location: tempFormData.location.trim(),
+      temperature: tempValue,
+      status: getSingleTemperatureStatus(tempValue),
+      timestamp: new Date().toISOString(),
+      time: new Date().toLocaleString('it-IT'),
+      user: currentUser?.id,
+      userName: currentUser?.name,
+      userDepartment: currentUser?.department
+    }
+
+    setTemperatures([...temperatures, newTemperature])
+    
+    // Registra l'azione nel log
+    const action = {
+      id: Date.now() + 1,
+      timestamp: new Date().toISOString(),
+      user: currentUser?.id,
+      userName: currentUser?.name,
+      type: 'temperature_check',
+      description: `Controllo temperatura ${tempFormData.location}: ${tempValue}°C`,
+      location: tempFormData.location,
+      value: tempValue,
+      status: getSingleTemperatureStatus(tempValue)
+    }
+    
+    const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
+    actions.push(action)
+    localStorage.setItem('haccp-actions', JSON.stringify(actions))
+
+    setTempFormData({ location: '', temperature: '' })
+  }
+
+  const deleteTemperature = (id) => {
+    setTemperatures(temperatures.filter(temp => temp.id !== id))
+    
+    // Registra l'azione di cancellazione
+    const action = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      user: currentUser?.id,
+      userName: currentUser?.name,
+      type: 'temperature_delete',
+      description: `Eliminato controllo temperatura`
+    }
+    
+    const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
+    actions.push(action)
+    localStorage.setItem('haccp-actions', JSON.stringify(actions))
   }
 
   const filteredRefrigerators = refrigerators.filter(ref => 
@@ -432,7 +539,73 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
         </CardContent>
       </Card>
 
-      {/* Section 2: Attività Registro Temperature */}
+      {/* Section 2: Registra Temperature */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Thermometer className="h-5 w-5" />
+            Registra Temperatura Frigorifero/Freezer
+          </CardTitle>
+          {currentUser && (
+            <p className="text-sm text-gray-600">
+              Registrando come: <span className="font-medium">{currentUser.name}</span> ({currentUser.department})
+            </p>
+          )}
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={addTemperature} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="temp-location">Frigorifero / Freezer</Label>
+                {refrigerators.length === 0 ? (
+                  <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <p className="text-sm text-yellow-800">
+                      Nessun frigorifero registrato. Aggiungi prima un frigorifero nella sezione "Frigoriferi e Freezer".
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    id="temp-location"
+                    value={tempFormData.location}
+                    onChange={(e) => setTempFormData({...tempFormData, location: e.target.value})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">-- Seleziona Frigorifero/Freezer --</option>
+                    {refrigerators.map(refrigerator => (
+                      <option key={refrigerator.id} value={refrigerator.name}>
+                        {refrigerator.name} ({refrigerator.location || 'Posizione non specificata'})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="temp-temperature">Temperatura (°C)</Label>
+                <Input
+                  id="temp-temperature"
+                  type="number"
+                  step="0.1"
+                  value={tempFormData.temperature}
+                  onChange={(e) => setTempFormData({...tempFormData, temperature: e.target.value})}
+                  placeholder="es. 4.2"
+                  required
+                />
+              </div>
+            </div>
+            <Button 
+              type="submit" 
+              className="w-full md:w-auto"
+              disabled={refrigerators.length === 0}
+            >
+              <Thermometer className="mr-2 h-4 w-4" />
+              Registra Temperatura
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Section 3: Attività Registro Temperature */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -650,14 +823,53 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
               </div>
               
               <div>
-                <Label htmlFor="nextMaintenance">Prossima Manutenzione Stimata</Label>
-                <Input
-                  id="nextMaintenance"
-                  type="text"
-                  value={formData.nextMaintenance}
-                  onChange={(e) => setFormData({...formData, nextMaintenance: e.target.value})}
-                  placeholder="es. 15/12/2024"
-                />
+                <Label htmlFor="nextMaintenance">Reminder Pulizia Straordinaria (Facoltativo)</Label>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="cleaningDate">Data Prossima Pulizia</Label>
+                    <Input
+                      id="cleaningDate"
+                      type="date"
+                      value={formData.cleaningDate || ''}
+                      onChange={(e) => setFormData({...formData, cleaningDate: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="cleaningAssignee">Assegnato a</Label>
+                    <select
+                      id="cleaningAssignee"
+                      value={formData.cleaningAssignee || ''}
+                      onChange={(e) => setFormData({...formData, cleaningAssignee: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">-- Seleziona Utente/Ruolo --</option>
+                      {staff.map(member => (
+                        <option key={member.id} value={member.name}>
+                          {member.name} ({member.role})
+                        </option>
+                      ))}
+                      {/* Aggiungi categorie di ruoli */}
+                      {Array.from(new Set(staff.map(s => s.role))).map(role => (
+                        <option key={`role-${role}`} value={`Categoria: ${role}`}>
+                          Categoria: {role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="cleaningFrequency">Frequenza</Label>
+                    <select
+                      id="cleaningFrequency"
+                      value={formData.cleaningFrequency || ''}
+                      onChange={(e) => setFormData({...formData, cleaningFrequency: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">-- Seleziona Frequenza --</option>
+                      <option value="weekly">Settimanale</option>
+                      <option value="monthly">Mensile</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               
               <div className="flex gap-2 pt-4">
@@ -733,14 +945,53 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
               </div>
               
               <div>
-                <Label htmlFor="edit-nextMaintenance">Prossima Manutenzione Stimata</Label>
-                <Input
-                  id="edit-nextMaintenance"
-                  type="text"
-                  value={formData.nextMaintenance}
-                  onChange={(e) => setFormData({...formData, nextMaintenance: e.target.value})}
-                  placeholder="es. 15/12/2024"
-                />
+                <Label htmlFor="edit-nextMaintenance">Reminder Pulizia Straordinaria (Facoltativo)</Label>
+                <div className="space-y-3">
+                  <div>
+                    <Label htmlFor="edit-cleaningDate">Data Prossima Pulizia</Label>
+                    <Input
+                      id="edit-cleaningDate"
+                      type="date"
+                      value={formData.cleaningDate || ''}
+                      onChange={(e) => setFormData({...formData, cleaningDate: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-cleaningAssignee">Assegnato a</Label>
+                    <select
+                      id="edit-cleaningAssignee"
+                      value={formData.cleaningAssignee || ''}
+                      onChange={(e) => setFormData({...formData, cleaningAssignee: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">-- Seleziona Utente/Ruolo --</option>
+                      {staff.map(member => (
+                        <option key={member.id} value={member.name}>
+                          {member.name} ({member.role})
+                        </option>
+                      ))}
+                      {/* Aggiungi categorie di ruoli */}
+                      {Array.from(new Set(staff.map(s => s.role))).map(role => (
+                        <option key={`role-${role}`} value={`Categoria: ${role}`}>
+                          Categoria: {role}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-cleaningFrequency">Frequenza</Label>
+                    <select
+                      id="edit-cleaningFrequency"
+                      value={formData.cleaningFrequency || ''}
+                      onChange={(e) => setFormData({...formData, cleaningFrequency: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="">-- Seleziona Frequenza --</option>
+                      <option value="weekly">Settimanale</option>
+                      <option value="monthly">Mensile</option>
+                    </select>
+                  </div>
+                </div>
               </div>
               
               <div className="flex gap-2 pt-4">

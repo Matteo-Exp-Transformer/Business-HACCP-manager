@@ -1,10 +1,30 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Package, Plus, Search, Filter, Trash2, Edit, AlertTriangle, Calendar, Clock } from 'lucide-react'
-import jsPDF from 'jspdf'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs'
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  Trash2, 
+  Edit, 
+  AlertTriangle, 
+  Calendar, 
+  Clock, 
+  ShoppingCart, 
+  FileText, 
+  CheckCircle, 
+  XCircle,
+  Package,
+  Thermometer,
+  MapPin,
+  User,
+  Tag,
+  Info
+} from 'lucide-react'
+import { checkPDFLibraries, createPDFDocument, downloadPDF } from '../utils/pdfUtils'
 
 // Database prodotti italiani precaricati (per aggiunta rapida)
 const DEFAULT_PRODUCTS = [
@@ -84,7 +104,7 @@ const CATEGORIES = [
   { id: 'frutta', name: 'Frutta Fresca', color: 'bg-orange-100 text-orange-800', temp: '6-8°C', storage: 'Cassetto frutta/verdura', description: 'Frutta fresca di stagione' },
   { id: 'pesce', name: 'Pesce e Frutti di Mare', color: 'bg-cyan-100 text-cyan-800', temp: '1-3°C', storage: 'Ripiano inferiore frigo', description: 'Pesce fresco, molluschi, crostacei' },
   { id: 'surgelati', name: 'Surgelati', color: 'bg-indigo-100 text-indigo-800', temp: '-18°C', storage: 'Freezer', description: 'Tutti i prodotti surgelati' },
-  { id: 'dispensa', name: 'Dispensa Secca', color: 'bg-yellow-100 text-yellow-800', temp: 'Ambiente', storage: 'Scaffali dispensa', description: 'Pasta, riso, farina, conserve' },
+  { id: 'dispensa', name: 'Temperatura Ambiente', color: 'bg-yellow-100 text-yellow-800', temp: 'Ambiente', storage: 'Scaffali dispensa', description: 'Pasta, riso, farina, conserve' },
   { id: 'condimenti', name: 'Oli e Condimenti', color: 'bg-amber-100 text-amber-800', temp: 'Ambiente', storage: 'Scaffali condimenti', description: 'Oli, aceti, spezie, salse' }
 ]
 
@@ -332,49 +352,65 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     setShowDeleteConfirm(false)
   }
   const generateShoppingListPDF = () => {
-  const doc = new jsPDF()
-  
-  // Titolo
-  doc.setFontSize(20)
-  doc.text('Lista della Spesa', 20, 30)
-  
-  // Data e utente
-	doc.setFontSize(12)
-	doc.text(`Data: ${new Date().toLocaleDateString('it-IT')}`, 20, 45)
-	doc.text(`Generato da: ${currentUser?.name || 'N/A'} (${currentUser?.role === 'admin' ? 'Amministratore' : 'Dipendente'})`, 20, 57)
-  
-  // Prodotti selezionati
-  const selectedProducts = products.filter(product => shoppingItems.includes(product.id))
-  
-  if (selectedProducts.length === 0) {
-    doc.text('Nessun prodotto selezionato', 20, 60)
-  } else {
-    doc.text(`Prodotti finiti (${selectedProducts.length}):`, 20, 72)
-    
-    let yPosition = 87
-    selectedProducts.forEach((product, index) => {
-      const category = CATEGORIES.find(c => c.id === product.category)
-      doc.text(`${index + 1}. ${product.name}`, 25, yPosition)
-      doc.setFontSize(10)
-      doc.text(`   Categoria: ${category?.name || 'N/A'} | Posizione: ${product.location}`, 25, yPosition + 8)
-      doc.setFontSize(12)
-      yPosition += 20
+    // Check if PDF libraries are loaded
+    if (!checkPDFLibraries()) {
+      alert("Errore: Librerie PDF non caricate. Ricarica la pagina e riprova.")
+      return
+    }
+
+    try {
+      const doc = createPDFDocument()
       
-      // Nuova pagina se necessario
-      if (yPosition > 250) {
-        doc.addPage()
-        yPosition = 30
+      // Titolo
+      doc.setFontSize(20)
+      doc.text('Lista della Spesa', 20, 30)
+      
+      // Data e utente
+      doc.setFontSize(12)
+      doc.text(`Data: ${new Date().toLocaleDateString('it-IT')}`, 20, 45)
+      doc.text(`Generato da: ${currentUser?.name || 'N/A'} (${currentUser?.role === 'admin' ? 'Amministratore' : 'Dipendente'})`, 20, 57)
+      
+      // Prodotti selezionati
+      const selectedProducts = products.filter(product => shoppingItems.includes(product.id))
+      
+      if (selectedProducts.length === 0) {
+        doc.text('Nessun prodotto selezionato', 20, 60)
+      } else {
+        doc.text(`Prodotti finiti (${selectedProducts.length}):`, 20, 72)
+        
+        let yPosition = 87
+        selectedProducts.forEach((product, index) => {
+          const category = CATEGORIES.find(c => c.id === product.category)
+          doc.text(`${index + 1}. ${product.name}`, 25, yPosition)
+          doc.setFontSize(10)
+          doc.text(`   Categoria: ${category?.name || 'N/A'} | Posizione: ${product.location}`, 25, yPosition + 8)
+          doc.setFontSize(12)
+          yPosition += 20
+          
+          // Nuova pagina se necessario
+          if (yPosition > 250) {
+            doc.addPage()
+            yPosition = 30
+          }
+        })
       }
-    })
+      
+      // Download
+      const fileName = `lista-spesa-${new Date().toISOString().split('T')[0]}.pdf`
+      const success = downloadPDF(doc, fileName)
+      
+      if (success) {
+        // Chiudi modal dopo download
+        setShowShoppingList(false)
+        setShoppingItems([])
+      } else {
+        alert("Errore durante il download del PDF. Riprova.")
+      }
+    } catch (error) {
+      console.error('PDF export error:', error)
+      alert("Errore durante l'esportazione del PDF. Riprova.")
+    }
   }
-  
-  // Download
-  doc.save(`lista-spesa-${new Date().toISOString().split('T')[0]}.pdf`)
-  
-  // Chiudi modal dopo download
-  setShowShoppingList(false)
-  setShoppingItems([])
-}
 
 // Funzioni per gestione Ordini e Spesa
 const toggleShoppingItem = (productId) => {
@@ -546,8 +582,8 @@ const handleOrderSubmit = (e) => {
             >
               <option value="">Tutte le scadenze</option>
               <option value="expired">Scaduti</option>
-              <option value="critical">Critici (≤3 giorni)</option>
-              <option value="warning">In scadenza (≤7 giorni)</option>
+              <option value="critical">Critici (&le;3 giorni)</option>
+              <option value="warning">In scadenza (&le;7 giorni)</option>
               <option value="ok">OK (&gt;7 giorni)</option>
             </select>
           </div>
@@ -632,26 +668,35 @@ const handleOrderSubmit = (e) => {
                 </div>
                 <div>
                   <Label>Posizione *</Label>
-                  <select
-                    value={formData.location}
-                    onChange={(e) => setFormData({...formData, location: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-md"
-                    required
-                    disabled={refrigerators.length === 0}
-                  >
-                    <option value="">
-                      {refrigerators.length > 0 
-                        ? 'Seleziona un frigorifero' 
-                        : 'Nessun frigorifero registrato - Aggiungi prima un frigorifero'
-                      }
-                    </option>
-                    {refrigerators.map(refrigerator => (
-                      <option key={refrigerator.id} value={refrigerator.name}>
-                        {refrigerator.name} - {refrigerator.location || 'Posizione non specificata'}
+                  {formData.category === 'dispensa' || formData.category === 'condimenti' ? (
+                    <Input
+                      value={formData.location}
+                      onChange={(e) => setFormData({...formData, location: e.target.value})}
+                      placeholder="es. Ripiano alto, Mobile credenza, Scaffale 3..."
+                      required
+                    />
+                  ) : (
+                    <select
+                      value={formData.location}
+                      onChange={(e) => setFormData({...formData, location: e.target.value})}
+                      className="w-full px-3 py-2 border rounded-md"
+                      required
+                      disabled={refrigerators.length === 0}
+                    >
+                      <option value="">
+                        {refrigerators.length > 0 
+                          ? 'Seleziona un frigorifero' 
+                          : 'Nessun frigorifero registrato - Aggiungi prima un frigorifero'
+                        }
                       </option>
-                    ))}
-                  </select>
-                  {refrigerators.length === 0 && (
+                      {refrigerators.map(refrigerator => (
+                        <option key={refrigerator.id} value={refrigerator.name}>
+                          {refrigerator.name} - {refrigerator.location || 'Posizione non specificata'}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {refrigerators.length === 0 && (formData.category !== 'dispensa' && formData.category !== 'condimenti') && (
                     <p className="text-sm text-orange-600 mt-1">
                       ⚠️ Devi prima registrare almeno un frigorifero nella sezione "Frigoriferi e Freezer"
                     </p>
@@ -1118,16 +1163,20 @@ const handleOrderSubmit = (e) => {
                           size="sm"
                           variant="outline"
                           onClick={() => handleEdit(product)}
+                          title="Modifica"
                         >
                           <Edit className="h-4 w-4" />
+                          <span className="ml-1 text-xs">Modifica</span>
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => deleteProduct(product.id)}
                           className="text-red-600 hover:text-red-800"
+                          title="Elimina"
                         >
                           <Trash2 className="h-4 w-4" />
+                          <span className="ml-1 text-xs">Elimina</span>
                         </Button>
                       </div>
                     </div>
@@ -1185,8 +1234,8 @@ const handleOrderSubmit = (e) => {
                 >
                   <option value="">Tutte le scadenze</option>
                   <option value="expired">Scaduti</option>
-                  <option value="critical">Critici (≤3 giorni)</option>
-                  <option value="warning">In scadenza (≤7 giorni)</option>
+                  <option value="critical">Critici (&le;3 giorni)</option>
+                  <option value="warning">In scadenza (&le;7 giorni)</option>
                   <option value="ok">OK (&gt;7 giorni)</option>
                 </select>
                 

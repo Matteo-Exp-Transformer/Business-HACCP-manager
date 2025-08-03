@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from 'react'
-import { FileDown } from 'lucide-react'
+import { FileDown, HelpCircle } from 'lucide-react'
 import { Button } from './ui/Button'
+import { checkPDFLibraries, createPDFDocument, downloadPDFWithRetry } from '../utils/pdfUtils'
+import PDFDownloadHelp from './PDFDownloadHelp'
 
 function PDFExport({ activeTab, temperatures }) {
   const [showPDFButton, setShowPDFButton] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
+  const [downloadFailed, setDownloadFailed] = useState(false)
 
   // Show PDF button only on temperature tab
   useEffect(() => {
     setShowPDFButton(activeTab === 'temperature')
   }, [activeTab])
 
-  const exportTemperaturePDF = () => {
+  const exportTemperaturePDF = async () => {
     // Check if PDF libraries are loaded
-    if (typeof window.jspdf === 'undefined') {
+    if (!checkPDFLibraries()) {
       alert("Errore: Librerie PDF non caricate. Ricarica la pagina e riprova.")
       return
     }
@@ -21,6 +26,9 @@ function PDFExport({ activeTab, temperatures }) {
       alert("Nessuna temperatura registrata da esportare.")
       return
     }
+
+    setIsExporting(true)
+    setDownloadFailed(false)
 
     try {
       const headers = ["Posizione", "Temperatura", "Orario"]
@@ -34,8 +42,7 @@ function PDFExport({ activeTab, temperatures }) {
         ])
       })
 
-      const { jsPDF } = window.jspdf
-      const doc = new jsPDF()
+      const doc = createPDFDocument()
       
       // Header
       doc.setFontSize(18)
@@ -85,27 +92,58 @@ function PDFExport({ activeTab, temperatures }) {
       }
 
       const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`
-      doc.save(fileName)
+      const success = await downloadPDFWithRetry(doc, fileName)
+      
+      if (!success) {
+        setDownloadFailed(true)
+        setShowHelp(true)
+      }
     } catch (error) {
       console.error('PDF export error:', error)
-      alert("Errore durante l'esportazione del PDF. Riprova.")
+      setDownloadFailed(true)
+      setShowHelp(true)
+    } finally {
+      setIsExporting(false)
     }
   }
 
   if (!showPDFButton) return null
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <Button
-        onClick={exportTemperaturePDF}
-        className="bg-primary-500 hover:bg-primary-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 px-6 py-3 rounded-xl"
-        size="lg"
-      >
-        <FileDown className="h-5 w-5" />
-        <span className="hidden sm:inline">Esporta Temperature in PDF</span>
-        <span className="sm:hidden">PDF</span>
-      </Button>
-    </div>
+    <>
+      <div className="fixed bottom-6 right-6 z-50 flex gap-2">
+        <Button
+          onClick={exportTemperaturePDF}
+          disabled={isExporting}
+          className="bg-primary-500 hover:bg-primary-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 px-6 py-3 rounded-xl"
+          size="lg"
+        >
+          <FileDown className="h-5 w-5" />
+          <span className="hidden sm:inline">
+            {isExporting ? 'Esportazione...' : 'Esporta Temperature in PDF'}
+          </span>
+          <span className="sm:hidden">
+            {isExporting ? '...' : 'PDF'}
+          </span>
+        </Button>
+        
+        {downloadFailed && (
+          <Button
+            onClick={() => setShowHelp(true)}
+            variant="outline"
+            size="lg"
+            className="bg-orange-50 border-orange-200 text-orange-600 hover:bg-orange-100"
+          >
+            <HelpCircle className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
+      
+      <PDFDownloadHelp 
+        isVisible={showHelp} 
+        onClose={() => setShowHelp(false)} 
+      />
+    </>
   )
 }
 

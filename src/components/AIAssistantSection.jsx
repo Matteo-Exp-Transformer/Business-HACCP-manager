@@ -78,23 +78,9 @@ function AIAssistantSection({
     }
   }, [])
 
-  // Initialize with welcome message
+  // Initialize with empty messages - no welcome message
   useEffect(() => {
-    if (messages.length === 0) {
-      addMessage('assistant', `Ciao ${currentUser?.name || 'utente'}! 👋 Sono il tuo assistente IA per il sistema HACCP.
-
-**🤖 Cosa posso fare:**
-• **Gestione inventario** - Aggiungere prodotti, controllare scadenze
-• **Controlli temperatura** - Registrare e monitorare temperature
-• **Attività di pulizia** - Gestire mansioni e frequenze
-• **Automatizzazioni** - Alert intelligenti e suggerimenti
-• **🎤 Riconoscimento vocale** - Parla invece di scrivere!
-
-**⚙️ Automatizzazioni attive:**
-${automations.filter(a => a.enabled).map(a => `• ${a.name}`).join('\n')}
-
-Dimmi cosa ti serve!`)
-    }
+    // No automatic welcome message
   }, [])
 
   const addMessage = (sender, content, type = 'text', data = null) => {
