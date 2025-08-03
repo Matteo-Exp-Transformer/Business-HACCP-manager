@@ -42,6 +42,10 @@ function AIAssistantSection({
     { id: 3, name: 'Ordini Settimanali', enabled: false, description: 'Crea ordini automatici ogni lunedì' },
     { id: 4, name: 'Alert Temperature', enabled: true, description: 'Avvisa su temperature critiche' }
   ])
+  const [showChatIcon, setShowChatIcon] = useState(() => {
+    const saved = localStorage.getItem('haccp-show-chat-icon')
+    return saved !== null ? JSON.parse(saved) : true
+  })
 
   // Initialize speech recognition
   useEffect(() => {
@@ -237,6 +241,17 @@ ${recentTemps.map(t => `• ${t.location}: ${t.temperature}°C (${t.status})`).j
       a.id === id ? { ...a, enabled: !a.enabled } : a
     ))
   }
+
+  const toggleChatIcon = () => {
+    const newValue = !showChatIcon
+    setShowChatIcon(newValue)
+    localStorage.setItem('haccp-show-chat-icon', JSON.stringify(newValue))
+  }
+
+  // Salva la preferenza della chat icon quando cambia
+  useEffect(() => {
+    localStorage.setItem('haccp-show-chat-icon', JSON.stringify(showChatIcon))
+  }, [showChatIcon])
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -436,6 +451,41 @@ ${recentTemps.map(t => `• ${t.location}: ${t.temperature}°C (${t.status})`).j
               </div>
             </CardContent>
           </Card>
+
+          {/* Impostazioni Chat */}
+          {showSettings && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5 text-gray-600" />
+                  Impostazioni Chat IA
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-sm">Mostra Icona Chat</h4>
+                      <p className="text-xs text-gray-600">
+                        Visualizza l'icona della chat IA nell'app
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant={showChatIcon ? "default" : "outline"}
+                      onClick={toggleChatIcon}
+                    >
+                      {showChatIcon ? 'Attiva' : 'Disattiva'}
+                    </Button>
+                  </div>
+                  
+                  <div className="text-xs text-blue-600 bg-blue-50 p-3 rounded-lg">
+                    💡 <strong>Suggerimento:</strong> Se disattivi l'icona della chat, potrai sempre accedere all'IA dalla sezione "Assistente IA" nel menu principale.
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>

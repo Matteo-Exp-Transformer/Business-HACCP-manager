@@ -31,6 +31,8 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null)
   const [users, setUsers] = useState([])
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  // Gestione visibilità chat IA
+  const [showChatIcon, setShowChatIcon] = useState(true)
 
   // Load data from localStorage on app start
   useEffect(() => {
@@ -71,6 +73,25 @@ function App() {
     // Recupera l'utente corrente se era loggato prima della chiusura dell'app
     if (currentUserData) {
       setCurrentUser(JSON.parse(currentUserData))
+    }
+
+    // Recupera la preferenza per la visibilità della chat IA
+    const chatIconPref = localStorage.getItem('haccp-show-chat-icon')
+    if (chatIconPref !== null) {
+      setShowChatIcon(JSON.parse(chatIconPref))
+    }
+
+    // Listener per i cambiamenti alle preferenze chat
+    const handleStorageChange = (e) => {
+      if (e.key === 'haccp-show-chat-icon') {
+        setShowChatIcon(JSON.parse(e.newValue))
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
     }
   }, [])
 
@@ -151,6 +172,9 @@ function App() {
     setCurrentUser(user)
     setIsLoginModalOpen(false)
     
+    // Salva l'utente corrente nel localStorage
+    localStorage.setItem('haccp-current-user', JSON.stringify(user))
+    
     // Registra l'accesso
     const loginAction = {
       id: Date.now(),
@@ -185,6 +209,9 @@ function App() {
     
     setCurrentUser(null)
     setActiveTab('dashboard')
+    
+    // Rimuovi l'utente corrente dal localStorage
+    localStorage.removeItem('haccp-current-user')
   }
 
   const addUser = (userData) => {
@@ -648,7 +675,7 @@ function App() {
         />
 
         {/* AI Assistant */}
-        {currentUser && (
+        {currentUser && showChatIcon && (
           <AIAssistant
             currentUser={currentUser}
             currentSection={activeTab}
