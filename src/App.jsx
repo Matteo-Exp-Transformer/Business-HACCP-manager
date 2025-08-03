@@ -251,12 +251,11 @@ function App() {
   const notifications = getNotifications()
   
   // Componente pallino notifica
-  const NotificationDot = ({ count, className = "" }) => {
-    if (count === 0) return null
+  const NotificationDot = ({ hasNotification, className = "" }) => {
+    if (!hasNotification) return null
     
     return (
-      <div className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-medium ${className}`}>
-        {count > 99 ? '99+' : count}
+      <div className={`absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full ${className}`}>
       </div>
     )
   }
@@ -648,27 +647,27 @@ function App() {
             <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
-              <NotificationDot count={notifications.dashboard} />
+              <NotificationDot hasNotification={notifications.dashboard > 0} />
             </TabsTrigger>
             <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Thermometer className="h-4 w-4" />
               <span className="hidden sm:inline">Frigoriferi e Freezer</span>
-              <NotificationDot count={notifications.refrigerators} />
+              <NotificationDot hasNotification={notifications.refrigerators > 0} />
             </TabsTrigger>
             <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Attività e Mansioni</span>
-              <NotificationDot count={notifications.cleaning} />
+              <NotificationDot hasNotification={notifications.cleaning > 0} />
             </TabsTrigger>
             <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Inventario</span>
-              <NotificationDot count={notifications.inventory} />
+              <NotificationDot hasNotification={notifications.inventory > 0} />
             </TabsTrigger>
             <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <QrCode className="h-4 w-4" />
               <span className="hidden sm:inline">Etichette</span>
-              <NotificationDot count={notifications.labels} />
+              <NotificationDot hasNotification={notifications.labels > 0} />
             </TabsTrigger>
             <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Bot className="h-4 w-4" />
@@ -678,7 +677,7 @@ function App() {
               <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Gestione</span>
-                <NotificationDot count={notifications.staff} />
+                <NotificationDot hasNotification={notifications.staff > 0} />
               </TabsTrigger>
             )}
             <div className="flex flex-col gap-1">
