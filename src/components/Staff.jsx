@@ -713,7 +713,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
               <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-100 rounded text-xs font-medium text-gray-600">
                 <div className="col-span-3">Nome</div>
                 <div className="col-span-2">Ruolo</div>
-                <div className="col-span-3">Categoria</div>
+                <div className="col-span-2">Categoria</div>
                 <div className="col-span-2">Data Registrazione</div>
                 <div className="col-span-2">Note</div>
                 <div className="col-span-1">Azioni</div>
@@ -746,7 +746,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                     </span>
                   </div>
                   
-                  <div className="col-span-3 flex items-center">
+                  <div className="col-span-2 flex items-center">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       member.department === 'Non assegnato' ? 'bg-gray-100 text-gray-600' : 'bg-purple-100 text-purple-700'
                     }`}>
@@ -776,25 +776,27 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                     )}
                   </div>
                   
-                  <div className="col-span-1 flex items-center justify-end gap-1">
-                    <Button
-                      onClick={() => editStaffMember(member)}
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-blue-700 border-blue-300 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-400 bg-white shadow-sm flex items-center justify-center"
-                      title="Modifica dipendente"
-                    >
-                      <Edit3 className="h-7 w-7 stroke-2" style={{width: '28px', height: '28px'}} />
-                    </Button>
-                    <Button
-                      onClick={() => deleteStaffMember(member.id)}
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-700 border-red-300 hover:bg-red-100 hover:text-red-800 hover:border-red-400 bg-white shadow-sm flex items-center justify-center"
-                      title="Elimina dipendente"
-                    >
-                      <Trash2 className="h-7 w-7 stroke-2" style={{width: '28px', height: '28px'}} />
-                    </Button>
+                  <div className="col-span-1 flex items-center justify-center">
+                    <div className="flex gap-1">
+                      <Button
+                        onClick={() => editStaffMember(member)}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-blue-700 border-blue-300 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-400 bg-white shadow-sm"
+                        title="Modifica dipendente"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={() => deleteStaffMember(member.id)}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-red-700 border-red-300 hover:bg-red-100 hover:text-red-800 hover:border-red-400 bg-white shadow-sm"
+                        title="Elimina dipendente"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
