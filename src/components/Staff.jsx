@@ -481,18 +481,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Utenti Registrati</p>
-                <p className="text-2xl font-bold text-green-600">{staff.filter(member => member.isRegisteredUser).length}</p>
-              </div>
-              <UserCheck className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
+        
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
