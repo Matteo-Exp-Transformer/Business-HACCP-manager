@@ -117,6 +117,10 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
   const [showShoppingList, setShowShoppingList] = useState(false)
   const [orderItems, setOrderItems] = useState([])
   const [showOrderForm, setShowOrderForm] = useState(false)
+  
+  // Stati per ingredienti già utilizzati
+  const [usedIngredients, setUsedIngredients] = useState([])
+  const [showUsedIngredients, setShowUsedIngredients] = useState(false)
   const [orderFormData, setOrderFormData] = useState({
     orderId: '',
     supplierName: '',
@@ -150,7 +154,18 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     if (savedSuppliers) {
       setSuppliers(JSON.parse(savedSuppliers))
     }
+
+    // Carica ingredienti già utilizzati
+    const savedUsedIngredients = localStorage.getItem('haccp-used-ingredients')
+    if (savedUsedIngredients) {
+      setUsedIngredients(JSON.parse(savedUsedIngredients))
+    }
   }, [])
+
+  // Salva ingredienti utilizzati quando cambia
+  useEffect(() => {
+    localStorage.setItem('haccp-used-ingredients', JSON.stringify(usedIngredients))
+  }, [usedIngredients])
 
   // Chiudi dropdown fornitori quando si clicca fuori
   useEffect(() => {
@@ -269,13 +284,29 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
       )
       setProducts(updatedProducts)
     } else {
+      // Controlla se la scadenza è oltre un mese per suggerire di non caricare foto
+      const today = new Date()
+      const expiryDate = new Date(formData.expiryDate)
+      const daysDiff = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24))
+      
+      if (daysDiff > 30) {
+        const shouldSkipPhoto = confirm('⚠️ Questo prodotto scade tra più di un mese.\n\n💡 Per risparmiare spazio di archiviazione, ti consigliamo di conservare l\'etichetta fisicamente senza caricare la foto.\n\n✅ Clicca OK per procedere\n❌ Clicca Annulla per tornare al form')
+        
+        if (!shouldSkipPhoto) {
+          return // Esce senza salvare, l'utente può aggiungere la foto
+        }
+        
+        alert('📝 Prodotto aggiunto con suggerimento di conservazione fisica dell\'etichetta.')
+      }
+
       const newProduct = {
         id: `prod_${Date.now()}`,
         ...formData,
         addedBy: currentUser?.id,
         addedByName: currentUser?.name,
         createdAt: new Date().toISOString(),
-        status: 'active'
+        status: 'active',
+        longExpiryProduct: daysDiff > 30 // Flag per identificare prodotti a lunga scadenza
       }
       setProducts([...products, newProduct])
     }
@@ -301,7 +332,33 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
   }
 
   const deleteProduct = (id) => {
-    setProducts(products.filter(product => product.id !== id))
+    const productToDelete = products.find(p => p.id === id)
+    
+    // Se il prodotto è scaduto, chiedi se spostarlo in "ingredienti utilizzati"
+    const expiryStatus = getExpiryStatus(productToDelete.expiryDate)
+    if (expiryStatus.status === 'expired') {
+      const shouldMoveToUsed = confirm('🔄 Questo prodotto è scaduto.\n\n✅ Vuoi spostarlo in "Ingredienti già utilizzati" per un futuro reinserimento?\n❌ Oppure eliminarlo definitivamente?')
+      
+      if (shouldMoveToUsed) {
+        // Sposta in ingredienti utilizzati
+        const usedIngredient = {
+          ...productToDelete,
+          movedToUsedAt: new Date().toISOString(),
+          movedBy: currentUser?.name || 'Sistema',
+          status: 'used',
+          originalExpiryDate: productToDelete.expiryDate
+        }
+        setUsedIngredients(prev => [...prev, usedIngredient])
+        setProducts(products.filter(product => product.id !== id))
+        alert('📦 Prodotto spostato in "Ingredienti già utilizzati"')
+        return
+      }
+    }
+    
+    // Eliminazione normale
+    if (confirm('Sei sicuro di voler eliminare definitivamente questo prodotto?')) {
+      setProducts(products.filter(product => product.id !== id))
+    }
   }
 
   const toggleAllergen = (allergenId) => {
@@ -311,6 +368,32 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
         ? prev.allergens.filter(id => id !== allergenId)
         : [...prev.allergens, allergenId]
     }))
+  }
+
+  // Funzione per reinserire un ingrediente già utilizzato
+  const reinsertUsedIngredient = (usedIngredient) => {
+    // Pre-compila il form con i dati dell'ingrediente
+    setFormData({
+      name: usedIngredient.name,
+      category: usedIngredient.category,
+      expiryDate: '', // Lascio vuoto per forzare l'inserimento di una nuova data
+      location: usedIngredient.location,
+      allergens: usedIngredient.allergens || [],
+      notes: usedIngredient.notes || '',
+      lotNumber: usedIngredient.lotNumber || '',
+      batchDeliveryDate: '',
+      associatedOrderId: usedIngredient.associatedOrderId || '',
+      supplierName: usedIngredient.supplierName || ''
+    })
+    
+    // Chiudi la sezione ingredienti utilizzati e apri il form
+    setShowUsedIngredients(false)
+    setShowAddForm(true)
+    
+    // Nascondi l'ingrediente dalla lista degli utilizzati
+    setUsedIngredients(prev => prev.filter(ing => ing.id !== usedIngredient.id))
+    
+    alert('📝 Form pre-compilato! Aggiungi la nuova data di scadenza per completare il reinserimento.')
   }
 
   const toggleProductSelection = (productId) => {
@@ -510,10 +593,20 @@ const handleOrderSubmit = (e) => {
               <Package className="h-5 w-5" />
               Gestione Inventario
             </CardTitle>
-            <Button onClick={() => setShowAddForm(!showAddForm)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Aggiungi Prodotto
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setShowAddForm(!showAddForm)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Aggiungi Prodotto
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowUsedIngredients(!showUsedIngredients)}
+                className="flex items-center gap-2"
+              >
+                <Package className="h-4 w-4" />
+                Ingredienti Utilizzati ({usedIngredients.length})
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -799,6 +892,77 @@ const handleOrderSubmit = (e) => {
                 </Button>
               </div>
             </form>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Ingredienti già utilizzati */}
+      {showUsedIngredients && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-gray-600" />
+              Ingredienti già Utilizzati ({usedIngredients.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {usedIngredients.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium">Nessun ingrediente utilizzato</p>
+                <p className="text-sm">Gli ingredienti scaduti spostati qui appariranno in questa sezione</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {usedIngredients.map(ingredient => (
+                  <div 
+                    key={ingredient.id} 
+                    className="flex items-center justify-between p-4 bg-gray-50 border rounded-lg opacity-75"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-700">{ingredient.name}</h4>
+                          <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
+                            <span className="flex items-center gap-1">
+                              📦 {ingredient.category}
+                            </span>
+                            <span>📅 Scaduto: {new Date(ingredient.originalExpiryDate).toLocaleDateString('it-IT')}</span>
+                            <span>📍 {ingredient.location}</span>
+                          </div>
+                          {ingredient.movedToUsedAt && (
+                            <div className="text-xs text-gray-500 mt-1">
+                              Spostato il {new Date(ingredient.movedToUsedAt).toLocaleDateString('it-IT')} da {ingredient.movedBy}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => reinsertUsedIngredient(ingredient)}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        ✅ Reinserisci
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (confirm('Sei sicuro di voler eliminare definitivamente questo ingrediente?')) {
+                            setUsedIngredients(prev => prev.filter(ing => ing.id !== ingredient.id))
+                          }
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        🗑️
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

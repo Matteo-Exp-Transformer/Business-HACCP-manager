@@ -31,6 +31,14 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null)
   const [users, setUsers] = useState([])
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  // Gestione visibilità chat IA
+  const [showChatIcon, setShowChatIcon] = useState(true)
+  
+  // Sistema notifiche per le sezioni
+  const [lastCheck, setLastCheck] = useState(() => {
+    const saved = localStorage.getItem('haccp-last-check')
+    return saved ? JSON.parse(saved) : {}
+  })
 
   // Load data from localStorage on app start
   useEffect(() => {
@@ -42,6 +50,7 @@ function App() {
 	const departmentsData = localStorage.getItem('haccp-departments')
     const productLabelsData = localStorage.getItem('haccp-product-labels')
     const usersData = localStorage.getItem('haccp-users')
+    const currentUserData = localStorage.getItem('haccp-current-user')
 
     if (temps) setTemperatures(JSON.parse(temps))
     if (cleaningData) setCleaning(JSON.parse(cleaningData))
@@ -50,6 +59,7 @@ function App() {
     if (productsData) setProducts(JSON.parse(productsData))
 	if (departmentsData) setDepartments(JSON.parse(departmentsData))	
     if (productLabelsData) setProductLabels(JSON.parse(productLabelsData))
+    
     if (usersData) {
       setUsers(JSON.parse(usersData))
     } else {
@@ -65,7 +75,36 @@ function App() {
       setUsers([defaultAdmin])
       localStorage.setItem('haccp-users', JSON.stringify([defaultAdmin]))
     }
+
+    // Recupera l'utente corrente se era loggato prima della chiusura dell'app
+    if (currentUserData) {
+      setCurrentUser(JSON.parse(currentUserData))
+    }
+
+    // Recupera la preferenza per la visibilità della chat IA
+    const chatIconPref = localStorage.getItem('haccp-show-chat-icon')
+    if (chatIconPref !== null) {
+      setShowChatIcon(JSON.parse(chatIconPref))
+    }
+
+    // Listener per i cambiamenti alle preferenze chat
+    const handleStorageChange = (e) => {
+      if (e.key === 'haccp-show-chat-icon') {
+        setShowChatIcon(JSON.parse(e.newValue))
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+    }
   }, [])
+
+  // Re-calcola le notifiche quando i dati cambiano
+  useEffect(() => {
+    // Forza il ricalcolo delle notifiche ogni volta che i dati cambiano
+  }, [products, temperatures, cleaning, staff, productLabels])
 
   // Save data to localStorage whenever they change
   useEffect(() => {
@@ -96,10 +135,15 @@ function App() {
     localStorage.setItem('haccp-product-labels', JSON.stringify(productLabels))
   }, [productLabels])
 
+
+
   // Funzioni gestione utenti
   const handleLogin = (user) => {
     setCurrentUser(user)
     setIsLoginModalOpen(false)
+    
+    // Salva l'utente corrente nel localStorage
+    localStorage.setItem('haccp-current-user', JSON.stringify(user))
     
     // Registra l'accesso
     const loginAction = {
@@ -115,6 +159,156 @@ function App() {
     const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
     actions.push(loginAction)
     localStorage.setItem('haccp-actions', JSON.stringify(actions))
+    
+    // Controlla se ci sono etichette di prodotti scaduti oggi (dopo un breve delay per non interferire con il login)
+    setTimeout(checkExpiredLabelsToday, 2000)
+  }
+
+  // Funzioni per calcolare le notifiche delle sezioni
+  const getNotifications = () => {
+    const notifications = {
+      dashboard: 0,
+      cleaning: 0,
+      inventory: 0,
+      labels: 0,
+      staff: 0,
+      refrigerators: 0
+    }
+    
+    // Notifiche per Attività e Mansioni (nuove attività aggiunte)
+    const lastCheckCleaning = lastCheck.cleaning || '2000-01-01T00:00:00.000Z'
+    const newCleaningTasks = cleaning.filter(task => 
+      new Date(task.createdAt || task.timestamp) > new Date(lastCheckCleaning)
+    ).length
+    notifications.cleaning += newCleaningTasks
+    
+    // Notifiche per Inventario (prodotti in scadenza tra 3-4 giorni + nuovi prodotti)
+    const lastCheckInventory = lastCheck.inventory || '2000-01-01T00:00:00.000Z'
+    const today = new Date()
+    const threeDaysFromNow = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)
+    const fourDaysFromNow = new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000)
+    
+    const expiringProducts = products.filter(product => {
+      const expiryDate = new Date(product.expiryDate)
+      return expiryDate >= threeDaysFromNow && expiryDate <= fourDaysFromNow
+    }).length
+    
+    const newProducts = products.filter(product => 
+      new Date(product.createdAt || product.addedDate) > new Date(lastCheckInventory)
+    ).length
+    
+    notifications.inventory += expiringProducts + newProducts
+    
+    // Notifiche per Etichette (nuove etichette)
+    const lastCheckLabels = lastCheck.labels || '2000-01-01T00:00:00.000Z'
+    const newLabels = productLabels.filter(label => 
+      new Date(label.createdAt || '2000-01-01') > new Date(lastCheckLabels)
+    ).length
+    notifications.labels += newLabels
+    
+    // Notifiche per Staff (nuovi membri)
+    const lastCheckStaff = lastCheck.staff || '2000-01-01T00:00:00.000Z'
+    const newStaffMembers = staff.filter(member => 
+      new Date(member.addedDate || member.createdAt || '2000-01-01') > new Date(lastCheckStaff)
+    ).length
+    notifications.staff += newStaffMembers
+    
+    // Notifiche per Temperature (nuove registrazioni critiche)
+    const lastCheckRefrigerators = lastCheck.refrigerators || '2000-01-01T00:00:00.000Z'
+    const criticalTemperatures = temperatures.filter(temp => {
+      const tempDate = new Date(temp.timestamp)
+      const isNew = tempDate > new Date(lastCheckRefrigerators)
+      const isCritical = temp.status === 'warning' || temp.status === 'danger'
+      return isNew && isCritical
+    }).length
+    notifications.refrigerators += criticalTemperatures
+    
+    // Notifiche per Dashboard (urgenze immediate - prodotti scaduti oggi)
+    const expiredToday = products.filter(product => {
+      const expiryDate = new Date(product.expiryDate)
+      const today = new Date()
+      expiryDate.setHours(0, 0, 0, 0)
+      today.setHours(0, 0, 0, 0)
+      return expiryDate.getTime() === today.getTime()
+    }).length
+    
+    notifications.dashboard = expiredToday + criticalTemperatures
+    
+    return notifications
+  }
+  
+  // Aggiorna l'ultima visita a una sezione
+  const updateLastCheck = (section) => {
+    const updatedCheck = {
+      ...lastCheck,
+      [section]: new Date().toISOString()
+    }
+    setLastCheck(updatedCheck)
+    localStorage.setItem('haccp-last-check', JSON.stringify(updatedCheck))
+  }
+  
+  // Calcola le notifiche
+  const notifications = getNotifications()
+  
+  // Componente pallino notifica
+  const NotificationDot = ({ hasNotification, className = "" }) => {
+    if (!hasNotification) return null
+    
+    return (
+      <div className={`absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full ${className}`}>
+      </div>
+    )
+  }
+
+  // Funzione per controllare etichette di prodotti scaduti oggi
+  const checkExpiredLabelsToday = () => {
+    const productLabels = JSON.parse(localStorage.getItem('haccp-product-labels') || '[]')
+    const products = JSON.parse(localStorage.getItem('haccp-products') || '[]')
+    
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    const expiredTodayLabels = []
+    
+    productLabels.forEach(label => {
+      const associatedProduct = products.find(p => p.name === label.productName)
+      if (associatedProduct) {
+        const productExpiry = new Date(associatedProduct.expiryDate)
+        productExpiry.setHours(0, 0, 0, 0)
+        
+        if (productExpiry.getTime() === today.getTime() && label.photo) {
+          expiredTodayLabels.push({
+            ...label,
+            associatedProduct
+          })
+        }
+      }
+    })
+    
+    if (expiredTodayLabels.length > 0) {
+      const shouldRemoveLabels = confirm(`🗑️ PULIZIA ETICHETTE - Controllo giornaliero\n\n📅 Oggi sono scaduti ${expiredTodayLabels.length} prodotti con foto etichette:\n\n${expiredTodayLabels.map(l => `• ${l.productName}`).join('\n')}\n\n💾 Vuoi rimuovere le foto per liberare spazio di archiviazione?\n\n✅ Sì, rimuovi le foto\n❌ No, mantieni tutto`)
+      
+      if (shouldRemoveLabels) {
+        // Rimuovi le foto dalle etichette ma mantieni i dati
+        const updatedLabels = productLabels.map(label => {
+          const isExpiredToday = expiredTodayLabels.some(exp => exp.id === label.id)
+          if (isExpiredToday && label.photo) {
+            return {
+              ...label,
+              photo: null,
+              photoRemovedAt: new Date().toISOString(),
+              photoRemovedReason: 'Prodotto scaduto - pulizia automatica'
+            }
+          }
+          return label
+        })
+        
+        localStorage.setItem('haccp-product-labels', JSON.stringify(updatedLabels))
+        
+        const spaceSaved = expiredTodayLabels.length * 150
+        alert(`✅ Pulizia completata!\n\n🗑️ Rimosse ${expiredTodayLabels.length} foto da etichette di prodotti scaduti\n💾 Spazio liberato: ~${spaceSaved} KB\n\n📝 I dati delle etichette sono stati mantenuti`)
+      }
+    }
   }
 
   const handleLogout = () => {
@@ -135,6 +329,9 @@ function App() {
     
     setCurrentUser(null)
     setActiveTab('dashboard')
+    
+    // Rimuovi l'utente corrente dal localStorage
+    localStorage.removeItem('haccp-current-user')
   }
 
   const addUser = (userData) => {
@@ -442,36 +639,45 @@ function App() {
         </div>
 
         {/* Navigation Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={(newTab) => {
+          setActiveTab(newTab)
+          updateLastCheck(newTab)
+        }}>
           <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 md:grid-cols-8' : 'grid-cols-3 md:grid-cols-7'} gap-1 mb-8`}>
-            <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
+              <NotificationDot hasNotification={notifications.dashboard > 0} />
             </TabsTrigger>
-            <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Thermometer className="h-4 w-4" />
               <span className="hidden sm:inline">Frigoriferi e Freezer</span>
+              <NotificationDot hasNotification={notifications.refrigerators > 0} />
             </TabsTrigger>
-            <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Attività e Mansioni</span>
+              <NotificationDot hasNotification={notifications.cleaning > 0} />
             </TabsTrigger>
-            <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Inventario</span>
+              <NotificationDot hasNotification={notifications.inventory > 0} />
             </TabsTrigger>
-            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <QrCode className="h-4 w-4" />
               <span className="hidden sm:inline">Etichette</span>
+              <NotificationDot hasNotification={notifications.labels > 0} />
             </TabsTrigger>
             <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">IA Assistant</span>
             </TabsTrigger>
             {isAdmin() && (
-              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Gestione</span>
+                <NotificationDot hasNotification={notifications.staff > 0} />
               </TabsTrigger>
             )}
             <div className="flex flex-col gap-1">
@@ -598,7 +804,7 @@ function App() {
         />
 
         {/* AI Assistant */}
-        {currentUser && (
+        {currentUser && showChatIcon && (
           <AIAssistant
             currentUser={currentUser}
             currentSection={activeTab}

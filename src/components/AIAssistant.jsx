@@ -37,7 +37,7 @@ function AIAssistant({
   const [showSettings, setShowSettings] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [recognition, setRecognition] = useState(null)
-  const [isMinimized, setIsMinimized] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(true)
   const messagesEndRef = useRef(null)
 
   // Auto-scroll to bottom

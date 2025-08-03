@@ -104,6 +104,16 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     e.preventDefault()
     if (!formData.name.trim() || !formData.role.trim()) return
 
+    // Controllo per nomi duplicati
+    const nameExists = staff.some(member => 
+      member.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
+    )
+    
+    if (nameExists) {
+      alert('⚠️ Attenzione: Esiste già un utente con questo nome.\nScegli un nome diverso per procedere con la registrazione.')
+      return
+    }
+
     const newStaff = {
       id: Date.now(),
       name: formData.name.trim(),
@@ -289,6 +299,17 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     e.preventDefault()
     if (!formData.name.trim() || !formData.role.trim()) return
 
+    // Controllo per nomi duplicati (escludendo l'utente che stiamo modificando)
+    const nameExists = staff.some(member => 
+      member.id !== editingMember.id && 
+      member.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
+    )
+    
+    if (nameExists) {
+      alert('⚠️ Attenzione: Esiste già un utente con questo nome.\nScegli un nome diverso per procedere con la modifica.')
+      return
+    }
+
     const updatedStaff = staff.map(member =>
       member.id === editingMember.id
         ? {
@@ -366,219 +387,6 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
 
   return (
     <div className="space-y-6">
-      {/* Add Staff Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            {editingMember ? 'Modifica Membro del Personale' : 'Aggiungi Membro del Personale'}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {showEditForm && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                <strong>Stai modificando:</strong> {editingMember?.name}
-              </p>
-            </div>
-          )}
-          <form onSubmit={editingMember ? updateStaffMember : addStaffMember} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome Completo</Label>
-                <Input
-                  id="name"
-                  placeholder="Es: Mario Rossi"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Ruolo</Label>
-                <select
-                  id="role"
-                  value={formData.role}
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  required
-                >
-                  <option value="">Seleziona un ruolo...</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.name}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="certification">Certificazioni HACCP (opzionale)</Label>
-                <Input
-                  id="certification"
-                  placeholder="Es: Certificato HACCP livello 2, Corso sicurezza alimentare..."
-                  value={formData.certification}
-                  onChange={(e) => setFormData({...formData, certification: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes">Note (opzionale)</Label>
-                <Input
-                  id="notes"
-                  placeholder="Es: Turno preferito, competenze particolari..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button type="submit" className="flex-1">
-                {editingMember ? 'Salva Modifiche' : 'Aggiungi al Team'}
-              </Button>
-              {editingMember && (
-                <Button type="button" variant="outline" onClick={cancelEdit} className="flex-1">
-                  Annulla
-                </Button>
-              )}
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Totale Personale</p>
-                <p className="text-2xl font-bold">{staff.length}</p>
-              </div>
-              <Users className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Utenti Registrati</p>
-                <p className="text-2xl font-bold text-green-600">{staff.filter(member => member.isRegisteredUser).length}</p>
-              </div>
-              <UserCheck className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Con Certificazioni</p>
-                <p className="text-2xl font-bold text-orange-600">{certifiedStaff.length}</p>
-              </div>
-              <GraduationCap className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Ruoli Diversi</p>
-                <p className="text-2xl font-bold text-purple-600">{roles.length}</p>
-              </div>
-              <UserCheck className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Interactive Roles Distribution */}
-      {departments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuzione Ruoli</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {departments
-                .slice()
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map(department => {
-                const roleMembers = staff.filter(member => member.role === department.name)
-                const count = roleMembers.length
-                const isExpanded = expandedRoles[department.name]
-                
-                return (
-                  <div key={department.id} className="border rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setExpandedRoles(prev => ({...prev, [department.name]: !prev[department.name]}))}
-                      className={`w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 ${getRoleColor(department.name)} border-none`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{department.name} ({count})</span>
-                        <span className="text-xs">
-                          {isExpanded ? '▼' : '▶'}
-                        </span>
-                      </div>
-                    </button>
-                    
-                    {isExpanded && (
-                      <div className="px-4 py-3 bg-gray-50 border-t">
-                        {count === 0 ? (
-                          <div className="text-center py-4 text-gray-500">
-                            <Users className="h-6 w-6 mx-auto mb-2 text-gray-400" />
-                            <p className="text-sm">Nessun dipendente in questo ruolo</p>
-                            <p className="text-xs">Aggiungi membri selezionando "{department.name}" nel form sopra</p>
-                          </div>
-                        ) : (
-                          <div className="space-y-2">
-                            {roleMembers.map(member => (
-                              <div key={member.id} className="flex items-center justify-between p-2 bg-white rounded border">
-                                <div className="flex-1">
-                                  <div className="font-medium">{member.name}</div>
-                                  {member.certification && (
-                                    <div className="text-xs text-green-600 flex items-center gap-1">
-                                      <GraduationCap className="h-3 w-3" />
-                                      {member.certification}
-                                    </div>
-                                  )}
-                                  {member.notes && (
-                                    <div className="text-xs text-blue-600 flex items-center gap-1">
-                                      <StickyNote className="h-3 w-3" />
-                                      {member.notes}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex justify-center">
-                                  <Button
-                                    onClick={() => removeFromRole(member)}
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-orange-700 border-orange-300 hover:bg-orange-100 hover:border-orange-400 bg-white shadow-sm"
-                                    title="Rimuovi da questo ruolo o riassegna"
-                                  >
-                                    <ArrowRightLeft className="h-7.5 w-7.5 stroke-1.5" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Category Management - Only for Admin */}
       {currentUser && currentUser.role === 'admin' && (
         <Card>
@@ -698,6 +506,193 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
         </Card>
       )}
 
+      {/* Add Staff Form */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            {editingMember ? 'Modifica Membro del Personale' : 'Aggiungi Membro del Personale'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {showEditForm && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                <strong>Stai modificando:</strong> {editingMember?.name}
+              </p>
+            </div>
+          )}
+          <form onSubmit={editingMember ? updateStaffMember : addStaffMember} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome Completo</Label>
+                <Input
+                  id="name"
+                  placeholder="Es: Mario Rossi"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Ruolo</Label>
+                <select
+                  id="role"
+                  value={formData.role}
+                  onChange={(e) => setFormData({...formData, role: e.target.value})}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  required
+                >
+                  <option value="">Seleziona un ruolo...</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.name}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="certification">Certificazioni HACCP (opzionale)</Label>
+                <Input
+                  id="certification"
+                  placeholder="Es: Certificato HACCP livello 2, Corso sicurezza alimentare..."
+                  value={formData.certification}
+                  onChange={(e) => setFormData({...formData, certification: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Note (opzionale)</Label>
+                <Input
+                  id="notes"
+                  placeholder="Es: Turno preferito, competenze particolari..."
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" className="flex-1">
+                {editingMember ? 'Salva Modifiche' : 'Aggiungi al Team'}
+              </Button>
+              {editingMember && (
+                <Button type="button" variant="outline" onClick={cancelEdit} className="flex-1">
+                  Annulla
+                </Button>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Totale Personale</p>
+                <p className="text-2xl font-bold">{staff.length}</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        
+
+      </div>
+
+      {/* Categorie Personale - Card Individuali */}
+      {departments.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {departments
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(department => {
+              const roleMembers = staff.filter(member => member.role === department.name)
+              const count = roleMembers.length
+              const isExpanded = expandedRoles[department.name]
+              
+              return (
+                <div key={department.id}>
+                  <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                    <CardContent className="pt-6">
+                      <button
+                        onClick={() => setExpandedRoles(prev => ({...prev, [department.name]: !prev[department.name]}))}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-sm text-gray-600">{department.name}</p>
+                            <p className="text-2xl font-bold text-blue-600">{count}</p>
+                          </div>
+                          <Users className="h-8 w-8 text-blue-500" />
+                        </div>
+                        <div className="text-xs text-gray-500 flex items-center justify-between">
+                          <span>{count === 1 ? 'utente' : 'utenti'}</span>
+                          <span>{isExpanded ? '▼' : '▶'}</span>
+                        </div>
+                      </button>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Elenco utenti espanso */}
+                  {isExpanded && (
+                    <Card className="mt-2">
+                      <CardContent className="pt-4">
+                        {count === 0 ? (
+                          <div className="text-center py-4 text-gray-500">
+                            <Users className="h-6 w-6 mx-auto mb-2 text-gray-400" />
+                            <p className="text-sm">Nessun dipendente in questa categoria</p>
+                            <p className="text-xs">Aggiungi membri selezionando "{department.name}" nel form sopra</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {roleMembers.map(member => (
+                              <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded border">
+                                <div className="flex-1">
+                                  <div className="font-medium">{member.name}</div>
+                                  {member.certification && (
+                                    <div className="text-xs text-green-600 flex items-center gap-1">
+                                      <GraduationCap className="h-3 w-3" />
+                                      {member.certification}
+                                    </div>
+                                  )}
+                                  {member.notes && (
+                                    <div className="text-xs text-blue-600 flex items-center gap-1">
+                                      <StickyNote className="h-3 w-3" />
+                                      {member.notes}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex justify-center">
+                                  <Button
+                                    onClick={() => removeFromRole(member)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-orange-700 border-orange-300 hover:bg-orange-100 hover:border-orange-400 bg-white shadow-sm"
+                                    title="Rimuovi da questo ruolo o riassegna"
+                                  >
+                                    <ArrowRightLeft className="h-7.5 w-7.5 stroke-1.5" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )
+            })}
+        </div>
+      )}
+
+
+
       {/* Compact Staff List - Optimized for 35+ employees */}
       <Card>
         <CardHeader>
@@ -718,7 +713,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
               <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-gray-100 rounded text-xs font-medium text-gray-600">
                 <div className="col-span-3">Nome</div>
                 <div className="col-span-2">Ruolo</div>
-                <div className="col-span-3">Categoria</div>
+                <div className="col-span-2">Categoria</div>
                 <div className="col-span-2">Data Registrazione</div>
                 <div className="col-span-2">Note</div>
                 <div className="col-span-1">Azioni</div>
@@ -751,7 +746,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                     </span>
                   </div>
                   
-                  <div className="col-span-3 flex items-center">
+                  <div className="col-span-2 flex items-center">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       member.department === 'Non assegnato' ? 'bg-gray-100 text-gray-600' : 'bg-purple-100 text-purple-700'
                     }`}>
@@ -781,25 +776,27 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                     )}
                   </div>
                   
-                  <div className="col-span-1 flex items-center justify-end gap-1">
-                    <Button
-                      onClick={() => editStaffMember(member)}
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-blue-700 border-blue-300 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-400 bg-white shadow-sm flex items-center justify-center"
-                      title="Modifica dipendente"
-                    >
-                      <Edit3 className="h-7 w-7 stroke-2" style={{width: '28px', height: '28px'}} />
-                    </Button>
-                    <Button
-                      onClick={() => deleteStaffMember(member.id)}
-                      variant="outline"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-red-700 border-red-300 hover:bg-red-100 hover:text-red-800 hover:border-red-400 bg-white shadow-sm flex items-center justify-center"
-                      title="Elimina dipendente"
-                    >
-                      <Trash2 className="h-7 w-7 stroke-2" style={{width: '28px', height: '28px'}} />
-                    </Button>
+                  <div className="col-span-1 flex items-center justify-center">
+                    <div className="flex gap-1">
+                      <Button
+                        onClick={() => editStaffMember(member)}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-blue-700 border-blue-300 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-400 bg-white shadow-sm"
+                        title="Modifica dipendente"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={() => deleteStaffMember(member.id)}
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-red-700 border-red-300 hover:bg-red-100 hover:text-red-800 hover:border-red-400 bg-white shadow-sm"
+                        title="Elimina dipendente"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
