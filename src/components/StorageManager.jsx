@@ -75,20 +75,29 @@ function StorageManager({
       !task.completed || new Date(task.createdAt) >= thirtyDaysAgo
     )
 
-    // Archivia etichette prodotti scaduti (se esistono)
+    // Controlla etichette prodotti scaduti OGGI (non 30 giorni fa)
     const productLabels = JSON.parse(localStorage.getItem('haccp-product-labels') || '[]')
     const products = JSON.parse(localStorage.getItem('haccp-products') || '[]')
     
-    const expiredLabels = []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0) // Inizio giornata
+    
+    const expiredTodayLabels = []
     const activeLabels = []
     
     productLabels.forEach(label => {
-      // Controlla se il prodotto associato è scaduto da più di 30 giorni
+      // Controlla se il prodotto associato è scaduto OGGI
       const associatedProduct = products.find(p => p.name === label.productName)
       if (associatedProduct) {
         const productExpiry = new Date(associatedProduct.expiryDate)
-        if (productExpiry < thirtyDaysAgo) {
-          expiredLabels.push(label)
+        productExpiry.setHours(0, 0, 0, 0) // Inizio giornata per confronto
+        
+        if (productExpiry.getTime() === today.getTime()) {
+          // Prodotto scaduto oggi - chiedi conferma per rimuovere etichetta
+          expiredTodayLabels.push({
+            ...label,
+            associatedProduct
+          })
         } else {
           activeLabels.push(label)
         }
@@ -97,6 +106,20 @@ function StorageManager({
         activeLabels.push(label)
       }
     })
+    
+    let expiredLabels = []
+    // Se ci sono etichette di prodotti scaduti oggi, chiedi conferma
+    if (expiredTodayLabels.length > 0) {
+      const shouldRemoveLabels = confirm(`🗂️ PULIZIA ETICHETTE\n\n📅 Oggi sono scaduti ${expiredTodayLabels.length} prodotti con etichette salvate:\n\n${expiredTodayLabels.map(l => `• ${l.productName}`).join('\n')}\n\n🗑️ Vuoi rimuovere le etichette (con foto) per liberare spazio?\n\n✅ OK = Rimuovi etichette\n❌ Annulla = Mantieni tutto`)
+      
+      if (shouldRemoveLabels) {
+        expiredLabels = expiredTodayLabels
+        // Le etichette confermate per rimozione non vanno in activeLabels
+      } else {
+        // Se l'utente non conferma, mantieni le etichette
+        activeLabels.push(...expiredTodayLabels)
+      }
+    }
 
     // Salva dati archiviati
     const archivedData = {
@@ -120,7 +143,14 @@ function StorageManager({
     }
 
     const totalArchived = archivedTemps.length + archivedCleaning.length + expiredLabels.length
-    alert(`🗂️ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• ${expiredLabels.length} etichette prodotti scaduti\n\n💾 Spazio liberato: ${(expiredLabels.length * 150).toFixed(0)} KB circa`)
+    
+    if (totalArchived > 0) {
+      alert(`🗂️ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• ${expiredLabels.length} etichette prodotti scaduti oggi\n\n💾 Spazio liberato: ${(expiredLabels.length * 150).toFixed(0)} KB circa`)
+    } else if (expiredTodayLabels.length > 0) {
+      alert(`✅ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• Etichette prodotti scaduti: mantenute su tua richiesta`)
+    } else {
+      alert(`✅ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• Nessuna etichetta da rimuovere oggi`)
+    }
   }
 
   // Esegui archiviazione automatica ogni giorno se abilitata
@@ -297,10 +327,10 @@ function StorageManager({
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li>• Rimuove le registrazioni temperature più vecchie di 30 giorni</li>
                   <li>• Archivia le attività completate più vecchie di 30 giorni</li>
-                  <li>• Elimina le etichette con foto di prodotti scaduti da più di 30 giorni</li>
+                  <li>• Chiede conferma per rimuovere etichette di prodotti scaduti OGGI</li>
                   <li>• Mantiene tutti i prodotti e frigoriferi attivi</li>
                   <li>• Crea un backup completo dei dati rimossi</li>
-                  <li>• Libera spazio di archiviazione eliminando foto non necessarie</li>
+                  <li>• Libera spazio solo con conferma utente per le foto</li>
                   <li>• Si esegue automaticamente ogni 24 ore</li>
                 </ul>
                 <div className="mt-3">

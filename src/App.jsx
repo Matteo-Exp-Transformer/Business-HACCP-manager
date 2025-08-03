@@ -148,6 +148,60 @@ function App() {
     const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
     actions.push(loginAction)
     localStorage.setItem('haccp-actions', JSON.stringify(actions))
+    
+    // Controlla se ci sono etichette di prodotti scaduti oggi (dopo un breve delay per non interferire con il login)
+    setTimeout(checkExpiredLabelsToday, 2000)
+  }
+
+  // Funzione per controllare etichette di prodotti scaduti oggi
+  const checkExpiredLabelsToday = () => {
+    const productLabels = JSON.parse(localStorage.getItem('haccp-product-labels') || '[]')
+    const products = JSON.parse(localStorage.getItem('haccp-products') || '[]')
+    
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    const expiredTodayLabels = []
+    
+    productLabels.forEach(label => {
+      const associatedProduct = products.find(p => p.name === label.productName)
+      if (associatedProduct) {
+        const productExpiry = new Date(associatedProduct.expiryDate)
+        productExpiry.setHours(0, 0, 0, 0)
+        
+        if (productExpiry.getTime() === today.getTime() && label.photo) {
+          expiredTodayLabels.push({
+            ...label,
+            associatedProduct
+          })
+        }
+      }
+    })
+    
+    if (expiredTodayLabels.length > 0) {
+      const shouldRemoveLabels = confirm(`🗑️ PULIZIA ETICHETTE - Controllo giornaliero\n\n📅 Oggi sono scaduti ${expiredTodayLabels.length} prodotti con foto etichette:\n\n${expiredTodayLabels.map(l => `• ${l.productName}`).join('\n')}\n\n💾 Vuoi rimuovere le foto per liberare spazio di archiviazione?\n\n✅ Sì, rimuovi le foto\n❌ No, mantieni tutto`)
+      
+      if (shouldRemoveLabels) {
+        // Rimuovi le foto dalle etichette ma mantieni i dati
+        const updatedLabels = productLabels.map(label => {
+          const isExpiredToday = expiredTodayLabels.some(exp => exp.id === label.id)
+          if (isExpiredToday && label.photo) {
+            return {
+              ...label,
+              photo: null,
+              photoRemovedAt: new Date().toISOString(),
+              photoRemovedReason: 'Prodotto scaduto - pulizia automatica'
+            }
+          }
+          return label
+        })
+        
+        localStorage.setItem('haccp-product-labels', JSON.stringify(updatedLabels))
+        
+        const spaceSaved = expiredTodayLabels.length * 150
+        alert(`✅ Pulizia completata!\n\n🗑️ Rimosse ${expiredTodayLabels.length} foto da etichette di prodotti scaduti\n💾 Spazio liberato: ~${spaceSaved} KB\n\n📝 I dati delle etichette sono stati mantenuti`)
+      }
+    }
   }
 
   const handleLogout = () => {
