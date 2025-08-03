@@ -75,10 +75,34 @@ function StorageManager({
       !task.completed || new Date(task.createdAt) >= thirtyDaysAgo
     )
 
+    // Archivia etichette prodotti scaduti (se esistono)
+    const productLabels = JSON.parse(localStorage.getItem('haccp-product-labels') || '[]')
+    const products = JSON.parse(localStorage.getItem('haccp-products') || '[]')
+    
+    const expiredLabels = []
+    const activeLabels = []
+    
+    productLabels.forEach(label => {
+      // Controlla se il prodotto associato è scaduto da più di 30 giorni
+      const associatedProduct = products.find(p => p.name === label.productName)
+      if (associatedProduct) {
+        const productExpiry = new Date(associatedProduct.expiryDate)
+        if (productExpiry < thirtyDaysAgo) {
+          expiredLabels.push(label)
+        } else {
+          activeLabels.push(label)
+        }
+      } else {
+        // Se non c'è un prodotto associato, mantieni l'etichetta
+        activeLabels.push(label)
+      }
+    })
+
     // Salva dati archiviati
     const archivedData = {
       temperatures: archivedTemps,
       cleaning: archivedCleaning,
+      expiredLabels: expiredLabels,
       archivedAt: new Date().toISOString()
     }
 
@@ -89,8 +113,14 @@ function StorageManager({
     // Aggiorna dati attivi
     setTemperatures(activeTemps)
     setCleaning(activeCleaning)
+    
+    // Aggiorna etichette attive (rimuovi quelle scadute)
+    if (expiredLabels.length > 0) {
+      localStorage.setItem('haccp-product-labels', JSON.stringify(activeLabels))
+    }
 
-    alert(`Archiviazione completata! Rimossi ${archivedTemps.length} record temperature e ${archivedCleaning.length} attività completate.`)
+    const totalArchived = archivedTemps.length + archivedCleaning.length + expiredLabels.length
+    alert(`🗂️ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• ${expiredLabels.length} etichette prodotti scaduti\n\n💾 Spazio liberato: ${(expiredLabels.length * 150).toFixed(0)} KB circa`)
   }
 
   // Esegui archiviazione automatica ogni giorno se abilitata
@@ -267,8 +297,10 @@ function StorageManager({
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li>• Rimuove le registrazioni temperature più vecchie di 30 giorni</li>
                   <li>• Archivia le attività completate più vecchie di 30 giorni</li>
+                  <li>• Elimina le etichette con foto di prodotti scaduti da più di 30 giorni</li>
                   <li>• Mantiene tutti i prodotti e frigoriferi attivi</li>
-                  <li>• Crea un backup dei dati rimossi</li>
+                  <li>• Crea un backup completo dei dati rimossi</li>
+                  <li>• Libera spazio di archiviazione eliminando foto non necessarie</li>
                   <li>• Si esegue automaticamente ogni 24 ore</li>
                 </ul>
                 <div className="mt-3">
