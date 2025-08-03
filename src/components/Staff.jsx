@@ -482,29 +482,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
         </Card>
         
         
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Con Certificazioni</p>
-                <p className="text-2xl font-bold text-orange-600">{certifiedStaff.length}</p>
-              </div>
-              <GraduationCap className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Ruoli Diversi</p>
-                <p className="text-2xl font-bold text-purple-600">{roles.length}</p>
-              </div>
-              <UserCheck className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Interactive Roles Distribution */}
