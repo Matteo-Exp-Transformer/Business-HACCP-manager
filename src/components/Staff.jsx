@@ -104,6 +104,16 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     e.preventDefault()
     if (!formData.name.trim() || !formData.role.trim()) return
 
+    // Controllo per nomi duplicati
+    const nameExists = staff.some(member => 
+      member.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
+    )
+    
+    if (nameExists) {
+      alert('⚠️ Attenzione: Esiste già un utente con questo nome.\nScegli un nome diverso per procedere con la registrazione.')
+      return
+    }
+
     const newStaff = {
       id: Date.now(),
       name: formData.name.trim(),
@@ -288,6 +298,17 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   const updateStaffMember = (e) => {
     e.preventDefault()
     if (!formData.name.trim() || !formData.role.trim()) return
+
+    // Controllo per nomi duplicati (escludendo l'utente che stiamo modificando)
+    const nameExists = staff.some(member => 
+      member.id !== editingMember.id && 
+      member.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
+    )
+    
+    if (nameExists) {
+      alert('⚠️ Attenzione: Esiste già un utente con questo nome.\nScegli un nome diverso per procedere con la modifica.')
+      return
+    }
 
     const updatedStaff = staff.map(member =>
       member.id === editingMember.id
