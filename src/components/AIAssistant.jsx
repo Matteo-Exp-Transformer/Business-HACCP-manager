@@ -40,6 +40,11 @@ function AIAssistant({
   const [isMinimized, setIsMinimized] = useState(true)
   const messagesEndRef = useRef(null)
 
+  // Force minimized state on component mount to prevent auto-opening
+  useEffect(() => {
+    setIsMinimized(true)
+  }, [])
+
   // Auto-scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })

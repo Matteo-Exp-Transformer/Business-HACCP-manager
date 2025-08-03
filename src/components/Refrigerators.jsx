@@ -27,13 +27,14 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       return
     }
 
-    // Check for duplicate name
+    // Check for duplicate name (only among currently active refrigerators)
+    // Note: Deleted refrigerators are removed from the array, so their names can be reused
     const existingRefrigerator = refrigerators.find(ref => 
       ref.name.toLowerCase() === formData.name.trim().toLowerCase()
     )
     
     if (existingRefrigerator) {
-      alert('Un frigorifero/freezer con questo nome esiste già. Scegli un nome diverso.')
+      alert(`Un frigorifero/freezer con questo nome esiste già: "${existingRefrigerator.name}" (creato il ${new Date(existingRefrigerator.createdAt).toLocaleDateString('it-IT')}). Scegli un nome diverso.`)
       return
     }
 
