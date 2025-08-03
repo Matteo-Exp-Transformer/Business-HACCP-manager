@@ -33,6 +33,12 @@ function App() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   // Gestione visibilità chat IA
   const [showChatIcon, setShowChatIcon] = useState(true)
+  
+  // Sistema notifiche per le sezioni
+  const [lastCheck, setLastCheck] = useState(() => {
+    const saved = localStorage.getItem('haccp-last-check')
+    return saved ? JSON.parse(saved) : {}
+  })
 
   // Load data from localStorage on app start
   useEffect(() => {
@@ -95,6 +101,11 @@ function App() {
     }
   }, [])
 
+  // Re-calcola le notifiche quando i dati cambiano
+  useEffect(() => {
+    // Forza il ricalcolo delle notifiche ogni volta che i dati cambiano
+  }, [products, temperatures, cleaning, staff, productLabels])
+
   // Save data to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('haccp-temperatures', JSON.stringify(temperatures))
@@ -151,6 +162,103 @@ function App() {
     
     // Controlla se ci sono etichette di prodotti scaduti oggi (dopo un breve delay per non interferire con il login)
     setTimeout(checkExpiredLabelsToday, 2000)
+  }
+
+  // Funzioni per calcolare le notifiche delle sezioni
+  const getNotifications = () => {
+    const notifications = {
+      dashboard: 0,
+      cleaning: 0,
+      inventory: 0,
+      labels: 0,
+      staff: 0,
+      refrigerators: 0
+    }
+    
+    // Notifiche per Attività e Mansioni (nuove attività aggiunte)
+    const lastCheckCleaning = lastCheck.cleaning || '2000-01-01T00:00:00.000Z'
+    const newCleaningTasks = cleaning.filter(task => 
+      new Date(task.createdAt || task.timestamp) > new Date(lastCheckCleaning)
+    ).length
+    notifications.cleaning += newCleaningTasks
+    
+    // Notifiche per Inventario (prodotti in scadenza tra 3-4 giorni + nuovi prodotti)
+    const lastCheckInventory = lastCheck.inventory || '2000-01-01T00:00:00.000Z'
+    const today = new Date()
+    const threeDaysFromNow = new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)
+    const fourDaysFromNow = new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000)
+    
+    const expiringProducts = products.filter(product => {
+      const expiryDate = new Date(product.expiryDate)
+      return expiryDate >= threeDaysFromNow && expiryDate <= fourDaysFromNow
+    }).length
+    
+    const newProducts = products.filter(product => 
+      new Date(product.createdAt || product.addedDate) > new Date(lastCheckInventory)
+    ).length
+    
+    notifications.inventory += expiringProducts + newProducts
+    
+    // Notifiche per Etichette (nuove etichette)
+    const lastCheckLabels = lastCheck.labels || '2000-01-01T00:00:00.000Z'
+    const newLabels = productLabels.filter(label => 
+      new Date(label.createdAt || '2000-01-01') > new Date(lastCheckLabels)
+    ).length
+    notifications.labels += newLabels
+    
+    // Notifiche per Staff (nuovi membri)
+    const lastCheckStaff = lastCheck.staff || '2000-01-01T00:00:00.000Z'
+    const newStaffMembers = staff.filter(member => 
+      new Date(member.addedDate || member.createdAt || '2000-01-01') > new Date(lastCheckStaff)
+    ).length
+    notifications.staff += newStaffMembers
+    
+    // Notifiche per Temperature (nuove registrazioni critiche)
+    const lastCheckRefrigerators = lastCheck.refrigerators || '2000-01-01T00:00:00.000Z'
+    const criticalTemperatures = temperatures.filter(temp => {
+      const tempDate = new Date(temp.timestamp)
+      const isNew = tempDate > new Date(lastCheckRefrigerators)
+      const isCritical = temp.status === 'warning' || temp.status === 'danger'
+      return isNew && isCritical
+    }).length
+    notifications.refrigerators += criticalTemperatures
+    
+    // Notifiche per Dashboard (urgenze immediate - prodotti scaduti oggi)
+    const expiredToday = products.filter(product => {
+      const expiryDate = new Date(product.expiryDate)
+      const today = new Date()
+      expiryDate.setHours(0, 0, 0, 0)
+      today.setHours(0, 0, 0, 0)
+      return expiryDate.getTime() === today.getTime()
+    }).length
+    
+    notifications.dashboard = expiredToday + criticalTemperatures
+    
+    return notifications
+  }
+  
+  // Aggiorna l'ultima visita a una sezione
+  const updateLastCheck = (section) => {
+    const updatedCheck = {
+      ...lastCheck,
+      [section]: new Date().toISOString()
+    }
+    setLastCheck(updatedCheck)
+    localStorage.setItem('haccp-last-check', JSON.stringify(updatedCheck))
+  }
+  
+  // Calcola le notifiche
+  const notifications = getNotifications()
+  
+  // Componente pallino notifica
+  const NotificationDot = ({ count, className = "" }) => {
+    if (count === 0) return null
+    
+    return (
+      <div className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-blue-500 text-white text-xs rounded-full flex items-center justify-center font-medium ${className}`}>
+        {count > 99 ? '99+' : count}
+      </div>
+    )
   }
 
   // Funzione per controllare etichette di prodotti scaduti oggi
@@ -532,36 +640,45 @@ function App() {
         </div>
 
         {/* Navigation Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={(newTab) => {
+          setActiveTab(newTab)
+          updateLastCheck(newTab)
+        }}>
           <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 md:grid-cols-8' : 'grid-cols-3 md:grid-cols-7'} gap-1 mb-8`}>
-            <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
+              <NotificationDot count={notifications.dashboard} />
             </TabsTrigger>
-            <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Thermometer className="h-4 w-4" />
               <span className="hidden sm:inline">Frigoriferi e Freezer</span>
+              <NotificationDot count={notifications.refrigerators} />
             </TabsTrigger>
-            <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">Attività e Mansioni</span>
+              <NotificationDot count={notifications.cleaning} />
             </TabsTrigger>
-            <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Inventario</span>
+              <NotificationDot count={notifications.inventory} />
             </TabsTrigger>
-            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <QrCode className="h-4 w-4" />
               <span className="hidden sm:inline">Etichette</span>
+              <NotificationDot count={notifications.labels} />
             </TabsTrigger>
             <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">IA Assistant</span>
             </TabsTrigger>
             {isAdmin() && (
-              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
                 <Users className="h-4 w-4" />
                 <span className="hidden sm:inline">Gestione</span>
+                <NotificationDot count={notifications.staff} />
               </TabsTrigger>
             )}
             <div className="flex flex-col gap-1">
