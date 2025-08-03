@@ -42,6 +42,7 @@ function App() {
 	const departmentsData = localStorage.getItem('haccp-departments')
     const productLabelsData = localStorage.getItem('haccp-product-labels')
     const usersData = localStorage.getItem('haccp-users')
+    const currentUserData = localStorage.getItem('haccp-current-user')
 
     if (temps) setTemperatures(JSON.parse(temps))
     if (cleaningData) setCleaning(JSON.parse(cleaningData))
@@ -50,6 +51,7 @@ function App() {
     if (productsData) setProducts(JSON.parse(productsData))
 	if (departmentsData) setDepartments(JSON.parse(departmentsData))	
     if (productLabelsData) setProductLabels(JSON.parse(productLabelsData))
+    
     if (usersData) {
       setUsers(JSON.parse(usersData))
     } else {
@@ -64,6 +66,11 @@ function App() {
       }
       setUsers([defaultAdmin])
       localStorage.setItem('haccp-users', JSON.stringify([defaultAdmin]))
+    }
+
+    // Recupera l'utente corrente se era loggato prima della chiusura dell'app
+    if (currentUserData) {
+      setCurrentUser(JSON.parse(currentUserData))
     }
   }, [])
 
@@ -95,6 +102,49 @@ function App() {
   useEffect(() => {
     localStorage.setItem('haccp-product-labels', JSON.stringify(productLabels))
   }, [productLabels])
+
+  // Gestione conferma uscita e disconnessione automatica
+  useEffect(() => {
+    const handleBeforeUnload = (event) => {
+      if (currentUser) {
+        const message = 'Sei sicuro di voler uscire? Questo causerà la disconnessione del tuo account.'
+        event.preventDefault()
+        event.returnValue = message // Per compatibilità con browser più vecchi
+        return message
+      }
+    }
+
+    const handleUnload = () => {
+      if (currentUser) {
+        // Esegui logout immediato quando la pagina viene chiusa
+        const logoutAction = {
+          id: Date.now(),
+          timestamp: new Date().toISOString(),
+          user: currentUser.id,
+          userName: currentUser.name,
+          type: 'logout',
+          description: `Disconnessione automatica di ${currentUser.name} alla chiusura app`
+        }
+        
+        const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
+        actions.push(logoutAction)
+        localStorage.setItem('haccp-actions', JSON.stringify(actions))
+        
+        // Rimuovi l'utente corrente
+        localStorage.removeItem('haccp-current-user')
+      }
+    }
+
+    // Aggiungi i listener per la chiusura dell'app
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    window.addEventListener('unload', handleUnload)
+
+    // Cleanup dei listener quando il componente viene smontato
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('unload', handleUnload)
+    }
+  }, [currentUser])
 
   // Funzioni gestione utenti
   const handleLogin = (user) => {
