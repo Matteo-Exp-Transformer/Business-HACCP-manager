@@ -485,48 +485,54 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
 
       </div>
 
-      {/* Interactive Roles Distribution */}
+      {/* Categorie Personale - Card Individuali */}
       {departments.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribuzione Ruoli</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {departments
-                .slice()
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map(department => {
-                const roleMembers = staff.filter(member => member.role === department.name)
-                const count = roleMembers.length
-                const isExpanded = expandedRoles[department.name]
-                
-                return (
-                  <div key={department.id} className="border rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => setExpandedRoles(prev => ({...prev, [department.name]: !prev[department.name]}))}
-                      className={`w-full px-4 py-3 text-left transition-colors hover:bg-gray-50 ${getRoleColor(department.name)} border-none`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{department.name} ({count})</span>
-                        <span className="text-xs">
-                          {isExpanded ? '▼' : '▶'}
-                        </span>
-                      </div>
-                    </button>
-                    
-                    {isExpanded && (
-                      <div className="px-4 py-3 bg-gray-50 border-t">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {departments
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .map(department => {
+              const roleMembers = staff.filter(member => member.role === department.name)
+              const count = roleMembers.length
+              const isExpanded = expandedRoles[department.name]
+              
+              return (
+                <div key={department.id}>
+                  <Card className="cursor-pointer hover:shadow-md transition-shadow">
+                    <CardContent className="pt-6">
+                      <button
+                        onClick={() => setExpandedRoles(prev => ({...prev, [department.name]: !prev[department.name]}))}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="text-sm text-gray-600">{department.name}</p>
+                            <p className="text-2xl font-bold text-blue-600">{count}</p>
+                          </div>
+                          <Users className="h-8 w-8 text-blue-500" />
+                        </div>
+                        <div className="text-xs text-gray-500 flex items-center justify-between">
+                          <span>{count === 1 ? 'utente' : 'utenti'}</span>
+                          <span>{isExpanded ? '▼' : '▶'}</span>
+                        </div>
+                      </button>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Elenco utenti espanso */}
+                  {isExpanded && (
+                    <Card className="mt-2">
+                      <CardContent className="pt-4">
                         {count === 0 ? (
                           <div className="text-center py-4 text-gray-500">
                             <Users className="h-6 w-6 mx-auto mb-2 text-gray-400" />
-                            <p className="text-sm">Nessun dipendente in questo ruolo</p>
+                            <p className="text-sm">Nessun dipendente in questa categoria</p>
                             <p className="text-xs">Aggiungi membri selezionando "{department.name}" nel form sopra</p>
                           </div>
                         ) : (
                           <div className="space-y-2">
                             {roleMembers.map(member => (
-                              <div key={member.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                              <div key={member.id} className="flex items-center justify-between p-2 bg-gray-50 rounded border">
                                 <div className="flex-1">
                                   <div className="font-medium">{member.name}</div>
                                   {member.certification && (
@@ -557,14 +563,13 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                             ))}
                           </div>
                         )}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )
+            })}
+        </div>
       )}
 
       {/* Category Management - Only for Admin */}
