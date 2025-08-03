@@ -387,6 +387,125 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
 
   return (
     <div className="space-y-6">
+      {/* Category Management - Only for Admin */}
+      {currentUser && currentUser.role === 'admin' && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Gestione Categorie Ruoli
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {/* Add Category Form */}
+            {showCategoryForm && (
+              <form onSubmit={editingCategory ? updateCategory : addCategory} className="space-y-4 mb-6 p-4 bg-blue-50 rounded-lg border">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="categoryName">Nome Categoria</Label>
+                    <Input
+                      id="categoryName"
+                      value={categoryFormData.name}
+                      onChange={(e) => setCategoryFormData({...categoryFormData, name: e.target.value})}
+                      placeholder="es. Cucina, Sala, Amministrazione"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="categoryDescription">Descrizione</Label>
+                    <Input
+                      id="categoryDescription"
+                      value={categoryFormData.description}
+                      onChange={(e) => setCategoryFormData({...categoryFormData, description: e.target.value})}
+                      placeholder="Descrizione della categoria"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button type="submit" size="sm">
+                    {editingCategory ? 'Aggiorna Categoria' : 'Aggiungi Categoria'}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setShowCategoryForm(false)
+                      setEditingCategory(null)
+                      setCategoryFormData({ name: '', description: '', members: [], assignedTasks: [] })
+                    }}
+                  >
+                    Annulla
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Categories List */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h4 className="font-medium">Categorie Disponibili ({departments.length})</h4>
+                <Button 
+                  onClick={() => setShowCategoryForm(true)}
+                  size="sm"
+                  variant="outline"
+                >
+                  Nuova Categoria
+                </Button>
+              </div>
+
+              {departments.length === 0 ? (
+                <div className="text-center py-6 text-gray-500">
+                  <Users className="h-8 w-8 mx-auto mb-2 text-gray-400" />
+                  <p>Nessuna categoria creata</p>
+                  <p className="text-sm">Crea la prima categoria per organizzare i ruoli</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {departments.map(dept => (
+                    <div key={dept.id} className={`p-4 border rounded-lg ${getCategoryCardColor(dept.name)}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <h5 className="font-medium text-lg">{dept.name}</h5>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(dept.name)}`}>
+                            {dept.name}
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            onClick={() => editCategory(dept)}
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0"
+                          >
+                            ✏️
+                          </Button>
+                          <Button
+                            onClick={() => deleteCategory(dept.id)}
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                          >
+                            🗑️
+                          </Button>
+                        </div>
+                      </div>
+                      {dept.description && (
+                        <p className="text-sm text-gray-600 mb-2">{dept.description}</p>
+                      )}
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <span>👥 {staff.filter(member => member.role === dept.name).length} membri</span>
+                        <span>📋 {dept.assignedTasks?.length || 0} compiti</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Add Staff Form */}
       <Card>
         <CardHeader>
@@ -572,124 +691,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
         </div>
       )}
 
-      {/* Category Management - Only for Admin */}
-      {currentUser && currentUser.role === 'admin' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Gestione Categorie Ruoli
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {/* Add Category Form */}
-            {showCategoryForm && (
-              <form onSubmit={editingCategory ? updateCategory : addCategory} className="space-y-4 mb-6 p-4 bg-blue-50 rounded-lg border">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="categoryName">Nome Categoria</Label>
-                    <Input
-                      id="categoryName"
-                      value={categoryFormData.name}
-                      onChange={(e) => setCategoryFormData({...categoryFormData, name: e.target.value})}
-                      placeholder="es. Cucina, Sala, Amministrazione"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="categoryDescription">Descrizione</Label>
-                    <Input
-                      id="categoryDescription"
-                      value={categoryFormData.description}
-                      onChange={(e) => setCategoryFormData({...categoryFormData, description: e.target.value})}
-                      placeholder="Descrizione della categoria"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button type="submit" size="sm">
-                    {editingCategory ? 'Aggiorna Categoria' : 'Aggiungi Categoria'}
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setShowCategoryForm(false)
-                      setEditingCategory(null)
-                      setCategoryFormData({ name: '', description: '', members: [], assignedTasks: [] })
-                    }}
-                  >
-                    Annulla
-                  </Button>
-                </div>
-              </form>
-            )}
 
-            {/* Categories List */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h4 className="font-medium">Categorie Disponibili ({departments.length})</h4>
-                <Button 
-                  onClick={() => setShowCategoryForm(true)}
-                  size="sm"
-                  variant="outline"
-                >
-                  Nuova Categoria
-                </Button>
-              </div>
-
-              {departments.length === 0 ? (
-                <div className="text-center py-6 text-gray-500">
-                  <Users className="h-8 w-8 mx-auto mb-2 text-gray-400" />
-                  <p>Nessuna categoria creata</p>
-                  <p className="text-sm">Crea la prima categoria per organizzare i ruoli</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {departments.map(dept => (
-                    <div key={dept.id} className={`p-4 border rounded-lg ${getCategoryCardColor(dept.name)}`}>
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <h5 className="font-medium text-lg">{dept.name}</h5>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(dept.name)}`}>
-                            {dept.name}
-                          </span>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            onClick={() => editCategory(dept)}
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0"
-                          >
-                            ✏️
-                          </Button>
-                          <Button
-                            onClick={() => deleteCategory(dept.id)}
-                            size="sm"
-                            variant="ghost"
-                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
-                          >
-                            🗑️
-                          </Button>
-                        </div>
-                      </div>
-                      {dept.description && (
-                        <p className="text-sm text-gray-600 mb-2">{dept.description}</p>
-                      )}
-                      <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>👥 {staff.filter(member => member.role === dept.name).length} membri</span>
-                        <span>📋 {dept.assignedTasks?.length || 0} compiti</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Compact Staff List - Optimized for 35+ employees */}
       <Card>
