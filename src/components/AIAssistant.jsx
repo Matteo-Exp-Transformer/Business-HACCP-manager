@@ -39,29 +39,48 @@ function AIAssistant({
   const [recognition, setRecognition] = useState(null)
   const [isMinimized, setIsMinimized] = useState(true) // Always start minimized
   const [isMounted, setIsMounted] = useState(false)
+  const [isVisible, setIsVisible] = useState(false) // New: control overall visibility
   const messagesEndRef = useRef(null)
   const forceMinimizedRef = useRef(true) // Force minimized state
+  const gracePeriodRef = useRef(true) // Grace period - no opening allowed
 
   // Force minimized state on first mount to prevent auto-opening
   useEffect(() => {
     // Force minimized and delay mounting to prevent flash
     setIsMinimized(true)
     forceMinimizedRef.current = true
+    gracePeriodRef.current = true
+    setIsVisible(false) // Start completely hidden
     setTimeout(() => {
       setIsMounted(true)
       setIsMinimized(true) // Double check after mounting
       forceMinimizedRef.current = true
-    }, 200)
+      setIsVisible(true) // Show only the button after delay
+    }, 500) // Longer delay
+    
+    // Grace period - absolutely no opening for 2 seconds
+    setTimeout(() => {
+      gracePeriodRef.current = false
+      console.log('AIAssistant: Grace period ended, chat can now be opened by user')
+    }, 2000)
   }, [])
 
   // Override setIsMinimized to prevent auto-opening on first load
   const handleSetMinimized = (value) => {
-    console.log('AIAssistant: handleSetMinimized called with:', value, 'forceMinimized:', forceMinimizedRef.current)
+    console.log('AIAssistant: handleSetMinimized called with:', value, 'gracePeriod:', gracePeriodRef.current, 'forceMinimized:', forceMinimizedRef.current)
+    
+    // Absolutely no opening during grace period
+    if (value === false && gracePeriodRef.current) {
+      console.log('AIAssistant: BLOCKED - Still in grace period, no opening allowed')
+      return
+    }
+    
     // Only allow opening if user explicitly clicks (not on auto-mount)
     if (value === false && forceMinimizedRef.current) {
       console.log('AIAssistant: Preventing auto-open, first user click required')
-      forceMinimizedRef.current = false // First click allows future opening
+      return // Don't even set it
     }
+    forceMinimizedRef.current = false // First click allows future opening
     setIsMinimized(value)
   }
 
@@ -329,7 +348,7 @@ Dimmi in quale sezione ti trovi o cosa ti serve!`,
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      {!isMounted ? null : isMinimized ? (
+      {!isMounted || !isVisible ? null : isMinimized ? (
         <Button
           onClick={() => handleSetMinimized(false)}
           className="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg"
