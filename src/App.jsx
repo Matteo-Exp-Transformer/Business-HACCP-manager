@@ -804,7 +804,7 @@ function App() {
         />
 
         {/* AI Assistant */}
-        {false && currentUser && showChatIcon && (
+        {currentUser && showChatIcon && (
           <AIAssistant
             currentUser={currentUser}
             currentSection={activeTab}
