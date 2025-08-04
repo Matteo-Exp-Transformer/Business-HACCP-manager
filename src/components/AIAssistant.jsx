@@ -37,25 +37,33 @@ function AIAssistant({
   const [showSettings, setShowSettings] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [recognition, setRecognition] = useState(null)
-  const [isMinimized, setIsMinimized] = useState(() => {
-    // Always start minimized, check localStorage for user preference
-    const saved = localStorage.getItem('haccp-ai-chat-minimized')
-    return saved !== null ? JSON.parse(saved) : true // Default to minimized
-  })
+  const [isMinimized, setIsMinimized] = useState(true) // Always start minimized
   const [isMounted, setIsMounted] = useState(false)
   const messagesEndRef = useRef(null)
-
-  // Save minimized state to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem('haccp-ai-chat-minimized', JSON.stringify(isMinimized))
-  }, [isMinimized])
+  const forceMinimizedRef = useRef(true) // Force minimized state
 
   // Force minimized state on first mount to prevent auto-opening
   useEffect(() => {
+    // Force minimized and delay mounting to prevent flash
     setIsMinimized(true)
-    // Small delay to ensure proper mounting
-    setTimeout(() => setIsMounted(true), 100)
+    forceMinimizedRef.current = true
+    setTimeout(() => {
+      setIsMounted(true)
+      setIsMinimized(true) // Double check after mounting
+      forceMinimizedRef.current = true
+    }, 200)
   }, [])
+
+  // Override setIsMinimized to prevent auto-opening on first load
+  const handleSetMinimized = (value) => {
+    console.log('AIAssistant: handleSetMinimized called with:', value, 'forceMinimized:', forceMinimizedRef.current)
+    // Only allow opening if user explicitly clicks (not on auto-mount)
+    if (value === false && forceMinimizedRef.current) {
+      console.log('AIAssistant: Preventing auto-open, first user click required')
+      forceMinimizedRef.current = false // First click allows future opening
+    }
+    setIsMinimized(value)
+  }
 
   // Auto-scroll to bottom
   const scrollToBottom = () => {
@@ -323,7 +331,7 @@ Dimmi in quale sezione ti trovi o cosa ti serve!`,
     <div className="fixed bottom-4 right-4 z-50">
       {!isMounted ? null : isMinimized ? (
         <Button
-          onClick={() => setIsMinimized(false)}
+          onClick={() => handleSetMinimized(false)}
           className="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg"
         >
           <Bot className="h-6 w-6 text-white" />
@@ -346,7 +354,7 @@ Dimmi in quale sezione ti trovi o cosa ti serve!`,
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsMinimized(true)}
+                  onClick={() => handleSetMinimized(true)}
                   className="h-6 w-6 p-0"
                 >
                   <Minus className="h-3 w-3" />
