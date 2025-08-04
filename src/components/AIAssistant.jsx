@@ -37,12 +37,24 @@ function AIAssistant({
   const [showSettings, setShowSettings] = useState(false)
   const [isListening, setIsListening] = useState(false)
   const [recognition, setRecognition] = useState(null)
-  const [isMinimized, setIsMinimized] = useState(true)
+  const [isMinimized, setIsMinimized] = useState(() => {
+    // Always start minimized, check localStorage for user preference
+    const saved = localStorage.getItem('haccp-ai-chat-minimized')
+    return saved !== null ? JSON.parse(saved) : true // Default to minimized
+  })
+  const [isMounted, setIsMounted] = useState(false)
   const messagesEndRef = useRef(null)
 
-  // Force minimized state on component mount to prevent auto-opening
+  // Save minimized state to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('haccp-ai-chat-minimized', JSON.stringify(isMinimized))
+  }, [isMinimized])
+
+  // Force minimized state on first mount to prevent auto-opening
   useEffect(() => {
     setIsMinimized(true)
+    // Small delay to ensure proper mounting
+    setTimeout(() => setIsMounted(true), 100)
   }, [])
 
   // Auto-scroll to bottom
@@ -309,7 +321,7 @@ Dimmi in quale sezione ti trovi o cosa ti serve!`,
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      {isMinimized ? (
+      {!isMounted ? null : isMinimized ? (
         <Button
           onClick={() => setIsMinimized(false)}
           className="w-12 h-12 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg"
