@@ -1,0 +1,4 @@
+DEPLOY_VERSION=20250805_1825
+FEATURES=debug_banners_sync_system_alerts_removed
+STATUS=should_show_red_blue_banners
+COMMIT=48722244
