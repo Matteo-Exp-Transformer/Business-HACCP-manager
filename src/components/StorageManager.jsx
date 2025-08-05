@@ -75,7 +75,8 @@ function StorageManager({
       !task.completed || new Date(task.createdAt) >= thirtyDaysAgo
     )
 
-    // Controlla etichette prodotti scaduti OGGI (non 30 giorni fa)
+    // Controlla etichette prodotti scaduti OGGI (DISABILITATO - causa alert persistenti)
+    /*
     const productLabels = JSON.parse(localStorage.getItem('haccp-product-labels') || '[]')
     const products = JSON.parse(localStorage.getItem('haccp-products') || '[]')
     
@@ -120,6 +121,10 @@ function StorageManager({
         activeLabels.push(...expiredTodayLabels)
       }
     }
+    */
+
+    // Semplificato - nessun controllo scadenze per ora
+    let expiredLabels = []
 
     // Salva dati archiviati
     const archivedData = {
@@ -137,19 +142,17 @@ function StorageManager({
     setTemperatures(activeTemps)
     setCleaning(activeCleaning)
     
-    // Aggiorna etichette attive (rimuovi quelle scadute)
-    if (expiredLabels.length > 0) {
-      localStorage.setItem('haccp-product-labels', JSON.stringify(activeLabels))
-    }
+    // Etichette: nessuna modifica per ora (controllo scadenze disabilitato)
+    // if (expiredLabels.length > 0) {
+    //   localStorage.setItem('haccp-product-labels', JSON.stringify(activeLabels))
+    // }
 
     const totalArchived = archivedTemps.length + archivedCleaning.length + expiredLabels.length
     
     if (totalArchived > 0) {
-      alert(`🗂️ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• ${expiredLabels.length} etichette prodotti scaduti oggi\n\n💾 Spazio liberato: ${(expiredLabels.length * 150).toFixed(0)} KB circa`)
-    } else if (expiredTodayLabels.length > 0) {
-      alert(`✅ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• Etichette prodotti scaduti: mantenute su tua richiesta`)
+      alert(`🗂️ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• ${expiredLabels.length} etichette prodotti scaduti\n\n💾 Controllo scadenze temporaneamente disabilitato`)
     } else {
-      alert(`✅ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• Nessuna etichetta da rimuovere oggi`)
+      alert(`✅ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• Controllo etichette scadute: disabilitato`)
     }
   }
 
