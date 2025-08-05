@@ -284,23 +284,7 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
       )
       setProducts(updatedProducts)
     } else {
-      // Controlla se la scadenza è oltre un mese per suggerire di non caricare foto (DISABILITATO)
-      /*
-      const today = new Date()
-      const expiryDate = new Date(formData.expiryDate)
-      const daysDiff = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24))
-      
-      if (daysDiff > 30) {
-        const shouldSkipPhoto = confirm('⚠️ Questo prodotto scade tra più di un mese.\n\n💡 Per risparmiare spazio di archiviazione, ti consigliamo di conservare l\'etichetta fisicamente senza caricare la foto.\n\n✅ Clicca OK per procedere\n❌ Clicca Annulla per tornare al form')
-        
-        if (!shouldSkipPhoto) {
-          return // Esce senza salvare, l'utente può aggiungere la foto
-        }
-        
-        alert('📝 Prodotto aggiunto con suggerimento di conservazione fisica dell\'etichetta.')
-      }
-      */
-
+      // Aggiunta nuovo prodotto - NESSUN CONTROLLO SCADENZA
       const newProduct = {
         id: `prod_${Date.now()}`,
         ...formData,
@@ -308,7 +292,6 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
         addedByName: currentUser?.name,
         createdAt: new Date().toISOString(),
         status: 'active'
-        // longExpiryProduct: daysDiff > 30 // Flag per identificare prodotti a lunga scadenza
       }
       setProducts([...products, newProduct])
     }
@@ -334,38 +317,7 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
   }
 
   const deleteProduct = (id) => {
-    const productToDelete = products.find(p => p.id === id)
-    
-    // TUTTI GLI ALERT DISABILITATI TEMPORANEAMENTE
-    /*
-    // Se il prodotto è scaduto, chiedi se spostarlo in "ingredienti utilizzati"
-    const expiryStatus = getExpiryStatus(productToDelete.expiryDate)
-    if (expiryStatus.status === 'expired') {
-      const shouldMoveToUsed = confirm('🔄 Questo prodotto è scaduto.\n\n✅ Vuoi spostarlo in "Ingredienti già utilizzati" per un futuro reinserimento?\n❌ Oppure eliminarlo definitivamente?')
-      
-      if (shouldMoveToUsed) {
-        // Sposta in ingredienti utilizzati
-        const usedIngredient = {
-          ...productToDelete,
-          movedToUsedAt: new Date().toISOString(),
-          movedBy: currentUser?.name || 'Sistema',
-          status: 'used',
-          originalExpiryDate: productToDelete.expiryDate
-        }
-        setUsedIngredients(prev => [...prev, usedIngredient])
-        setProducts(products.filter(product => product.id !== id))
-        alert('📦 Prodotto spostato in "Ingredienti già utilizzati"')
-        return
-      }
-    }
-    
-    // Eliminazione normale
-    if (confirm('Sei sicuro di voler eliminare definitivamente questo prodotto?')) {
-      setProducts(products.filter(product => product.id !== id))
-    }
-    */
-    
-    // Eliminazione diretta senza conferma (temporaneo)
+    // Eliminazione diretta senza conferma (TEMPORANEO - tutti gli alert rimossi)
     setProducts(products.filter(product => product.id !== id))
   }
 
@@ -401,7 +353,8 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     // Nascondi l'ingrediente dalla lista degli utilizzati
     setUsedIngredients(prev => prev.filter(ing => ing.id !== usedIngredient.id))
     
-    alert('📝 Form pre-compilato! Aggiungi la nuova data di scadenza per completare il reinserimento.')
+    // Alert rimosso - form pre-compilato silenziosamente
+    // alert('📝 Form pre-compilato! Aggiungi la nuova data di scadenza per completare il reinserimento.')
   }
 
   const toggleProductSelection = (productId) => {
