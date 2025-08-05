@@ -10,6 +10,7 @@
     "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "firebase": "^10.7.1",
     "jspdf": "^3.0.1",
     "lucide-react": "^0.263.1",
     "react": "^18.2.0",

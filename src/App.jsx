@@ -11,6 +11,8 @@ import AIAssistantSection from './components/AIAssistantSection'
 import ExpiryAlertAutomation from './components/automations/ExpiryAlertAutomation'
 import StorageManager from './components/StorageManager'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
+import SyncManager from './components/SyncManager'
+import DataSettings from './components/DataSettings'
 
 import Login from './components/Login'
 import PDFExport from './components/PDFExport'
@@ -38,6 +40,15 @@ function App() {
   const [lastCheck, setLastCheck] = useState(() => {
     const saved = localStorage.getItem('haccp-last-check')
     return saved ? JSON.parse(saved) : {}
+  })
+
+  // Sistema sincronizzazione cloud
+  const [pendingChanges, setPendingChanges] = useState([])
+  const [lastSyncTime, setLastSyncTime] = useState(() => {
+    return localStorage.getItem('haccp-last-sync') || null
+  })
+  const [companyId, setCompanyId] = useState(() => {
+    return localStorage.getItem('haccp-company-id') || 'demo-pizzeria'
   })
 
   // Load data from localStorage on app start
@@ -258,6 +269,47 @@ function App() {
       <div className={`absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full ${className}`}>
       </div>
     )
+  }
+
+  // Funzioni gestione sincronizzazione
+  const addPendingChange = (type, data, id = null) => {
+    const change = {
+      id: id || `${type}_${Date.now()}`,
+      type, // 'temperature', 'inventory', 'cleaning', 'staff'
+      data,
+      timestamp: new Date().toISOString(),
+      userId: currentUser?.id,
+      userName: currentUser?.name
+    }
+    
+    setPendingChanges(prev => {
+      const filtered = prev.filter(c => !(c.type === type && c.id === change.id))
+      return [...filtered, change]
+    })
+  }
+
+  const handleDataSync = (direction, changes) => {
+    if (direction === 'upload') {
+      // Rimuovi i cambiamenti che sono stati caricati
+      setPendingChanges([])
+      setLastSyncTime(new Date().toISOString())
+      localStorage.setItem('haccp-last-sync', new Date().toISOString())
+      
+      // Mostra notifica di successo
+      console.log('✅ Sincronizzazione completata!')
+    } else if (direction === 'download') {
+      // Aggiorna l'ultimo sync time
+      setLastSyncTime(new Date().toISOString())
+      localStorage.setItem('haccp-last-sync', new Date().toISOString())
+      
+      // In futuro qui caricheremo i dati da Firebase
+      console.log('📥 Dati aggiornati dal cloud!')
+    }
+  }
+
+  // Intercetta i cambiamenti dei dati per aggiungerli ai pending
+  const trackDataChange = (type, data, id) => {
+    addPendingChange(type, data, id)
   }
 
   // Funzione per controllare etichette di prodotti scaduti oggi
@@ -643,7 +695,7 @@ function App() {
           setActiveTab(newTab)
           updateLastCheck(newTab)
         }}>
-          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 md:grid-cols-8' : 'grid-cols-3 md:grid-cols-7'} gap-1 mb-8`}>
+          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 md:grid-cols-9' : 'grid-cols-3 md:grid-cols-8'} gap-1 mb-8`}>
             <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Dashboard</span>
@@ -672,6 +724,10 @@ function App() {
             <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">IA Assistant</span>
+            </TabsTrigger>
+            <TabsTrigger value="data-settings" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Dati</span>
             </TabsTrigger>
             {isAdmin() && (
               <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
@@ -706,42 +762,62 @@ function App() {
 
           {/* Tab Content */}
           <TabsContent value="dashboard">
-            <Dashboard 
-              temperatures={temperatures} 
-              cleaning={cleaning} 
-              staff={staff} 
-              products={products} 
-              currentUser={currentUser}
-              setActiveTab={setActiveTab}
-            />
+            <div className="space-y-6">
+              {/* Sync Manager - Always visible at top */}
+              <SyncManager
+                currentUser={currentUser}
+                companyId={companyId}
+                pendingChanges={pendingChanges}
+                lastSyncTime={lastSyncTime}
+                onDataSync={handleDataSync}
+              />
+              
+              <Dashboard 
+                temperatures={temperatures}
+                cleaning={cleaning}
+                products={products}
+                staff={staff}
+                currentUser={currentUser}
+                onDataChange={trackDataChange}
+              />
+            </div>
           </TabsContent>
 
           <TabsContent value="refrigerators">
             <Refrigerators 
-              temperatures={temperatures}
-              setTemperatures={setTemperatures}
+              temperatures={temperatures} 
+              setTemperatures={(newTemperatures) => {
+                setTemperatures(newTemperatures)
+                trackDataChange('temperatures', newTemperatures)
+              }}
               currentUser={currentUser}
               refrigerators={refrigerators}
-              setRefrigerators={setRefrigerators}
+              setRefrigerators={(newRefrigerators) => {
+                setRefrigerators(newRefrigerators)
+                trackDataChange('refrigerators', newRefrigerators)
+              }}
             />
           </TabsContent>
 
           <TabsContent value="cleaning">
             <Cleaning 
               cleaning={cleaning} 
-              setCleaning={setCleaning}
-              temperatures={temperatures}
-              setTemperatures={setTemperatures}
+              setCleaning={(newCleaning) => {
+                setCleaning(newCleaning)
+                trackDataChange('cleaning', newCleaning)
+              }}
               currentUser={currentUser}
-              refrigerators={refrigerators}
-              setRefrigerators={setRefrigerators}
+              departments={departments}
             />
           </TabsContent>
 
           <TabsContent value="inventory">
             <Inventory 
               products={products} 
-              setProducts={setProducts}
+              setProducts={(newProducts) => {
+                setProducts(newProducts)
+                trackDataChange('inventory', newProducts)
+              }}
               currentUser={currentUser}
               refrigerators={refrigerators}
             />
@@ -770,27 +846,38 @@ function App() {
             />
           </TabsContent>
 
+          <TabsContent value="data-settings">
+            <DataSettings
+              currentUser={currentUser}
+              isAdmin={isAdmin()}
+              onSettingsChange={(settings) => {
+                console.log('📱 Impostazioni dati aggiornate:', settings)
+                // Qui implementeremo l'applicazione delle impostazioni
+              }}
+            />
+          </TabsContent>
+
           {isAdmin() && (
             <TabsContent value="staff">
               <div className="space-y-6">
                 <Staff 
                   staff={staff} 
-                  setStaff={setStaff}
+                  setStaff={(newStaff) => {
+                    setStaff(newStaff)
+                    trackDataChange('staff', newStaff)
+                  }}
                   users={users}
                   setUsers={setUsers}
                   currentUser={currentUser}
-                  cleaning={cleaning}
-                  setCleaning={setCleaning}
+                  isAdmin={isAdmin()}
                 />
                 <StorageManager
                   temperatures={temperatures}
-                  cleaning={cleaning}
-                  products={products}
-                  refrigerators={refrigerators}
                   setTemperatures={setTemperatures}
+                  cleaning={cleaning}
                   setCleaning={setCleaning}
-                  setProducts={setProducts}
-                  setRefrigerators={setRefrigerators}
+                  productLabels={productLabels}
+                  setProductLabels={setProductLabels}
                 />
               </div>
             </TabsContent>
