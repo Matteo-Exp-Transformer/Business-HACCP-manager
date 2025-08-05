@@ -21,6 +21,7 @@ function SyncManager({
   currentUser, 
   companyId,
   onDataSync,
+  onAddPendingChange,
   pendingChanges = [],
   lastSyncTime 
 }) {
@@ -235,6 +236,28 @@ function SyncManager({
 
         {/* Sync Actions */}
         <div className="space-y-3">
+          {/* Test Button - TEMPORARY for debugging */}
+          <Button
+            onClick={() => {
+              // Add a test pending change
+              console.log('🧪 Testing - adding pending change...')
+              if (onAddPendingChange) {
+                onAddPendingChange('test', { 
+                  action: 'Test manuale', 
+                  time: new Date().toLocaleTimeString(),
+                  user: currentUser?.name 
+                }, `test_${Date.now()}`)
+                console.log('✅ Test change added!')
+              } else {
+                console.log('❌ onAddPendingChange not available')
+              }
+            }}
+            variant="outline"
+            className="w-full flex items-center justify-center gap-2 py-2 bg-yellow-100 border-yellow-300"
+          >
+            🧪 Test Modifica (Debug)
+          </Button>
+
           {/* Save Button */}
           <Button
             onClick={handleSaveToShared}

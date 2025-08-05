@@ -309,34 +309,44 @@ function App() {
 
   // Intercetta i cambiamenti dei dati per aggiungerli ai pending
   const trackDataChange = (type, data, id) => {
+    console.log('🎯 TRACKING:', type, 'with', data?.length || 0, 'items')
     addPendingChange(type, data, id)
   }
 
-  // Auto-track data changes when arrays change
+  // Auto-track data changes when arrays change (with debug)
   useEffect(() => {
-    // Skip initial load
-    if (products.length > 0) {
+    // Skip initial load and empty arrays
+    if (products.length > 0 && currentUser) {
+      console.log('📦 Products changed:', products.length, 'items')
       trackDataChange('inventory', products, 'auto-inventory')
     }
-  }, [products])
+  }, [products, currentUser])
 
   useEffect(() => {
-    if (temperatures.length > 0) {
+    if (temperatures.length > 0 && currentUser) {
+      console.log('🌡️ Temperatures changed:', temperatures.length, 'items')
       trackDataChange('temperatures', temperatures, 'auto-temperatures')  
     }
-  }, [temperatures])
+  }, [temperatures, currentUser])
 
   useEffect(() => {
-    if (cleaning.length > 0) {
+    if (cleaning.length > 0 && currentUser) {
+      console.log('🧹 Cleaning changed:', cleaning.length, 'items')
       trackDataChange('cleaning', cleaning, 'auto-cleaning')
     }
-  }, [cleaning])
+  }, [cleaning, currentUser])
 
   useEffect(() => {
-    if (staff.length > 0) {
+    if (staff.length > 0 && currentUser) {
+      console.log('👥 Staff changed:', staff.length, 'items')
       trackDataChange('staff', staff, 'auto-staff')
     }
-  }, [staff])
+  }, [staff, currentUser])
+
+  // Debug pending changes
+  useEffect(() => {
+    console.log('📋 PENDING CHANGES:', pendingChanges.length, pendingChanges)
+  }, [pendingChanges])
 
   // Funzione per controllare etichette di prodotti scaduti oggi
   const checkExpiredLabelsToday = () => {
@@ -796,6 +806,7 @@ function App() {
                 pendingChanges={pendingChanges}
                 lastSyncTime={lastSyncTime}
                 onDataSync={handleDataSync}
+                onAddPendingChange={addPendingChange}
               />
               
               <Dashboard 
