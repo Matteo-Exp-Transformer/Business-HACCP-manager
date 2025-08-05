@@ -171,8 +171,8 @@ function App() {
     actions.push(loginAction)
     localStorage.setItem('haccp-actions', JSON.stringify(actions))
     
-    // Controlla se ci sono etichette di prodotti scaduti oggi (dopo un breve delay per non interferire con il login)
-    setTimeout(checkExpiredLabelsToday, 2000)
+    // Controlla se ci sono etichette di prodotti scaduti oggi (DISABILITATO temporaneamente)
+    // setTimeout(checkExpiredLabelsToday, 2000)
   }
 
   // Funzioni per calcolare le notifiche delle sezioni
@@ -311,6 +311,32 @@ function App() {
   const trackDataChange = (type, data, id) => {
     addPendingChange(type, data, id)
   }
+
+  // Auto-track data changes when arrays change
+  useEffect(() => {
+    // Skip initial load
+    if (products.length > 0) {
+      trackDataChange('inventory', products, 'auto-inventory')
+    }
+  }, [products])
+
+  useEffect(() => {
+    if (temperatures.length > 0) {
+      trackDataChange('temperatures', temperatures, 'auto-temperatures')  
+    }
+  }, [temperatures])
+
+  useEffect(() => {
+    if (cleaning.length > 0) {
+      trackDataChange('cleaning', cleaning, 'auto-cleaning')
+    }
+  }, [cleaning])
+
+  useEffect(() => {
+    if (staff.length > 0) {
+      trackDataChange('staff', staff, 'auto-staff')
+    }
+  }, [staff])
 
   // Funzione per controllare etichette di prodotti scaduti oggi
   const checkExpiredLabelsToday = () => {
@@ -778,7 +804,6 @@ function App() {
                 products={products}
                 staff={staff}
                 currentUser={currentUser}
-                onDataChange={trackDataChange}
               />
             </div>
           </TabsContent>
