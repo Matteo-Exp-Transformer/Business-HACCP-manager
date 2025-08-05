@@ -348,7 +348,8 @@ function App() {
     console.log('📋 PENDING CHANGES:', pendingChanges.length, pendingChanges)
   }, [pendingChanges])
 
-  // Funzione per controllare etichette di prodotti scaduti oggi
+  // Funzione per controllare etichette di prodotti scaduti oggi (COMPLETAMENTE DISABILITATA)
+  /*
   const checkExpiredLabelsToday = () => {
     const productLabels = JSON.parse(localStorage.getItem('haccp-product-labels') || '[]')
     const products = JSON.parse(localStorage.getItem('haccp-products') || '[]')
@@ -398,6 +399,7 @@ function App() {
       }
     }
   }
+  */
 
   const handleLogout = () => {
     if (currentUser) {

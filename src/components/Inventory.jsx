@@ -284,7 +284,8 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
       )
       setProducts(updatedProducts)
     } else {
-      // Controlla se la scadenza è oltre un mese per suggerire di non caricare foto
+      // Controlla se la scadenza è oltre un mese per suggerire di non caricare foto (DISABILITATO)
+      /*
       const today = new Date()
       const expiryDate = new Date(formData.expiryDate)
       const daysDiff = Math.floor((expiryDate - today) / (1000 * 60 * 60 * 24))
@@ -298,6 +299,7 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
         
         alert('📝 Prodotto aggiunto con suggerimento di conservazione fisica dell\'etichetta.')
       }
+      */
 
       const newProduct = {
         id: `prod_${Date.now()}`,
@@ -305,8 +307,8 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
         addedBy: currentUser?.id,
         addedByName: currentUser?.name,
         createdAt: new Date().toISOString(),
-        status: 'active',
-        longExpiryProduct: daysDiff > 30 // Flag per identificare prodotti a lunga scadenza
+        status: 'active'
+        // longExpiryProduct: daysDiff > 30 // Flag per identificare prodotti a lunga scadenza
       }
       setProducts([...products, newProduct])
     }
@@ -334,6 +336,8 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
   const deleteProduct = (id) => {
     const productToDelete = products.find(p => p.id === id)
     
+    // TUTTI GLI ALERT DISABILITATI TEMPORANEAMENTE
+    /*
     // Se il prodotto è scaduto, chiedi se spostarlo in "ingredienti utilizzati"
     const expiryStatus = getExpiryStatus(productToDelete.expiryDate)
     if (expiryStatus.status === 'expired') {
@@ -359,6 +363,10 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     if (confirm('Sei sicuro di voler eliminare definitivamente questo prodotto?')) {
       setProducts(products.filter(product => product.id !== id))
     }
+    */
+    
+    // Eliminazione diretta senza conferma (temporaneo)
+    setProducts(products.filter(product => product.id !== id))
   }
 
   const toggleAllergen = (allergenId) => {
