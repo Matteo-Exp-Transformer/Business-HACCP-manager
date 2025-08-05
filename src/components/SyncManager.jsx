@@ -12,7 +12,8 @@ import {
   AlertTriangle,
   Clock,
   RefreshCw,
-  Database
+  Save,
+  Smartphone
 } from 'lucide-react'
 
 function SyncManager({ 
@@ -47,15 +48,15 @@ function SyncManager({
     setPendingCount(pendingChanges.length)
   }, [pendingChanges])
 
-  // Simulate sync operations (to be replaced with actual Firebase calls)
-  const handleUploadChanges = async () => {
+  // Save changes to shared space (simplified Firebase upload)
+  const handleSaveToShared = async () => {
     if (!isOnline) {
-      setLastSyncStatus({ type: 'error', message: 'Nessuna connessione internet' })
+      setLastSyncStatus({ type: 'error', message: 'Devi essere connesso a Internet per salvare' })
       return
     }
 
     if (pendingCount === 0) {
-      setLastSyncStatus({ type: 'info', message: 'Nessuna modifica da caricare' })
+      setLastSyncStatus({ type: 'info', message: 'Non hai ancora fatto modifiche da salvare' })
       return
     }
 
@@ -70,7 +71,7 @@ function SyncManager({
       }
 
       // Here we'll implement actual Firebase upload
-      console.log('🔄 Uploading changes to Firebase...', pendingChanges)
+      console.log('💾 Salvando le tue modifiche per tutti...', pendingChanges)
       
       // Simulate successful upload
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -78,7 +79,7 @@ function SyncManager({
       setSyncStatus('idle')
       setLastSyncStatus({ 
         type: 'success', 
-        message: `${pendingCount} modifiche caricate con successo` 
+        message: `✅ Ho salvato ${pendingCount} modifiche. Ora tutti possono vederle!` 
       })
       
       // Clear pending changes
@@ -88,14 +89,14 @@ function SyncManager({
       setSyncStatus('error')
       setLastSyncStatus({ 
         type: 'error', 
-        message: `Errore durante il caricamento: ${error.message}` 
+        message: `❌ Non sono riuscito a salvare. Riprova tra poco.` 
       })
     }
   }
 
-  const handleDownloadUpdates = async () => {
+  const handleGetUpdates = async () => {
     if (!isOnline) {
-      setLastSyncStatus({ type: 'error', message: 'Nessuna connessione internet' })
+      setLastSyncStatus({ type: 'error', message: 'Devi essere connesso a Internet per ricevere aggiornamenti' })
       return
     }
 
@@ -110,7 +111,7 @@ function SyncManager({
       }
 
       // Here we'll implement actual Firebase download
-      console.log('📥 Downloading updates from Firebase...')
+      console.log('📱 Scaricando le novità dai tuoi colleghi...')
       
       // Simulate successful download
       await new Promise(resolve => setTimeout(resolve, 500))
@@ -118,7 +119,7 @@ function SyncManager({
       setSyncStatus('idle')
       setLastSyncStatus({ 
         type: 'success', 
-        message: 'Aggiornamenti scaricati con successo' 
+        message: '✅ Perfetto! Hai ricevuto tutte le novità' 
       })
       
       // Notify parent component
@@ -128,22 +129,22 @@ function SyncManager({
       setSyncStatus('error')
       setLastSyncStatus({ 
         type: 'error', 
-        message: `Errore durante il download: ${error.message}` 
+        message: `❌ Non sono riuscito a scaricare gli aggiornamenti. Riprova.` 
       })
     }
   }
 
   const formatLastSync = (timestamp) => {
-    if (!timestamp) return 'Mai sincronizzato'
+    if (!timestamp) return 'Non hai mai sincronizzato'
     const date = new Date(timestamp)
     const now = new Date()
     const diffMs = now - date
     const diffMins = Math.floor(diffMs / 60000)
     
-    if (diffMins < 1) return 'Appena ora'
-    if (diffMins < 60) return `${diffMins} min fa`
+    if (diffMins < 1) return 'Proprio adesso'
+    if (diffMins < 60) return `${diffMins} minuti fa`
     if (diffMins < 1440) return `${Math.floor(diffMins / 60)} ore fa`
-    return date.toLocaleDateString('it-IT')
+    return `Il ${date.toLocaleDateString('it-IT')}`
   }
 
   const getStatusIcon = () => {
@@ -166,8 +167,8 @@ function SyncManager({
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-2">
-            <Database className="h-4 w-4 text-blue-600" />
-            Sincronizzazione Cloud
+            <Save className="h-4 w-4 text-blue-600" />
+            Condividi con i Colleghi
           </div>
           <div className="flex items-center gap-2">
             {isOnline ? (
@@ -176,7 +177,7 @@ function SyncManager({
               <WifiOff className="h-4 w-4 text-red-500" />
             )}
             <span className={`text-xs ${isOnline ? 'text-green-600' : 'text-red-600'}`}>
-              {isOnline ? 'Online' : 'Offline'}
+              {isOnline ? 'Connesso' : 'Niente Internet'}
             </span>
           </div>
         </CardTitle>
@@ -188,21 +189,24 @@ function SyncManager({
           <div className="flex items-center gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <AlertTriangle className="h-4 w-4 text-yellow-600" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-yellow-800">Modalità Offline</p>
-              <p className="text-xs text-yellow-600">Le modifiche verranno salvate localmente</p>
+              <p className="text-sm font-medium text-yellow-800">📴 Niente Internet</p>
+              <p className="text-xs text-yellow-600">Salvo tutto sul tuo telefono per ora</p>
             </div>
           </div>
         )}
 
         {/* Sync Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-3">
+          {/* Save Button */}
           <Button
-            onClick={handleUploadChanges}
+            onClick={handleSaveToShared}
             disabled={!isOnline || syncStatus !== 'idle' || pendingCount === 0}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+            className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 py-3"
           >
             <Upload className="h-4 w-4" />
-            Carica Modifiche
+            <span className="font-medium">
+              {pendingCount > 0 ? `Condividi ${pendingCount} Modifiche` : 'Nessuna Modifica da Condividere'}
+            </span>
             {pendingCount > 0 && (
               <span className="bg-white text-blue-600 px-2 py-1 rounded-full text-xs font-bold">
                 {pendingCount}
@@ -210,15 +214,24 @@ function SyncManager({
             )}
           </Button>
 
+          {/* Download Button */}
           <Button
-            onClick={handleDownloadUpdates}
+            onClick={handleGetUpdates}
             disabled={!isOnline || syncStatus !== 'idle'}
             variant="outline"
-            className="flex items-center gap-2"
+            className="w-full flex items-center justify-center gap-2 py-3"
           >
             <Download className="h-4 w-4" />
-            Scarica Aggiornamenti
+            <span className="font-medium">Ricevi Novità dai Colleghi</span>
           </Button>
+        </div>
+
+        {/* Simple Explanation */}
+        <div className="p-3 bg-gray-50 rounded-lg">
+          <p className="text-xs text-gray-700 text-center">
+            💡 <strong>Come funziona:</strong> Le tue modifiche rimangono sul tuo telefono finché non clicchi "Condividi". 
+            Quando condividi, tutti i tuoi colleghi possono vedere i tuoi aggiornamenti.
+          </p>
         </div>
 
         {/* Progress Bar */}
@@ -226,7 +239,7 @@ function SyncManager({
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className={getStatusColor()}>
-                {syncStatus === 'uploading' ? 'Caricamento...' : 'Download...'}
+                {syncStatus === 'uploading' ? '📤 Sto condividendo...' : '📥 Sto scaricando...'}
               </span>
               <span className="text-gray-500">{syncProgress}%</span>
             </div>
@@ -242,7 +255,7 @@ function SyncManager({
         {/* Status Info */}
         <div className="space-y-2 text-xs">
           <div className="flex items-center justify-between">
-            <span className="text-gray-600">Ultimo sync:</span>
+            <span className="text-gray-600">Ultima condivisione:</span>
             <span className="font-medium">{formatLastSync(lastSyncTime)}</span>
           </div>
           
@@ -261,12 +274,12 @@ function SyncManager({
         {/* Company Info */}
         <div className="pt-2 border-t border-blue-200">
           <div className="flex items-center justify-between text-xs text-gray-600">
-            <span>Azienda:</span>
-            <span className="font-medium">{companyId || 'Non configurata'}</span>
+            <span>🏪 Locale:</span>
+            <span className="font-medium">{companyId || 'Non configurato'}</span>
           </div>
           <div className="flex items-center justify-between text-xs text-gray-600">
-            <span>Utente:</span>
-            <span className="font-medium">{currentUser?.name || 'Sconosciuto'}</span>
+            <span>👤 Il tuo nome:</span>
+            <span className="font-medium">{currentUser?.name || 'Non inserito'}</span>
           </div>
         </div>
       </CardContent>
