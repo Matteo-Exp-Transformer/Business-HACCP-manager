@@ -18,6 +18,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react'
+import { createCloudSimulator } from '../utils/cloudSimulator'
 
 function DataSettings({ 
   currentUser, 
@@ -48,13 +49,24 @@ function DataSettings({
     docsCount: 156
   })
 
+  const [cloudSimulator] = useState(() => createCloudSimulator('demo-pizzeria'))
+
   // Load settings from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('haccp-data-settings')
     if (saved) {
       setSettings({ ...settings, ...JSON.parse(saved) })
     }
-  }, [])
+
+    // Load real storage stats from simulator
+    const stats = cloudSimulator.getStorageStats()
+    setStorageInfo({
+      usedSpace: stats.localSpace,
+      availableSpace: '2.1 GB', // Simulated phone space
+      photosCount: stats.photosCount,
+      docsCount: stats.documentsCount
+    })
+  }, [cloudSimulator])
 
   // Save settings when changed
   const updateSetting = (key, value) => {
@@ -304,9 +316,21 @@ function DataSettings({
             <Button 
               variant="outline" 
               className="flex items-center gap-2"
-              onClick={() => {
-                // Implement storage cleanup
-                alert('✅ Ho liberato spazio rimuovendo i dati vecchi!')
+              onClick={async () => {
+                try {
+                  const result = await cloudSimulator.cleanupCloudStorage()
+                  if (result.success) {
+                    alert(`✅ ${result.message}\n💾 Spazio liberato: ${result.spaceSaved}`)
+                    // Update storage info
+                    const newStats = cloudSimulator.getStorageStats()
+                    setStorageInfo(prev => ({
+                      ...prev,
+                      usedSpace: newStats.localSpace
+                    }))
+                  }
+                } catch (error) {
+                  alert('❌ Errore durante la pulizia dello spazio')
+                }
               }}
             >
               <HardDrive className="h-4 w-4" />
@@ -316,9 +340,19 @@ function DataSettings({
             <Button 
               variant="outline"
               className="flex items-center gap-2" 
-              onClick={() => {
-                // Implement force sync
-                alert('🔄 Sto sincronizzando tutto...')
+              onClick={async () => {
+                try {
+                  alert('🔄 Sto sincronizzando tutto...')
+                  // Simulate sync delay
+                  await new Promise(resolve => setTimeout(resolve, 1500))
+                  
+                  const result = await cloudSimulator.getRecentChanges()
+                  if (result.success) {
+                    alert(`✅ Sincronizzazione completata!\n👥 Trovate ${result.changes?.length || 0} modifiche dai colleghi`)
+                  }
+                } catch (error) {
+                  alert('❌ Errore durante la sincronizzazione')
+                }
               }}
             >
               <Wifi className="h-4 w-4" />

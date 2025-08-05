@@ -15,6 +15,7 @@ import {
   Save,
   Smartphone
 } from 'lucide-react'
+import { createCloudSimulator, prepareDataForCloud } from '../utils/cloudSimulator'
 
 function SyncManager({ 
   currentUser, 
@@ -28,6 +29,8 @@ function SyncManager({
   const [syncProgress, setSyncProgress] = useState(0)
   const [lastSyncStatus, setLastSyncStatus] = useState(null)
   const [pendingCount, setPendingCount] = useState(0)
+  const [cloudSimulator] = useState(() => createCloudSimulator(companyId))
+  const [recentChanges, setRecentChanges] = useState([])
 
   // Monitor connection status
   useEffect(() => {
@@ -48,15 +51,26 @@ function SyncManager({
     setPendingCount(pendingChanges.length)
   }, [pendingChanges])
 
-  // Save changes to shared space (simplified Firebase upload)
+  // Load recent changes when component mounts
+  useEffect(() => {
+    if (isOnline) {
+      cloudSimulator.getRecentChanges().then(result => {
+        if (result.success) {
+          setRecentChanges(result.changes || [])
+        }
+      })
+    }
+  }, [isOnline, cloudSimulator])
+
+  // Save changes to shared space (cloud simulator)
   const handleSaveToShared = async () => {
     if (!isOnline) {
-      setLastSyncStatus({ type: 'error', message: 'Devi essere connesso a Internet per salvare' })
+      setLastSyncStatus({ type: 'error', message: 'Devi essere connesso a Internet per condividere' })
       return
     }
 
     if (pendingCount === 0) {
-      setLastSyncStatus({ type: 'info', message: 'Non hai ancora fatto modifiche da salvare' })
+      setLastSyncStatus({ type: 'info', message: 'Non hai ancora fatto modifiche da condividere' })
       return
     }
 
@@ -64,22 +78,34 @@ function SyncManager({
     setSyncProgress(0)
 
     try {
-      // Simulate upload progress
-      for (let i = 0; i <= 100; i += 20) {
-        setSyncProgress(i)
-        await new Promise(resolve => setTimeout(resolve, 200))
+      // Raggruppa i cambiamenti per tipo
+      const changesByType = pendingChanges.reduce((acc, change) => {
+        if (!acc[change.type]) acc[change.type] = []
+        acc[change.type].push(change)
+        return acc
+      }, {})
+
+      const totalTypes = Object.keys(changesByType).length
+      let completedTypes = 0
+
+      // Carica ogni tipo di dato nel cloud simulato
+      for (const [type, changes] of Object.entries(changesByType)) {
+        const progress = Math.floor((completedTypes / totalTypes) * 100)
+        setSyncProgress(progress)
+
+        const cloudData = prepareDataForCloud(type, changes, currentUser?.id)
+        await cloudSimulator.saveToCloud(type, cloudData, currentUser?.id)
+        
+        completedTypes++
       }
 
-      // Here we'll implement actual Firebase upload
-      console.log('💾 Salvando le tue modifiche per tutti...', pendingChanges)
-      
-      // Simulate successful upload
-      await new Promise(resolve => setTimeout(resolve, 500))
+      setSyncProgress(100)
+      cloudSimulator.incrementSyncCount()
       
       setSyncStatus('idle')
       setLastSyncStatus({ 
         type: 'success', 
-        message: `✅ Ho salvato ${pendingCount} modifiche. Ora tutti possono vederle!` 
+        message: `✅ Ho condiviso ${pendingCount} modifiche. Tutti possono vederle!` 
       })
       
       // Clear pending changes
@@ -89,7 +115,7 @@ function SyncManager({
       setSyncStatus('error')
       setLastSyncStatus({ 
         type: 'error', 
-        message: `❌ Non sono riuscito a salvare. Riprova tra poco.` 
+        message: `❌ Non sono riuscito a condividere. Riprova tra poco.` 
       })
     }
   }
@@ -104,26 +130,38 @@ function SyncManager({
     setSyncProgress(0)
 
     try {
-      // Simulate download progress
-      for (let i = 0; i <= 100; i += 25) {
-        setSyncProgress(i)
-        await new Promise(resolve => setTimeout(resolve, 200))
+      // Carica i diversi tipi di dati dal cloud simulato
+      const dataTypes = ['inventory', 'temperatures', 'cleaning', 'staff', 'refrigerators']
+      const updates = []
+
+      for (let i = 0; i < dataTypes.length; i++) {
+        const progress = Math.floor((i / dataTypes.length) * 100)
+        setSyncProgress(progress)
+
+        const result = await cloudSimulator.loadFromCloud(dataTypes[i])
+        if (result.success && result.data) {
+          updates.push({ type: dataTypes[i], data: result.data })
+        }
       }
 
-      // Here we'll implement actual Firebase download
-      console.log('📱 Scaricando le novità dai tuoi colleghi...')
+      setSyncProgress(100)
       
-      // Simulate successful download
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // Aggiorna la lista delle modifiche recenti
+      const recentChangesResult = await cloudSimulator.getRecentChanges()
+      if (recentChangesResult.success) {
+        setRecentChanges(recentChangesResult.changes || [])
+      }
       
       setSyncStatus('idle')
       setLastSyncStatus({ 
         type: 'success', 
-        message: '✅ Perfetto! Hai ricevuto tutte le novità' 
+        message: updates.length > 0 
+          ? `✅ Ricevuti ${updates.length} aggiornamenti dai colleghi!` 
+          : '✅ Sei già aggiornato con tutti!'
       })
       
-      // Notify parent component
-      onDataSync?.('download', [])
+      // Notify parent component with updates
+      onDataSync?.('download', updates)
       
     } catch (error) {
       setSyncStatus('error')
@@ -282,6 +320,32 @@ function SyncManager({
             <span className="font-medium">{currentUser?.name || 'Non inserito'}</span>
           </div>
         </div>
+
+        {/* Recent Changes from Colleagues */}
+        {recentChanges.length > 0 && (
+          <div className="pt-3 border-t border-blue-200">
+            <p className="text-xs font-medium text-gray-700 mb-2">👥 Ultime attività dei colleghi:</p>
+            <div className="space-y-1">
+              {recentChanges.slice(0, 3).map((change, index) => (
+                <div key={index} className="flex items-center gap-2 text-xs text-gray-600">
+                  <div className={`w-2 h-2 rounded-full ${
+                    change.type === 'inventory' ? 'bg-green-400' :
+                    change.type === 'temperatures' ? 'bg-blue-400' :
+                    'bg-purple-400'
+                  }`} />
+                  <span className="font-medium">{change.user}:</span>
+                  <span className="flex-1 truncate">{change.action}</span>
+                  <span className="text-gray-500">{change.time}</span>
+                </div>
+              ))}
+            </div>
+            {recentChanges.length > 3 && (
+              <p className="text-xs text-gray-500 mt-1 text-center">
+                ...e altre {recentChanges.length - 3} modifiche
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
