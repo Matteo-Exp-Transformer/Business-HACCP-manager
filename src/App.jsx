@@ -799,7 +799,48 @@ function App() {
           {/* Tab Content */}
           <TabsContent value="dashboard">
             <div className="space-y-6">
+              {/* TEST BANNER - To see if this section renders */}
+              <div className="bg-red-100 border-2 border-red-500 p-4 rounded-lg">
+                <h2 className="text-red-800 font-bold text-xl">🚨 TEST BANNER - Mi vedi?</h2>
+                <p className="text-red-700">Se vedi questo banner, la sezione Dashboard funziona!</p>
+                <p className="text-sm text-red-600">Pending changes: {pendingChanges.length}</p>
+                <p className="text-sm text-red-600">Current user: {currentUser?.name || 'None'}</p>
+              </div>
+              
               {/* Sync Manager - Always visible at top */}
+              {currentUser ? (
+                <div className="bg-blue-100 border border-blue-300 p-4 rounded-lg">
+                  <h3 className="font-bold text-blue-800 mb-2">🔄 Sync Manager Test</h3>
+                  <p className="text-blue-700 mb-3">User: {currentUser.name}</p>
+                  <p className="text-blue-700 mb-3">Pending: {pendingChanges.length}</p>
+                  
+                  <button 
+                    onClick={() => {
+                      console.log('🧪 Manual test button clicked')
+                      addPendingChange('manual-test', { test: true }, `manual_${Date.now()}`)
+                    }}
+                    className="bg-blue-600 text-white px-4 py-2 rounded mr-2"
+                  >
+                    ➕ Test Aggiungi
+                  </button>
+                  
+                  <button 
+                    onClick={() => {
+                      setPendingChanges([])
+                    }}
+                    className="bg-red-600 text-white px-4 py-2 rounded"
+                  >
+                    🗑️ Reset
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-yellow-100 border border-yellow-300 p-4 rounded-lg">
+                  <p className="text-yellow-800">⚠️ Nessun utente loggato</p>
+                </div>
+              )}
+              
+              {/* Original SyncManager - commented out temporarily */}
+              {/* 
               <SyncManager
                 currentUser={currentUser}
                 companyId={companyId}
@@ -808,6 +849,7 @@ function App() {
                 onDataSync={handleDataSync}
                 onAddPendingChange={addPendingChange}
               />
+              */}
               
               <Dashboard 
                 temperatures={temperatures}
