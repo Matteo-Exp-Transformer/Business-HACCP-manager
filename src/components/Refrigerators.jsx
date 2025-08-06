@@ -18,6 +18,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
   })
   const [searchTerm, setSearchTerm] = useState('')
 
+  // Funzione per determinare il tipo di frigorifero in base alla temperatura
+  const getRefrigeratorType = (temperature) => {
+    if (temperature < -13.5 && temperature >= -80) {
+      return 'Abbattitore'
+    } else if (temperature < -2.5 && temperature >= -13.5) {
+      return 'Freezer'
+    } else if ((temperature >= -2.5 && temperature <= 0) || (temperature > 0 && temperature <= 14)) {
+      return 'Frigo'
+    } else {
+      return 'N/A'
+    }
+  }
+
 
 
   const addRefrigerator = (e) => {
@@ -563,7 +576,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-gray-600">Temperatura impostata:</span>
-                            <div className="font-medium">{refrigerator.setTemperature}°C</div>
+                            <div className="font-medium">{refrigerator.setTemperature}°C ({getRefrigeratorType(refrigerator.setTemperature)})</div>
                           </div>
                           
                           <div>
