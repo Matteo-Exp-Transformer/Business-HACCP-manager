@@ -741,7 +741,7 @@ function App() {
             </TabsTrigger>
             <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Thermometer className="h-4 w-4" />
-              <span className="hidden sm:inline">Frigoriferi e Freezer</span>
+              <span className="hidden sm:inline">Frigoriferi</span>
               <NotificationDot hasNotification={notifications.refrigerators > 0} />
             </TabsTrigger>
             <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
