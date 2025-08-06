@@ -159,19 +159,49 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   const pendingTasks = cleaning.filter(task => !task.completed)
   const completedTasks = cleaning.filter(task => task.completed)
   
-  // Calcola mansioni mancate nell'ultima settimana
+  // Calcola mansioni mancate in base alla frequenza
   const getMissedTasks = () => {
-    const oneWeekAgo = new Date()
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     
     return cleaning.filter(task => {
       if (task.completed) return false // Escludi quelle completate
       
-      // Converte la data del task in oggetto Date per confronto
-      const taskDate = new Date(task.date.split('/').reverse().join('-')) // Converte da DD/MM/YYYY a YYYY-MM-DD
+      // Calcola quando il task doveva essere completato in base alla frequenza
+      const taskCreationDate = new Date(task.date.split('/').reverse().join('-'))
       
-      // Se il task è più vecchio di una settimana ed è incompleto, è "mancato"
-      return taskDate <= oneWeekAgo
+      switch (task.frequency) {
+        case 'daily':
+          // Task giornaliero è "mancato" se non completato oggi
+          // Ma solo se è stato creato almeno ieri
+          const yesterday = new Date(today)
+          yesterday.setDate(yesterday.getDate() - 1)
+          return taskCreationDate <= yesterday
+          
+        case 'weekly':
+          // Task settimanale è "mancato" se non completato da più di una settimana
+          const oneWeekAgo = new Date(today)
+          oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+          return taskCreationDate <= oneWeekAgo
+          
+        case 'monthly':
+          // Task mensile è "mancato" se non completato da più di un mese
+          const oneMonthAgo = new Date(today)
+          oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
+          return taskCreationDate <= oneMonthAgo
+          
+        case 'yearly':
+          // Task annuale è "mancato" se non completato da più di un anno
+          const oneYearAgo = new Date(today)
+          oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
+          return taskCreationDate <= oneYearAgo
+          
+        default:
+          // Per frequenze sconosciute, usa la logica di una settimana
+          const defaultWeekAgo = new Date(today)
+          defaultWeekAgo.setDate(defaultWeekAgo.getDate() - 7)
+          return taskCreationDate <= defaultWeekAgo
+      }
     })
   }
   
