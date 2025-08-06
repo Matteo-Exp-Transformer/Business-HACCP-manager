@@ -158,6 +158,24 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   // Separate completed and pending tasks
   const pendingTasks = cleaning.filter(task => !task.completed)
   const completedTasks = cleaning.filter(task => task.completed)
+  
+  // Calcola mansioni mancate nell'ultima settimana
+  const getMissedTasks = () => {
+    const oneWeekAgo = new Date()
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+    
+    return cleaning.filter(task => {
+      if (task.completed) return false // Escludi quelle completate
+      
+      // Converte la data del task in oggetto Date per confronto
+      const taskDate = new Date(task.date.split('/').reverse().join('-')) // Converte da DD/MM/YYYY a YYYY-MM-DD
+      
+      // Se il task è più vecchio di una settimana ed è incompleto, è "mancato"
+      return taskDate <= oneWeekAgo
+    })
+  }
+  
+  const missedTasks = getMissedTasks()
 
   // Filter tasks by frequency
   const dailyTasks = pendingTasks.filter(task => task.frequency === 'daily')
@@ -510,12 +528,21 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Temperature OK</p>
-                <p className="text-2xl font-bold text-green-600">
-                  {temperatures.filter(t => t.status === 'ok').length}
+                <p className="text-sm text-gray-600">Mansioni Mancate</p>
+                <p className={`text-2xl font-bold ${
+                  missedTasks.length > 0 ? 'text-red-600' : 'text-green-600'
+                }`}>
+                  {missedTasks.length}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  (ultimi 7 giorni)
                 </p>
               </div>
-              <CheckCircle className="h-10 w-10 md:h-8 md:w-8 text-green-500" />
+              {missedTasks.length > 0 ? (
+                <AlertTriangle className="h-10 w-10 md:h-8 md:w-8 text-red-500" />
+              ) : (
+                <CheckCircle className="h-10 w-10 md:h-8 md:w-8 text-green-500" />
+              )}
             </div>
           </CardContent>
         </Card>
