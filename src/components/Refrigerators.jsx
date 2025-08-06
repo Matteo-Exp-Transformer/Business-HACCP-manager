@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit } from 'lucide-react'
+import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X } from 'lucide-react'
 
 function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerators, setRefrigerators }) {
   const [showAddModal, setShowAddModal] = useState(false)
@@ -17,6 +17,8 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     nextMaintenance: ''
   })
   const [searchTerm, setSearchTerm] = useState('')
+  const [selectedRefrigerator, setSelectedRefrigerator] = useState(null)
+  const [showTemperatureHistory, setShowTemperatureHistory] = useState(false)
 
   // Funzione per determinare il tipo di frigorifero in base alla temperatura
   const getRefrigeratorType = (temperature) => {
@@ -29,6 +31,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     } else {
       return 'N/A'
     }
+  }
+
+  // Funzione per aprire la cronologia temperature
+  const openTemperatureHistory = (refrigerator) => {
+    setSelectedRefrigerator(refrigerator)
+    setShowTemperatureHistory(true)
+  }
+
+  // Funzione per ottenere tutte le temperature di un frigorifero
+  const getRefrigeratorTemperatures = (refrigerator) => {
+    return temperatures
+      .filter(temp => temp.location.toLowerCase().includes(refrigerator.name.toLowerCase()))
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
   }
 
 
@@ -554,12 +569,17 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]
 
                 return (
-                  <div key={refrigerator.id} className={`p-4 border rounded-lg ${
-                    status === 'green' ? 'bg-green-50 border-green-200' :
-                    status === 'orange' ? 'bg-orange-50 border-orange-200' :
-                    status === 'red' ? 'bg-red-50 border-red-200' :
-                    'bg-gray-50 border-gray-200'
-                  }`}>
+                  <div 
+                    key={refrigerator.id} 
+                    className={`p-4 border rounded-lg cursor-pointer hover:shadow-md transition-shadow ${
+                      status === 'green' ? 'bg-green-50 border-green-200 hover:bg-green-100' :
+                      status === 'orange' ? 'bg-orange-50 border-orange-200 hover:bg-orange-100' :
+                      status === 'red' ? 'bg-red-50 border-red-200 hover:bg-red-100' :
+                      'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                    }`}
+                    onClick={() => openTemperatureHistory(refrigerator)}
+                    title="Clicca per vedere la cronologia temperature"
+                  >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
@@ -781,6 +801,119 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Cronologia Temperature */}
+      {showTemperatureHistory && selectedRefrigerator && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <Thermometer className="h-5 w-5" />
+                Cronologia Temperature - {selectedRefrigerator.name}
+              </h2>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowTemperatureHistory(false)
+                  setSelectedRefrigerator(null)
+                }}
+                className="p-2"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600">Temperatura impostata:</span>
+                  <div className="font-medium">{selectedRefrigerator.setTemperature}°C ({getRefrigeratorType(selectedRefrigerator.setTemperature)})</div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Posizionamento:</span>
+                  <div className="font-medium">{selectedRefrigerator.location || 'Non specificato'}</div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Dedicato a:</span>
+                  <div className="font-medium">{selectedRefrigerator.dedicatedTo || 'Non specificato'}</div>
+                </div>
+                <div>
+                  <span className="text-gray-600">Prossima manutenzione:</span>
+                  <div className="font-medium">{selectedRefrigerator.nextMaintenance || 'Non programmata'}</div>
+                </div>
+              </div>
+            </div>
+
+            {(() => {
+              const refrigeratorTemperatures = getRefrigeratorTemperatures(selectedRefrigerator)
+              
+              if (refrigeratorTemperatures.length === 0) {
+                return (
+                  <div className="text-center py-8 text-gray-500">
+                    <Thermometer className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                    <p>Nessuna registrazione di temperatura</p>
+                    <p className="text-sm">Le registrazioni appariranno qui dopo le prime misurazioni</p>
+                  </div>
+                )
+              }
+
+              return (
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600 mb-4">
+                    Totale registrazioni: {refrigeratorTemperatures.length}
+                  </div>
+                  
+                  {refrigeratorTemperatures.map((temp, index) => {
+                    const tempDiff = Math.abs(temp.temperature - selectedRefrigerator.setTemperature)
+                    const status = tempDiff > 2 ? 'danger' : tempDiff > 1 ? 'warning' : 'ok'
+                    
+                    return (
+                      <div 
+                        key={temp.id || index} 
+                        className={`p-4 border rounded-lg ${
+                          status === 'ok' ? 'bg-green-50 border-green-200' :
+                          status === 'warning' ? 'bg-orange-50 border-orange-200' :
+                          'bg-red-50 border-red-200'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="text-lg font-bold">
+                              {temp.temperature}°C
+                            </div>
+                            <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              status === 'ok' ? 'bg-green-100 text-green-700' :
+                              status === 'warning' ? 'bg-orange-100 text-orange-700' :
+                              'bg-red-100 text-red-700'
+                            }`}>
+                              {status === 'ok' ? '✓ OK' : 
+                               status === 'warning' ? '⚠ Attenzione' : '🚨 Critico'}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              Differenza: {tempDiff.toFixed(1)}°C
+                            </div>
+                          </div>
+                          
+                          <div className="text-right text-sm text-gray-600">
+                            <div>{temp.time}</div>
+                            <div className="text-xs">{temp.user || 'Utente sconosciuto'}</div>
+                          </div>
+                        </div>
+                        
+                        {temp.notes && (
+                          <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                            📝 {temp.notes}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
