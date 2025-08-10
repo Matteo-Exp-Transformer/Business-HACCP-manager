@@ -1,0 +1,10 @@
+[33mfbaadf29[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m 🚨🚨🚨 NUCLEAR VERCEL FORCE DEPLOYgit push origin main!
+[33m9cf2ec54[m Checkpoint before follow-up message
+[33m2cd7129d[m 🎨 STYLE: Scheda 'Tutte' sempre bianca in attività da svolgere
+[33m6793af71[m 🚨 REPLACE: 'Temperature OK' → 'Mansioni Mancate' nel tab Pulizie
+[33m936239f9[m 🏷️ ADD: Categoria frigorifero accanto al nome in 'Stato Frigoriferi'
+[33mb347aef4[m 🌡️ ADD: Cronologia temperature per frigorifero cliccabile
+[33m0bb87f91[m ✨ ADD: Tipo frigorifero nella temperatura impostata
+[33mdb4cbe69[m 🏷️ RENAME: Tab 'Frigoriferi e Freezer' → 'Frigoriferi'
+[33m8e405981[m 🔥 FORCE VERCEL UPDATE: Version trigger
+[33m48722244[m 🚀 FORCE DEPLOY: Trigger Vercel redeploy
