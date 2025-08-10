@@ -146,13 +146,30 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
 
   // Funzione per determinare il tipo di punto di conservazione in base alla temperatura
   const getRefrigeratorType = (temperature) => {
-    if (temperature < -13.5 && temperature >= -80) {
+    // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+    let tempValue = 0
+    
+    if (typeof temperature === 'object' && temperature.setTemperatureMin !== undefined && temperature.setTemperatureMax !== undefined) {
+      // Nuovo formato con range - usa la media
+      tempValue = (temperature.setTemperatureMin + temperature.setTemperatureMax) / 2
+    } else if (typeof temperature === 'string') {
+      // Vecchio formato - estrae il valore numerico dalla stringa
+      const tempStr = temperature.replace('°C', '').trim()
+      tempValue = parseFloat(tempStr)
+    } else if (typeof temperature === 'number') {
+      // Formato numerico diretto
+      tempValue = temperature
+    }
+    
+    if (isNaN(tempValue)) return 'N/A'
+    
+    if (tempValue < -13.5 && tempValue >= -80) {
       return 'Abbattitore'
-    } else if (temperature < -2.5 && temperature >= -13.5) {
+    } else if (tempValue < -2.5 && tempValue >= -13.5) {
       return 'Freezer'
-    } else if ((temperature >= -2.5 && temperature <= 0) || (temperature > 0 && temperature <= 14)) {
+    } else if ((tempValue >= -2.5 && tempValue <= 0) || (tempValue > 0 && tempValue <= 14)) {
       return 'Frigo'
-    } else if (temperature >= 15 && temperature <= 25) {
+    } else if (tempValue >= 15 && tempValue <= 25) {
       return 'Ambiente'
     } else {
       return 'N/A'
@@ -378,6 +395,31 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     setShowEditModal(false)
   }
 
+  // Funzione helper per ottenere la temperatura impostata in formato leggibile
+  const getDisplayTemperature = (refrigerator) => {
+    if (refrigerator.setTemperatureMin !== undefined && refrigerator.setTemperatureMax !== undefined) {
+      // Nuovo formato con range
+      return `${refrigerator.setTemperatureMin}-${refrigerator.setTemperatureMax}°C`
+    } else if (refrigerator.setTemperature) {
+      // Vecchio formato
+      return refrigerator.setTemperature
+    }
+    return 'N/A'
+  }
+
+  // Funzione helper per estrarre il valore numerico dalla temperatura impostata
+  const getTemperatureValue = (refrigerator) => {
+    if (refrigerator.setTemperatureMin !== undefined && refrigerator.setTemperatureMax !== undefined) {
+      // Nuovo formato con range - usa la media
+      return (refrigerator.setTemperatureMin + refrigerator.setTemperatureMax) / 2
+    } else if (refrigerator.setTemperature) {
+      // Vecchio formato - estrae il valore numerico dalla stringa
+      const tempStr = refrigerator.setTemperature.toString().replace('°C', '').trim()
+      return parseFloat(tempStr)
+    }
+    return 0
+  }
+
   const getTemperatureStatus = (refrigerator) => {
     // Find the last temperature recording for this refrigerator
     const lastTemperature = temperatures
@@ -386,7 +428,12 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
 
     if (!lastTemperature) return 'no-data'
 
-    const tempDiff = Math.abs(lastTemperature.temperature - refrigerator.setTemperature)
+    // Usa la funzione helper per ottenere il valore numerico
+    const setTempValue = getTemperatureValue(refrigerator)
+    
+    if (isNaN(setTempValue) || setTempValue === 0) return 'no-data'
+    
+    const tempDiff = Math.abs(lastTemperature.temperature - setTempValue)
     
     if (tempDiff <= 1) return 'green'
     if (tempDiff <= 1.5) return 'orange'
@@ -538,7 +585,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
-                      .filter(ref => (ref.setTemperature >= -2.5 && ref.setTemperature <= 0) || (ref.setTemperature > 0 && ref.setTemperature <= 14))
+                      .filter(ref => {
+                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+                        let tempValue = 0
+                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
+                          // Nuovo formato con range - usa la media
+                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
+                        } else if (ref.setTemperature) {
+                          // Vecchio formato - estrae il valore numerico dalla stringa
+                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
+                          tempValue = parseFloat(tempStr)
+                        }
+                        return !isNaN(tempValue) && ((tempValue >= -2.5 && tempValue <= 0) || (tempValue > 0 && tempValue <= 14))
+                      })
                       .map(refrigerator => {
                         const status = getTemperatureStatus(refrigerator)
                         return (
@@ -591,7 +650,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                               )}
                               <div className="flex items-center gap-1">
                                 <Thermometer className="h-3 w-3 text-gray-500" />
-                                <span className="font-medium">{refrigerator.setTemperature}°C</span>
+                                <span className="font-medium">{getDisplayTemperature(refrigerator)}</span>
                               </div>
                             </div>
                             {refrigerator.dedicatedTo && (
@@ -605,7 +664,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                           </div>
                         )
                       })}
-                    {filteredRefrigerators.filter(ref => (ref.setTemperature >= -2.5 && ref.setTemperature <= 0) || (ref.setTemperature > 0 && ref.setTemperature <= 14)).length === 0 && (
+                    {filteredRefrigerators.filter(ref => {
+                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+                        let tempValue = 0
+                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
+                          // Nuovo formato con range - usa la media
+                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
+                        } else if (ref.setTemperature) {
+                          // Vecchio formato - estrae il valore numerico dalla stringa
+                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
+                          tempValue = parseFloat(tempStr)
+                        }
+                        return !isNaN(tempValue) && ((tempValue >= -2.5 && tempValue <= 0) || (tempValue > 0 && tempValue <= 14))
+                      }).length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">Nessun frigorifero</p>
                     )}
                   </div>
@@ -619,7 +690,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
-                      .filter(ref => ref.setTemperature < -2.5 && ref.setTemperature >= -13.5)
+                      .filter(ref => {
+                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+                        let tempValue = 0
+                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
+                          // Nuovo formato con range - usa la media
+                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
+                        } else if (ref.setTemperature) {
+                          // Vecchio formato - estrae il valore numerico dalla stringa
+                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
+                          tempValue = parseFloat(tempStr)
+                        }
+                        return !isNaN(tempValue) && tempValue < -2.5 && tempValue >= -13.5
+                      })
                       .map(refrigerator => {
                         const status = getTemperatureStatus(refrigerator)
                         return (
@@ -672,7 +755,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                               )}
                               <div className="flex items-center gap-1">
                                 <Thermometer className="h-3 w-3 text-gray-500" />
-                                <span className="font-medium">{refrigerator.setTemperature}°C</span>
+                                <span className="font-medium">{getDisplayTemperature(refrigerator)}</span>
                               </div>
                             </div>
                             {refrigerator.dedicatedTo && (
@@ -686,7 +769,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                           </div>
                         )
                       })}
-                    {filteredRefrigerators.filter(ref => ref.setTemperature < -2.5 && ref.setTemperature >= -13.5).length === 0 && (
+                    {filteredRefrigerators.filter(ref => {
+                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+                        let tempValue = 0
+                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
+                          // Nuovo formato con range - usa la media
+                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
+                        } else if (ref.setTemperature) {
+                          // Vecchio formato - estrae il valore numerico dalla stringa
+                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
+                          tempValue = parseFloat(tempStr)
+                        }
+                        return !isNaN(tempValue) && tempValue < -2.5 && tempValue >= -13.5
+                      }).length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">Nessun freezer</p>
                     )}
                   </div>
@@ -700,7 +795,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
-                      .filter(ref => ref.setTemperature < -13.5 && ref.setTemperature >= -80)
+                      .filter(ref => {
+                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+                        let tempValue = 0
+                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
+                          // Nuovo formato con range - usa la media
+                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
+                        } else if (ref.setTemperature) {
+                          // Vecchio formato - estrae il valore numerico dalla stringa
+                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
+                          tempValue = parseFloat(tempStr)
+                        }
+                        return !isNaN(tempValue) && tempValue < -13.5 && tempValue >= -80
+                      })
                       .map(refrigerator => {
                         const status = getTemperatureStatus(refrigerator)
                         return (
@@ -753,7 +860,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                               )}
                               <div className="flex items-center gap-1">
                                 <Thermometer className="h-3 w-3 text-gray-500" />
-                                <span className="font-medium">{refrigerator.setTemperature}°C</span>
+                                <span className="font-medium">{getDisplayTemperature(refrigerator)}</span>
                               </div>
                             </div>
                             {refrigerator.dedicatedTo && (
@@ -767,7 +874,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                           </div>
                         )
                       })}
-                    {filteredRefrigerators.filter(ref => ref.setTemperature < -13.5 && ref.setTemperature >= -80).length === 0 && (
+                    {filteredRefrigerators.filter(ref => {
+                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+                        let tempValue = 0
+                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
+                          // Nuovo formato con range - usa la media
+                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
+                        } else if (ref.setTemperature) {
+                          // Vecchio formato - estrae il valore numerico dalla stringa
+                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
+                          tempValue = parseFloat(tempStr)
+                        }
+                        return !isNaN(tempValue) && tempValue < -13.5 && tempValue >= -80
+                      }).length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">Nessun abbattitore</p>
                     )}
                   </div>
@@ -781,7 +900,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
-                      .filter(ref => ref.setTemperature >= 15 && ref.setTemperature <= 25)
+                      .filter(ref => {
+                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+                        let tempValue = 0
+                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
+                          // Nuovo formato con range - usa la media
+                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
+                        } else if (ref.setTemperature) {
+                          // Vecchio formato - estrae il valore numerico dalla stringa
+                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
+                          tempValue = parseFloat(tempStr)
+                        }
+                        return !isNaN(tempValue) && tempValue >= 15 && tempValue <= 25
+                      })
                       .map(refrigerator => {
                         const status = getTemperatureStatus(refrigerator)
                         return (
@@ -834,7 +965,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                               )}
                               <div className="flex items-center gap-1">
                                 <Thermometer className="h-3 w-3 text-gray-500" />
-                                <span className="font-medium">{refrigerator.setTemperature}°C</span>
+                                <span className="font-medium">{getDisplayTemperature(refrigerator)}</span>
                               </div>
                             </div>
                             {refrigerator.dedicatedTo && (
@@ -848,7 +979,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                           </div>
                         )
                       })}
-                    {filteredRefrigerators.filter(ref => ref.setTemperature >= 15 && ref.setTemperature <= 25).length === 0 && (
+                    {filteredRefrigerators.filter(ref => {
+                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+                        let tempValue = 0
+                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
+                          // Nuovo formato con range - usa la media
+                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
+                        } else if (ref.setTemperature) {
+                          // Vecchio formato - estrae il valore numerico dalla stringa
+                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
+                          tempValue = parseFloat(tempStr)
+                        }
+                        return !isNaN(tempValue) && tempValue >= 15 && tempValue <= 25
+                      }).length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">Nessun punto ambiente</p>
                     )}
                   </div>
@@ -983,7 +1126,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-lg">{refrigerator.name}</h3>
                           <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                            {getRefrigeratorType(refrigerator.setTemperature)}
+                                                            {getRefrigeratorType(refrigerator)}
                           </span>
                           {getStatusDot(status)}
                           <span className={`text-sm font-medium ${
@@ -997,7 +1140,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                           <div>
                             <span className="text-gray-600">Temperatura impostata:</span>
-                            <div className="font-medium">{refrigerator.setTemperature}°C ({getRefrigeratorType(refrigerator.setTemperature)})</div>
+                            <div className="font-medium">{getDisplayTemperature(refrigerator)} ({getRefrigeratorType(refrigerator)})</div>
                           </div>
                           
                           <div>
@@ -1396,7 +1539,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                 <div>
                   <span className="text-gray-600">Temperatura impostata:</span>
-                  <div className="font-medium">{selectedRefrigerator.setTemperature}°C ({getRefrigeratorType(selectedRefrigerator.setTemperature)})</div>
+                                              <div className="font-medium">{getDisplayTemperature(selectedRefrigerator)} ({getRefrigeratorType(selectedRefrigerator)})</div>
                 </div>
                 <div>
                   <span className="text-gray-600">Posizionamento:</span>
@@ -1438,7 +1581,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   </div>
                   
                   {refrigeratorTemperatures.map((temp, index) => {
-                    const tempDiff = Math.abs(temp.temperature - selectedRefrigerator.setTemperature)
+                    const tempDiff = Math.abs(temp.temperature - getTemperatureValue(selectedRefrigerator))
                     const status = tempDiff > 2 ? 'danger' : tempDiff > 1 ? 'warning' : 'ok'
                     
                     return (

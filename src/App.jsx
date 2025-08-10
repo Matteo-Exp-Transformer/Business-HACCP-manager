@@ -106,10 +106,11 @@ function App() {
       localStorage.setItem('haccp-users', JSON.stringify([defaultAdmin]))
     }
 
-    // Recupera l'utente corrente se era loggato prima della chiusura dell'app
-    if (currentUserData) {
-      setCurrentUser(JSON.parse(currentUserData))
-    }
+    // NON recupera automaticamente l'utente corrente per sicurezza
+    // L'utente deve sempre fare login all'avvio dell'app
+    // if (currentUserData) {
+    //   setCurrentUser(JSON.parse(currentUserData))
+    // }
 
     // Recupera la preferenza per la visibilità della chat IA
     const chatIconPref = localStorage.getItem('haccp-show-chat-icon')

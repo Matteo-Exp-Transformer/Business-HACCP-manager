@@ -43,11 +43,14 @@ import {
   Calendar,
   MapPin,
   Thermometer,
-  Star
+  Star,
+  Info
 } from 'lucide-react'
 import CustomCategoryManager from './CustomCategoryManager'
 import jsPDF from 'jspdf'
 import { getConservationSuggestions, suggestStorageLocation, getOptimalTemperature } from '../utils/temperatureDatabase'
+
+
 
 // Database prodotti italiani precaricati (per aggiunta rapida)
 const DEFAULT_PRODUCTS = [
