@@ -1,10 +1,53 @@
+/**
+ * 🚨 ATTENZIONE CRITICA - LEGGERE PRIMA DI MODIFICARE 🚨
+ * 
+ * Questo componente gestisce l'INVENTARIO - FUNZIONALITÀ CRITICA HACCP
+ * 
+ * PRIMA di qualsiasi modifica, leggi OBBLIGATORIAMENTE:
+ * - AGENT_DIRECTIVES.md (nella root del progetto)
+ * - HACCP_APP_DOCUMENTATION.md
+ * 
+ * ⚠️ MODIFICHE NON AUTORIZZATE POSSONO COMPROMETTERE LA SICUREZZA ALIMENTARE
+ * ⚠️ Questo componente gestisce tracciabilità e conservazione prodotti
+ * ⚠️ Coordina scadenze, allergeni e compliance HACCP
+ * 
+ * @fileoverview Componente Inventory HACCP - Sistema Critico di Tracciabilità
+ * @requires AGENT_DIRECTIVES.md
+ * @critical Sicurezza alimentare - Gestione Inventario e Tracciabilità
+ * @version 1.0
+ */
+
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Package, Plus, Search, Filter, Trash2, Edit, AlertTriangle, Calendar, Clock } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs'
+import { 
+  Plus, 
+  Search, 
+  Filter, 
+  Trash2, 
+  Edit, 
+  Package, 
+  ShoppingCart, 
+  FileText, 
+  Clock, 
+  AlertTriangle,
+  CheckCircle,
+  X,
+  Download,
+  Upload,
+  Settings,
+  Users,
+  Calendar,
+  MapPin,
+  Thermometer,
+  Star
+} from 'lucide-react'
+import CustomCategoryManager from './CustomCategoryManager'
 import jsPDF from 'jspdf'
+import { getConservationSuggestions, suggestStorageLocation, getOptimalTemperature } from '../utils/temperatureDatabase'
 
 // Database prodotti italiani precaricati (per aggiunta rapida)
 const DEFAULT_PRODUCTS = [
@@ -37,9 +80,9 @@ const DEFAULT_PRODUCTS = [
   { id: 'prod_026', name: 'Arance', category: 'frutta', defaultLocation: 'Frigo B - Cassetto frutta', allergens: [] },
   
   // PESCE E FRUTTI DI MARE
-  { id: 'prod_011', name: 'Salmone', category: 'pesce', defaultLocation: 'Frigo Pesce - Ripiano inferiore', allergens: ['pesce'] },
-  { id: 'prod_012', name: 'Vongole Veraci', category: 'pesce', defaultLocation: 'Frigo Pesce - Ripiano inferiore', allergens: ['molluschi'] },
-  { id: 'prod_027', name: 'Branzino Fresco', category: 'pesce', defaultLocation: 'Frigo Pesce - Ripiano inferiore', allergens: ['pesce'] },
+  { id: 'prod_011', name: 'Salmone', category: 'pesce_fresco', defaultLocation: 'Frigo Pesce - Ripiano inferiore', allergens: ['pesce'] },
+  { id: 'prod_012', name: 'Vongole Veraci', category: 'pesce_fresco', defaultLocation: 'Frigo Pesce - Ripiano inferiore', allergens: ['molluschi'] },
+  { id: 'prod_027', name: 'Branzino Fresco', category: 'pesce_fresco', defaultLocation: 'Frigo Pesce - Ripiano inferiore', allergens: ['pesce'] },
   
   // SURGELATI
   { id: 'prod_010', name: 'Gamberi Rossi Surgelati', category: 'surgelati', defaultLocation: 'Freezer A', allergens: ['crostacei'] },
@@ -82,10 +125,26 @@ const CATEGORIES = [
   { id: 'carni', name: 'Carni e Salumi', color: 'bg-red-100 text-red-800', temp: '2-4°C', storage: 'Ripiano inferiore frigo', description: 'Carni crude, salumi, pollame' },
   { id: 'verdure', name: 'Verdure e Ortaggi', color: 'bg-green-100 text-green-800', temp: '6-8°C', storage: 'Cassetto frutta/verdura', description: 'Verdure fresche, ortaggi, insalate' },
   { id: 'frutta', name: 'Frutta Fresca', color: 'bg-orange-100 text-orange-800', temp: '6-8°C', storage: 'Cassetto frutta/verdura', description: 'Frutta fresca di stagione' },
-  { id: 'pesce', name: 'Pesce e Frutti di Mare', color: 'bg-cyan-100 text-cyan-800', temp: '1-3°C', storage: 'Ripiano inferiore frigo', description: 'Pesce fresco, molluschi, crostacei' },
+  { id: 'pesce_fresco', name: 'Pesce Fresco', color: 'bg-cyan-100 text-cyan-800', temp: '1-3°C', storage: 'Ripiano inferiore frigo', description: 'Pesce fresco, molluschi, crostacei' },
+  { id: 'pesce_surgelato', name: 'Pesce Surgelato', color: 'bg-indigo-100 text-indigo-800', temp: '-18°C', storage: 'Freezer', description: 'Pesce e prodotti della pesca surgelati' },
   { id: 'surgelati', name: 'Surgelati', color: 'bg-indigo-100 text-indigo-800', temp: '-18°C', storage: 'Freezer', description: 'Tutti i prodotti surgelati' },
   { id: 'dispensa', name: 'Dispensa Secca', color: 'bg-yellow-100 text-yellow-800', temp: 'Ambiente', storage: 'Scaffali dispensa', description: 'Pasta, riso, farina, conserve' },
   { id: 'condimenti', name: 'Oli e Condimenti', color: 'bg-amber-100 text-amber-800', temp: 'Ambiente', storage: 'Scaffali condimenti', description: 'Oli, aceti, spezie, salse' }
+]
+
+// Categorie per i punti di conservazione (sincronizzate con Refrigerators.jsx)
+const STORAGE_CATEGORIES = [
+  { id: 'latticini', name: 'Latticini e Formaggi', description: 'Latte, formaggi freschi e stagionati' },
+  { id: 'carni', name: 'Carni e Salumi', description: 'Carni crude, salumi, pollame' },
+  { id: 'verdure', name: 'Verdure e Ortaggi', description: 'Verdure fresche, ortaggi, insalate' },
+  { id: 'frutta', name: 'Frutta Fresca', description: 'Frutta fresca di stagione' },
+  { id: 'pesce_fresco', name: 'Pesce Fresco', description: 'Pesce fresco, molluschi, crostacei' },
+  { id: 'pesce_surgelato', name: 'Pesce Surgelato', description: 'Pesce e prodotti della pesca surgelati' },
+  { id: 'surgelato', name: 'Surgelati', description: 'Tutti i prodotti surgelati' },
+  { id: 'dispensa', name: 'Dispensa Secca', description: 'Pasta, riso, farina, conserve' },
+  { id: 'condimenti', name: 'Oli e Condimenti', description: 'Oli, aceti, spezie, salse' },
+  { id: 'hot_holding', name: 'Mantenimento Caldo', description: 'Piatti pronti caldi, mantenuti a temperatura' },
+  { id: 'altro', name: 'Altro', description: 'Altre categorie di prodotti' }
 ]
 
 function Inventory({ products = [], setProducts, currentUser, refrigerators = [] }) {
@@ -94,7 +153,7 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterExpiry, setFilterExpiry] = useState('')
-  // Nuovi filtri per lotti e ordini
+  // Filtri per informazioni aggiuntive
   const [filterLot, setFilterLot] = useState('')
   const [filterSupplier, setFilterSupplier] = useState('')
   const [filterOrderId, setFilterOrderId] = useState('')
@@ -121,6 +180,11 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
   // Stati per ingredienti già utilizzati
   const [usedIngredients, setUsedIngredients] = useState([])
   const [showUsedIngredients, setShowUsedIngredients] = useState(false)
+  
+  // Stati per categorie personalizzate
+  const [customCategories, setCustomCategories] = useState([])
+  const [showCustomCategoryManager, setShowCustomCategoryManager] = useState(false)
+  
   const [orderFormData, setOrderFormData] = useState({
     orderId: '',
     supplierName: '',
@@ -128,7 +192,7 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     expectedDelivery: '',
     notes: ''
   })
-  
+
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -136,11 +200,14 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     location: '',
     allergens: [],
     notes: '',
-    // Nuovi campi per gestione lotti e ordini
+    // Campi per informazioni aggiuntive (lotti, ordini, fornitori)
     lotNumber: '',
     batchDeliveryDate: '',
     associatedOrderId: '',
-    supplierName: ''
+    supplierName: '',
+    // Campi per suggerimenti automatici temperatura e conservazione
+    temperatureSuggestion: null,
+    storageSuggestion: null
   })
 
   // Save products to localStorage
@@ -160,12 +227,23 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     if (savedUsedIngredients) {
       setUsedIngredients(JSON.parse(savedUsedIngredients))
     }
+
+    // Carica categorie personalizzate
+    const savedCustomCategories = localStorage.getItem('haccp-custom-categories')
+    if (savedCustomCategories) {
+      setCustomCategories(JSON.parse(savedCustomCategories))
+    }
   }, [])
 
   // Salva ingredienti utilizzati quando cambia
   useEffect(() => {
     localStorage.setItem('haccp-used-ingredients', JSON.stringify(usedIngredients))
   }, [usedIngredients])
+
+  // Salva categorie personalizzate quando cambiano
+  useEffect(() => {
+    localStorage.setItem('haccp-custom-categories', JSON.stringify(customCategories))
+  }, [customCategories])
 
   // Chiudi dropdown fornitori quando si clicca fuori
   useEffect(() => {
@@ -186,15 +264,23 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     const today = new Date()
     let daysToAdd = 7
     
-    switch(category) {
-      case 'latticini': daysToAdd = 5; break
-      case 'carni': daysToAdd = 3; break
-      case 'verdure': daysToAdd = 7; break
-      case 'frutta': daysToAdd = 7; break
-      case 'pesce': daysToAdd = 2; break
-      case 'surgelati': daysToAdd = 90; break
-      case 'dispensa': daysToAdd = 365; break
-      case 'condimenti': daysToAdd = 730; break
+    // Categorie predefinite
+    if (category === 'latticini') daysToAdd = 7
+    else if (category === 'carni') daysToAdd = 3
+    else if (category === 'pesce_fresco') daysToAdd = 2
+    else if (category === 'verdure') daysToAdd = 7
+    else if (category === 'frutta') daysToAdd = 7
+    else if (category === 'dispensa') daysToAdd = 365
+    else if (category === 'condimenti') daysToAdd = 730
+    else if (category === 'surgelati' || category === 'pesce_surgelato') daysToAdd = 180
+    // Categorie personalizzate - usa logica basata su temperatura
+    else if (customCategories.find(cat => cat.id === category)) {
+      const customCat = customCategories.find(cat => cat.id === category)
+      const avgTemp = (customCat.temperatureMin + customCat.temperatureMax) / 2
+      
+      if (avgTemp <= -13.5) daysToAdd = 180 // Surgelato
+      else if (avgTemp >= 15) daysToAdd = 365 // Temperatura ambiente
+      else daysToAdd = 7 // Refrigerato
     }
     
     const expiryDate = new Date(today)
@@ -225,50 +311,124 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
       lotNumber: '',
       batchDeliveryDate: '',
       associatedOrderId: '',
-      supplierName: ''
+      supplierName: '',
+      temperatureSuggestion: null,
+      storageSuggestion: null
     })
     setEditingProduct(null)
-    setShowAddForm(false)
   }
 
   // Funzione per trovare il frigorifero più appropriato per categoria
   const getAppropriateRefrigerator = (category) => {
     if (refrigerators.length === 0) return ''
     
-    // Mappa categorie con temperature appropriate
-    const categoryTempRanges = {
-      'latticini': { min: 2, max: 8 }, // 4-5°C
-      'carni': { min: 0, max: 6 }, // 2-4°C
-      'verdure': { min: 4, max: 10 }, // 6-8°C
-      'frutta': { min: 4, max: 10 }, // 6-8°C
-      'pesce': { min: -2, max: 4 }, // 1-3°C
-      'surgelati': { min: -25, max: -10 } // -18°C
+    // Ottieni la temperatura ottimale per la categoria
+    let optimalTemp
+    
+    // Categorie predefinite
+    if (CATEGORIES.find(cat => cat.id === category)) {
+      optimalTemp = getOptimalTemperature(category)
+    }
+    // Categorie personalizzate
+    else if (customCategories.find(cat => cat.id === category)) {
+      const customCat = customCategories.find(cat => cat.id === category)
+      optimalTemp = {
+        min: customCat.temperatureMin,
+        max: customCat.temperatureMax,
+        unit: '°C',
+        type: customCat.temperatureMin <= -13.5 ? 'frozen' : 
+              customCat.temperatureMin >= 15 ? 'ambient' : 'refrigerated'
+      }
+    }
+    else {
+      return refrigerators[0]?.name || ''
     }
     
-    const tempRange = categoryTempRanges[category]
-    if (!tempRange) return refrigerators[0]?.name || ''
+    if (!optimalTemp) return refrigerators[0]?.name || ''
     
-    // Trova il frigorifero con temperatura più vicina al range ideale
-    const appropriateRefrigerator = refrigerators.find(ref => {
-      const setTemp = ref.setTemperature
-      return setTemp >= tempRange.min && setTemp <= tempRange.max
+    // Trova il frigorifero più appropriato basandosi sulla compatibilità di temperatura
+    let bestRefrigerator = null
+    let bestScore = -1
+    
+    refrigerators.forEach(ref => {
+      if (!ref.setTemperatureMin || !ref.setTemperatureMax) return
+      
+      const refTempMin = parseFloat(ref.setTemperatureMin)
+      const refTempMax = parseFloat(ref.setTemperatureMax)
+      
+      if (isNaN(refTempMin) || isNaN(refTempMax)) return
+      
+      let score = 0
+      
+      // Punteggio per compatibilità di temperatura
+      const isCompatible = (
+        (refTempMin <= optimalTemp.max && refTempMax >= optimalTemp.min) ||
+        (optimalTemp.min <= refTempMax && optimalTemp.max >= refTempMin)
+      )
+      
+      if (isCompatible) {
+        score += 100
+        
+        // Bonus per temperatura ottimale
+        const tempDiff = Math.abs((refTempMin + refTempMax) / 2 - (optimalTemp.min + optimalTemp.max) / 2)
+        score += Math.max(0, 50 - tempDiff * 10)
+        
+        // Bonus per categoria dedicata
+        if (ref.dedicatedTo === category) {
+          score += 50
+        }
+        
+        if (score > bestScore) {
+          bestScore = score
+          bestRefrigerator = ref
+        }
+      }
     })
     
-    // Se non trova un frigorifero appropriato, usa il primo disponibile
-    return appropriateRefrigerator?.name || refrigerators[0]?.name || ''
+    // Se non trova un frigorifero compatibile, cerca uno con temperatura simile
+    if (!bestRefrigerator) {
+      refrigerators.forEach(ref => {
+        if (!ref.setTemperatureMin || !ref.setTemperatureMax) return
+        
+        const refTempMin = parseFloat(ref.setTemperatureMin)
+        const refTempMax = parseFloat(ref.setTemperatureMax)
+        
+        if (isNaN(refTempMin) || isNaN(refTempMax)) return
+        
+        const avgRefTemp = (refTempMin + refTempMax) / 2
+        const avgOptimalTemp = (optimalTemp.min + optimalTemp.max) / 2
+        const tempDiff = Math.abs(avgRefTemp - avgOptimalTemp)
+        
+        if (tempDiff < 10) { // Tolleranza di 10°C
+          const score = 50 - tempDiff * 5
+          if (score > bestScore) {
+            bestScore = score
+            bestRefrigerator = ref
+          }
+        }
+      })
+    }
+    
+    return bestRefrigerator?.name || refrigerators[0]?.name || ''
   }
 
   const handleQuickAdd = (defaultProduct) => {
-    const appropriateLocation = getAppropriateRefrigerator(defaultProduct.category)
-    
+    // Pre-compila il form con i dati del prodotto predefinito
     setFormData({
       name: defaultProduct.name,
       category: defaultProduct.category,
       expiryDate: getDefaultExpiryDate(defaultProduct.category),
-      location: appropriateLocation,
-      allergens: [...defaultProduct.allergens],
-      notes: ''
+      location: defaultProduct.defaultLocation || '',
+      allergens: defaultProduct.allergens || [],
+      notes: '',
+      lotNumber: '',
+      batchDeliveryDate: '',
+      associatedOrderId: '',
+      supplierName: '',
+      temperatureSuggestion: null,
+      storageSuggestion: null
     })
+    
     setShowAddForm(true)
   }
 
@@ -276,30 +436,42 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     e.preventDefault()
     if (!formData.name.trim() || !formData.expiryDate || !formData.location.trim()) return
 
+    // Validazione compatibilità categoria-frigorifero - BLOCCANTE per temperature incompatibili
+    const validation = validateTemperatureCompatibility(formData.category, formData.location)
+    
+    if (!validation.isCompatible) {
+      alert(validation.message)
+      return // Blocca il salvataggio
+    }
+
     if (editingProduct) {
+      // Aggiorna prodotto esistente
       const updatedProducts = products.map(product =>
         product.id === editingProduct.id
           ? { ...product, ...formData, updatedAt: new Date().toISOString() }
           : product
       )
       setProducts(updatedProducts)
+      setEditingProduct(null)
     } else {
-      // Aggiunta nuovo prodotto - NESSUN CONTROLLO SCADENZA
+      // Aggiungi nuovo prodotto
       const newProduct = {
         id: `prod_${Date.now()}`,
         ...formData,
         addedBy: currentUser?.id,
         addedByName: currentUser?.name,
-        createdAt: new Date().toISOString(),
-        status: 'active'
+        addedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
       }
       setProducts([...products, newProduct])
     }
 
     resetForm()
+    setShowAddForm(false)
   }
 
   const handleEdit = (product) => {
+    setEditingProduct(product)
     setFormData({
       name: product.name,
       category: product.category,
@@ -310,9 +482,10 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
       lotNumber: product.lotNumber || '',
       batchDeliveryDate: product.batchDeliveryDate || '',
       associatedOrderId: product.associatedOrderId || '',
-      supplierName: product.supplierName || ''
+      supplierName: product.supplierName || '',
+      temperatureSuggestion: null,
+      storageSuggestion: null
     })
-    setEditingProduct(product)
     setShowAddForm(true)
   }
 
@@ -332,29 +505,27 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
 
   // Funzione per reinserire un ingrediente già utilizzato
   const reinsertUsedIngredient = (usedIngredient) => {
+    // Rimuovi l'ingrediente dalla lista degli utilizzati
+    setUsedIngredients(prev => prev.filter(item => item.id !== usedIngredient.id))
+    
     // Pre-compila il form con i dati dell'ingrediente
     setFormData({
       name: usedIngredient.name,
       category: usedIngredient.category,
-      expiryDate: '', // Lascio vuoto per forzare l'inserimento di una nuova data
-      location: usedIngredient.location,
+      expiryDate: getDefaultExpiryDate(usedIngredient.category),
+      location: usedIngredient.location || '',
       allergens: usedIngredient.allergens || [],
       notes: usedIngredient.notes || '',
       lotNumber: usedIngredient.lotNumber || '',
-      batchDeliveryDate: '',
+      batchDeliveryDate: usedIngredient.batchDeliveryDate || '',
       associatedOrderId: usedIngredient.associatedOrderId || '',
-      supplierName: usedIngredient.supplierName || ''
+      supplierName: usedIngredient.supplierName || '',
+      temperatureSuggestion: null,
+      storageSuggestion: null
     })
     
-    // Chiudi la sezione ingredienti utilizzati e apri il form
-    setShowUsedIngredients(false)
     setShowAddForm(true)
-    
-    // Nascondi l'ingrediente dalla lista degli utilizzati
-    setUsedIngredients(prev => prev.filter(ing => ing.id !== usedIngredient.id))
-    
-    // Alert rimosso - form pre-compilato silenziosamente
-    // alert('📝 Form pre-compilato! Aggiungi la nuova data di scadenza per completare il reinserimento.')
+    setShowUsedIngredients(false)
   }
 
   const toggleProductSelection = (productId) => {
@@ -375,6 +546,69 @@ function Inventory({ products = [], setProducts, currentUser, refrigerators = []
     setProducts([])
     setShowDeleteConfirm(false)
   }
+  
+  // Funzione helper per validare la compatibilità temperatura
+  const validateTemperatureCompatibility = (productCategory, refrigeratorName) => {
+    const selectedRefrigerator = refrigerators.find(ref => ref.name === refrigeratorName)
+    if (!selectedRefrigerator || !selectedRefrigerator.dedicatedTo || selectedRefrigerator.dedicatedTo === productCategory) {
+      return { isCompatible: true, message: null }
+    }
+    
+    // Ottieni la temperatura ottimale per la categoria
+    let optimalTempProduct
+    
+    // Categorie predefinite
+    if (CATEGORIES.find(cat => cat.id === productCategory)) {
+      optimalTempProduct = getOptimalTemperature(productCategory)
+    }
+    // Categorie personalizzate
+    else if (customCategories.find(cat => cat.id === productCategory)) {
+      const customCat = customCategories.find(cat => cat.id === productCategory)
+      optimalTempProduct = {
+        min: customCat.temperatureMin,
+        max: customCat.temperatureMax,
+        unit: '°C',
+        type: customCat.temperatureMin <= -13.5 ? 'frozen' : 
+              customCat.temperatureMin >= 15 ? 'ambient' : 'refrigerated'
+      }
+    }
+    else {
+      // Categoria non riconosciuta
+      return { isCompatible: false, message: 'Categoria prodotto non riconosciuta' }
+    }
+    
+    // Verifica se il range di temperatura del frigorifero è compatibile
+    const isCompatible = (
+      (selectedRefrigerator.setTemperatureMin <= optimalTempProduct.max && selectedRefrigerator.setTemperatureMax >= optimalTempProduct.min) ||
+      (optimalTempProduct.min <= selectedRefrigerator.setTemperatureMax && optimalTempProduct.max >= selectedRefrigerator.setTemperatureMin)
+    )
+    
+    if (!isCompatible) {
+      return {
+        isCompatible: false,
+        message: `🚨 ERRORE: Temperatura INCOMPATIBILE!\n\n` +
+                 `Il PDC "${selectedRefrigerator.name}" ha temperatura: ${selectedRefrigerator.setTemperatureMin}-${selectedRefrigerator.setTemperatureMax}°C\n` +
+                 `Il prodotto richiede temperatura: ${optimalTempProduct.min}-${optimalTempProduct.max}°C\n\n` +
+                 `❌ NON puoi inserire questo prodotto in questo PDC!\n\n` +
+                 `Scegli un altro PDC con temperatura compatibile.`
+      }
+    } else if (Math.abs(selectedRefrigerator.setTemperatureMin - optimalTempProduct.min) > 2 || 
+               Math.abs(selectedRefrigerator.setTemperatureMax - optimalTempProduct.max) > 2) {
+      return {
+        isCompatible: true,
+        message: `⚠️ ATTENZIONE: Temperatura non ottimale!\n\n` +
+                 `Il PDC "${selectedRefrigerator.name}" ha temperatura: ${selectedRefrigerator.setTemperatureMin}-${selectedRefrigerator.setTemperatureMax}°C\n` +
+                 `Il prodotto richiede temperatura: ${optimalTempProduct.min}-${optimalTempProduct.max}°C\n\n` +
+                 `La temperatura è compatibile ma potrebbe non essere ideale per la conservazione ottimale.\n\n` +
+                 `Vuoi continuare comunque o preferisci scegliere un altro PDC?`
+      }
+    }
+    
+    return { isCompatible: true, message: null }
+  }
+
+  // Funzioni per gestione nuove categorie
+
   const generateShoppingListPDF = () => {
   const doc = new jsPDF()
   
@@ -556,8 +790,17 @@ const handleOrderSubmit = (e) => {
             </CardTitle>
             <div className="flex gap-2">
               <Button onClick={() => setShowAddForm(!showAddForm)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Aggiungi Prodotto
+                {showAddForm ? (
+                  <>
+                    <X className="h-4 w-4 mr-2" />
+                    Annulla
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Aggiungi Prodotto
+                  </>
+                )}
               </Button>
               <Button 
                 variant="outline" 
@@ -606,8 +849,7 @@ const handleOrderSubmit = (e) => {
             </select>
           </div>
           
-          {/* Nuovi filtri per Lotti e Ordini */}
-          {/* Nuovi filtri per Lotti e Ordini */}
+          {/* Filtri per informazioni aggiuntive */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 p-4 bg-gray-50 rounded">
             <div>
               <Label>🏷️ Filtra per Lotto</Label>
@@ -651,29 +893,159 @@ const handleOrderSubmit = (e) => {
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {/* Informazioni sulla nuova logica di validazione */}
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="text-blue-600 mt-1">
+                  <AlertTriangle className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-medium text-blue-800 mb-2">🆕 Nuova Logica di Validazione</h3>
+                  <p className="text-sm text-blue-700 mb-2">
+                    Ora l'applicazione verifica automaticamente la compatibilità tra categorie di prodotti e punti di conservazione:
+                  </p>
+                  <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                    <li>I frigoriferi possono essere dedicati a categorie specifiche</li>
+                    <li>I prodotti possono essere inseriti solo in frigoriferi compatibili</li>
+                    <li>Viene mostrato un avviso in caso di conflitto</li>
+                    <li>Puoi aggiungere nuove categorie personalizzate</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <Label>Nome Prodotto *</Label>
                   <Input
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      setFormData({...formData, name: newName});
+                      
+                      // Suggerimento automatico temperatura e punto di conservazione se il nome è abbastanza lungo
+                      if (newName.length > 3) {
+                        const suggestions = getConservationSuggestions(newName);
+                        if (suggestions && suggestions.length > 0) {
+                          const bestSuggestion = suggestions[0];
+                          const storageSuggestion = suggestStorageLocation(newName, refrigerators);
+                          
+                          // Mostra il suggerimento
+                          setFormData(prev => ({
+                            ...prev,
+                            name: newName,
+                            temperatureSuggestion: bestSuggestion,
+                            storageSuggestion: storageSuggestion
+                          }));
+                        } else {
+                          setFormData(prev => ({
+                            ...prev,
+                            name: newName,
+                            temperatureSuggestion: null,
+                            storageSuggestion: null
+                          }));
+                        }
+                      }
+                    }}
                     placeholder="Es. Mozzarella di Bufala"
                     required
                   />
+                  {/* Suggerimento temperatura automatico */}
+                  {formData.temperatureSuggestion && (
+                    <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <Thermometer className="h-4 w-4 text-green-600 mt-0.5" />
+                        <div className="text-sm">
+                          <p className="font-medium text-green-800 mb-1">🌡️ Suggerimento Temperatura EU/ASL</p>
+                          <p className="text-green-700 mb-1">
+                            <strong>Temperatura consigliata:</strong> {formData.temperatureSuggestion.temp_celsius}
+                          </p>
+                          <p className="text-green-700 mb-1">
+                            <strong>Categoria:</strong> {formData.temperatureSuggestion.conservation_category === 'refrigerated' ? 'Refrigerato' : 
+                                                         formData.temperatureSuggestion.conservation_category === 'frozen' ? 'Surgelato' : 
+                                                         formData.temperatureSuggestion.conservation_category === 'hot-holding' ? 'Mantenuto Caldo' : 'Temperatura Ambiente'}
+                          </p>
+                          {formData.temperatureSuggestion.notes && (
+                            <p className="text-green-700 mb-2">
+                              <strong>Note:</strong> {formData.temperatureSuggestion.notes}
+                            </p>
+                          )}
+                          
+                          {/* Suggerimento punto di conservazione */}
+                          {formData.storageSuggestion && formData.storageSuggestion.refrigerator && (
+                            <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                              <p className="font-medium text-blue-800 mb-1">📍 Punto di Conservazione Suggerito</p>
+                              <p className="text-blue-700 text-xs">
+                                <strong>Frigorifero:</strong> {formData.storageSuggestion.refrigerator.name}
+                              </p>
+                              <p className="text-blue-700 text-xs">
+                                <strong>Temperatura:</strong> {formData.storageSuggestion.refrigerator.setTemperature}°C
+                              </p>
+                              <p className="text-blue-700 text-xs">
+                                <strong>Punteggio compatibilità:</strong> {Math.round(formData.storageSuggestion.score)}/100
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => setFormData(prev => ({...prev, location: formData.storageSuggestion.refrigerator.name}))}
+                                className="mt-1 px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                              >
+                                ✅ Usa questo punto
+                              </button>
+                            </div>
+                          )}
+                          
+                          <div className="text-xs text-green-600">
+                            <p><strong>Fonte:</strong> {formData.temperatureSuggestion.legal_reference}</p>
+                            <a 
+                              href={formData.temperatureSuggestion.reference_link} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-green-700 underline hover:text-green-800"
+                            >
+                              📖 Leggi la normativa completa
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label>Categoria *</Label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full px-3 py-2 border rounded-md"
-                    required
-                  >
-                    {CATEGORIES.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                  <div className="flex gap-2">
+                    <select
+                      value={formData.category}
+                      onChange={(e) => {
+                        setFormData({...formData, category: e.target.value, location: ''})
+                      }}
+                      className="flex-1 px-3 py-2 border rounded-md"
+                      required
+                    >
+                      <option value="">Seleziona una categoria</option>
+                      <optgroup label="Categorie Predefinite">
+                        {CATEGORIES.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </optgroup>
+                      {customCategories.length > 0 && (
+                        <optgroup label="Categorie Personalizzate">
+                          {customCategories.map(cat => (
+                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowCustomCategoryManager(true)}
+                      className="px-3 py-2"
+                      title="Gestisci categorie personalizzate"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <Label>Data Scadenza *</Label>
@@ -699,17 +1071,44 @@ const handleOrderSubmit = (e) => {
                         : 'Nessun frigorifero registrato - Aggiungi prima un frigorifero'
                       }
                     </option>
-                    {refrigerators.map(refrigerator => (
-                      <option key={refrigerator.id} value={refrigerator.name}>
-                        {refrigerator.name} - {refrigerator.location || 'Posizione non specificata'}
-                      </option>
-                    ))}
+                    {refrigerators.map(refrigerator => {
+                      const isCompatible = !refrigerator.dedicatedTo || refrigerator.dedicatedTo === formData.category;
+                      const compatibilityText = isCompatible ? '✅ Compatibile' : '❌ Categoria non compatibile';
+                      return (
+                        <option 
+                          key={refrigerator.id} 
+                          value={refrigerator.name}
+                          disabled={!isCompatible}
+                        >
+                          {refrigerator.name} - {refrigerator.location || 'Posizione non specificata'} {compatibilityText}
+                        </option>
+                      );
+                    })}
                   </select>
                   {refrigerators.length === 0 && (
                     <p className="text-sm text-orange-600 mt-1">
-                      ⚠️ Devi prima registrare almeno un frigorifero nella sezione "Frigoriferi e Freezer"
+                      ⚠️ Devi prima registrare almeno un punto di conservazione nella sezione "Punti di Conservazione"
                     </p>
                   )}
+                  {formData.category && formData.location && (() => {
+                    const selectedRefrigerator = refrigerators.find(ref => ref.name === formData.location);
+                    if (selectedRefrigerator && selectedRefrigerator.dedicatedTo && selectedRefrigerator.dedicatedTo !== formData.category) {
+                      return (
+                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center gap-2 text-red-700">
+                            <AlertTriangle className="h-4 w-4" />
+                            <div>
+                              <p className="font-medium">⚠️ Conflitto di Categoria</p>
+                              <p className="text-sm">Il frigorifero "{selectedRefrigerator.name}" è dedicato alla categoria "{STORAGE_CATEGORIES.find(cat => cat.id === selectedRefrigerator.dedicatedTo)?.name || selectedRefrigerator.dedicatedTo}"</p>
+                              <p className="text-sm">Il prodotto "{formData.name}" appartiene alla categoria "{CATEGORIES.find(cat => cat.id === formData.category)?.name}"</p>
+                              <p className="text-sm font-medium">Scegli un frigorifero compatibile o modifica la categoria del prodotto.</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
 
@@ -742,9 +1141,14 @@ const handleOrderSubmit = (e) => {
                 />
               </div>
 
-              {/* Sezione Gestione Lotti e Ordini */}
+              {/* Sezione Informazioni aggiuntive */}
               <div className="border-t pt-4 mt-4">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">📦 Gestione Lotti e Ordini</h3>
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">📋 Informazioni aggiuntive</h3>
+                  <p className="text-xs text-gray-600 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-200">
+                    💡 <strong>Perché queste informazioni?</strong> Grazie a questi dettagli sarà più facile tracciare i prodotti e ricevere assistenza dall'IA per la gestione dell'inventario.
+                  </p>
+                </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <Label>Numero Lotto</Label>
@@ -1570,6 +1974,85 @@ const handleOrderSubmit = (e) => {
           </div>
         </div>
       )}
+
+      {/* Riferimenti Normativi EU/ASL */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5 text-blue-600" />
+            📋 Riferimenti Normativi EU/ASL
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-gray-700 space-y-3">
+            <p className="font-medium text-gray-800">Le temperature di conservazione suggerite sono basate sulle seguenti normative europee e italiane:</p>
+            
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-800 mb-2">🇪🇺 Regolamento (CE) 853/2004</h4>
+                <p className="text-blue-700 text-xs mb-1">Allegato III - Requisiti specifici per alimenti di origine animale</p>
+                <p className="text-blue-700 text-xs mb-1">• Carni fresche: ≤7°C (frattaglie ≤3°C)</p>
+                <p className="text-blue-700 text-xs mb-1">• Pollame: ≤4°C</p>
+                <p className="text-blue-700 text-xs mb-1">• Carni macinate: ≤2°C</p>
+                <p className="text-blue-700 text-xs mb-1">• Pesce fresco: vicino al ghiaccio in fusione</p>
+                <p className="text-blue-700 text-xs mb-1">• Latte crudo: ≤6°C</p>
+                <p className="text-blue-700 text-xs mb-1">• Ovoprodotti: ≤4°C</p>
+                <a 
+                  href="https://eur-lex.europa.eu/legal-content/IT/TXT/PDF/?uri=CELEX:32004R0853" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline text-xs hover:text-blue-800"
+                >
+                  📖 Leggi il regolamento completo
+                </a>
+              </div>
+              
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="font-medium text-green-800 mb-2">🇮🇹 DPR 327/80 (Italia)</h4>
+                <p className="text-green-700 text-xs mb-1">Prassi storiche richiamate da ASL</p>
+                <p className="text-green-700 text-xs mb-1">• Alimenti cotti da mantenere caldi: +60–65°C</p>
+                <p className="text-green-700 text-xs mb-1">• Alimenti facilmente deperibili: +4°C</p>
+                <p className="text-green-700 text-xs mb-1">• Uova in guscio: temperatura costante</p>
+                <p className="text-green-700 text-xs mb-1">• Evitare sbalzi termici</p>
+                <p className="text-green-700 text-xs mb-1">• Proteggere da sole e odori</p>
+                <p className="text-green-700 text-xs mb-1">• Rispettare etichette produttore</p>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <h4 className="font-medium text-purple-800 mb-2">❄️ Direttiva 89/108/CEE (Surgelati)</h4>
+              <p className="text-purple-700 text-xs mb-1">• Catena del freddo continua a -18°C</p>
+              <p className="text-purple-700 text-xs mb-1">• Non ricongelare dopo decongelamento</p>
+              <p className="text-purple-700 text-xs mb-1">• Brevi fluttuazioni ammesse nel trasporto</p>
+              <a 
+                href="https://eur-lex.europa.eu/legal-content/IT/ALL/?uri=celex:31989L0108" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-purple-600 underline text-xs hover:text-purple-800"
+              >
+                📖 Leggi la direttiva completa
+              </a>
+            </div>
+            
+            <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <h4 className="font-medium text-orange-800 mb-2">⚠️ Note Importanti</h4>
+              <p className="text-orange-700 text-xs mb-1">• Le temperature suggerite sono indicative e basate su normative EU/ASL</p>
+              <p className="text-orange-700 text-xs mb-1">• Rispettare sempre le indicazioni specifiche del produttore</p>
+              <p className="text-orange-700 text-xs mb-1">• In caso di dubbi, consultare le autorità sanitarie locali (ASL)</p>
+              <p className="text-orange-700 text-xs mb-1">• Mantenere aggiornate le procedure HACCP aziendali</p>
+              <p className="text-orange-700 text-xs mb-1">• Documentare eventuali deviazioni dalle temperature standard</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Custom Category Manager */}
+      <CustomCategoryManager
+        customCategories={customCategories}
+        setCustomCategories={setCustomCategories}
+        showCustomCategoryManager={showCustomCategoryManager}
+        setShowCustomCategoryManager={setShowCustomCategoryManager}
+      />
 
     </div>
   )

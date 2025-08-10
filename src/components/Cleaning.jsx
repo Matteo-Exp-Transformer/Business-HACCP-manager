@@ -1,9 +1,29 @@
+/**
+ * 🚨 ATTENZIONE CRITICA - LEGGERE PRIMA DI MODIFICARE 🚨
+ * 
+ * Questo componente gestisce le PULIZIE E SANIFICAZIONE - FUNZIONALITÀ CRITICA HACCP
+ * 
+ * PRIMA di qualsiasi modifica, leggi OBBLIGATORIAMENTE:
+ * - AGENT_DIRECTIVES.md (nella root del progetto)
+ * - HACCP_APP_DOCUMENTATION.md
+ * 
+ * ⚠️ MODIFICHE NON AUTORIZZATE POSSONO COMPROMETTERE LA SICUREZZA ALIMENTARE
+ * ⚠️ Questo componente gestisce workflow di pulizia e sanificazione critici
+ * ⚠️ Coordina attività di igiene e compliance HACCP
+ * 
+ * @fileoverview Componente Cleaning HACCP - Sistema Critico di Igiene
+ * @requires AGENT_DIRECTIVES.md
+ * @critical Sicurezza alimentare - Pulizie e Sanificazione
+ * @version 1.0
+ */
+
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Trash2, Sparkles, CheckCircle, Clock, Thermometer, AlertTriangle, User } from 'lucide-react'
+import TemperatureInput from './ui/TemperatureInput'
 
 function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, currentUser, refrigerators = [], setRefrigerators }) {
   const [formData, setFormData] = useState({
@@ -14,7 +34,8 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   
   const [tempFormData, setTempFormData] = useState({
     location: '',
-    temperature: ''
+    temperatureMin: '',
+    temperatureMax: ''
   })
 
   const [activeTab, setActiveTab] = useState('daily')
@@ -29,9 +50,12 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
     localStorage.setItem('haccp-temperatures', JSON.stringify(temperatures))
   }, [temperatures])
 
-  const getTemperatureStatus = (temp) => {
-    if (temp < 0 || temp > 8) return 'danger'
-    if (temp >= 6 && temp <= 8) return 'warning'
+  const getTemperatureStatus = (tempMin, tempMax) => {
+    // Calcola la temperatura media per la valutazione
+    const avgTemp = (tempMin + tempMax) / 2
+    
+    if (avgTemp < 0 || avgTemp > 8) return 'danger'
+    if (avgTemp >= 6 && avgTemp <= 8) return 'warning'
     return 'ok'
   }
 
@@ -57,20 +81,32 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   const addTemperature = (e) => {
     e.preventDefault()
     
-    if (!tempFormData.location.trim() || !tempFormData.temperature.trim()) {
+    if (!tempFormData.location.trim() || !tempFormData.temperatureMin.trim() || !tempFormData.temperatureMax.trim()) {
+      alert('Compila tutti i campi obbligatori')
       return
     }
 
-    const tempValue = parseFloat(tempFormData.temperature)
-    if (isNaN(tempValue)) {
+    const tempMinValue = parseFloat(tempFormData.temperatureMin)
+    const tempMaxValue = parseFloat(tempFormData.temperatureMax)
+
+    if (isNaN(tempMinValue) || isNaN(tempMaxValue)) {
+      alert('Inserisci temperature valide')
+      return
+    }
+
+    // Validazione: temperatura minima deve essere inferiore alla massima
+    if (tempMinValue >= tempMaxValue) {
+      alert('La temperatura minima deve essere inferiore alla temperatura massima')
       return
     }
 
     const newTemperature = {
       id: Date.now(),
       location: tempFormData.location.trim(),
-      temperature: tempValue,
-      status: getTemperatureStatus(tempValue),
+      temperatureMin: tempMinValue,
+      temperatureMax: tempMaxValue,
+      temperature: `${tempMinValue}-${tempMaxValue}°C`, // Mantiene compatibilità con sistema esistente
+      status: getTemperatureStatus(tempMinValue, tempMaxValue),
       timestamp: new Date().toISOString(),
       time: new Date().toLocaleString('it-IT'),
       user: currentUser?.id,
@@ -87,17 +123,18 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
       user: currentUser?.id,
       userName: currentUser?.name,
       type: 'temperature_check',
-      description: `Controllo temperatura ${tempFormData.location}: ${tempValue}°C`,
+      description: `Controllo temperatura ${tempFormData.location}: ${tempMinValue}-${tempMaxValue}°C`,
       location: tempFormData.location,
-      value: tempValue,
-      status: getTemperatureStatus(tempValue)
+      valueMin: tempMinValue,
+      valueMax: tempMaxValue,
+      status: getTemperatureStatus(tempMinValue, tempMaxValue)
     }
     
     const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
     actions.push(action)
     localStorage.setItem('haccp-actions', JSON.stringify(actions))
 
-    setTempFormData({ location: '', temperature: '' })
+    setTempFormData({ location: '', temperatureMin: '', temperatureMax: '' })
   }
 
   const toggleTaskCompletion = (id) => {
@@ -483,7 +520,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                 {refrigerators.length === 0 ? (
                   <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm text-yellow-800">
-                      Nessun frigorifero registrato. Aggiungi prima un frigorifero nella sezione "Frigoriferi e Freezer".
+                      Nessun punto di conservazione registrato. Aggiungi prima un punto di conservazione nella sezione "Punti di Conservazione".
                     </p>
                   </div>
                 ) : (
@@ -504,15 +541,17 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                 )}
               </div>
               <div>
-                <Label htmlFor="temp-temperature">Temperatura (°C)</Label>
-                <Input
-                  id="temp-temperature"
-                  type="number"
-                  step="0.1"
-                  value={tempFormData.temperature}
-                  onChange={(e) => setTempFormData({...tempFormData, temperature: e.target.value})}
-                  placeholder="es. 4.2"
-                  required
+                <TemperatureInput
+                  label="Range Temperatura (°C)"
+                  minValue={tempFormData.temperatureMin}
+                  maxValue={tempFormData.temperatureMax}
+                  onMinChange={(e) => setTempFormData({...tempFormData, temperatureMin: e.target.value})}
+                  onMaxChange={(e) => setTempFormData({...tempFormData, temperatureMax: e.target.value})}
+                  required={true}
+                  showValidation={true}
+                  showSuggestions={true}
+                  className="w-full"
+                  id="temp-temperature-range"
                 />
               </div>
             </div>

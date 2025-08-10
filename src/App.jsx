@@ -1,3 +1,22 @@
+/**
+ * 🚨 ATTENZIONE CRITICA - LEGGERE PRIMA DI MODIFICARE 🚨
+ * 
+ * Questo è il COMPONENTE PRINCIPALE dell'applicazione HACCP
+ * 
+ * PRIMA di qualsiasi modifica, leggi OBBLIGATORIAMENTE:
+ * - AGENT_DIRECTIVES.md (nella root del progetto)
+ * - HACCP_APP_DOCUMENTATION.md
+ * 
+ * ⚠️ MODIFICHE NON AUTORIZZATE POSSONO COMPROMETTERE LA SICUREZZA ALIMENTARE
+ * ⚠️ Questo file gestisce tutti i moduli critici HACCP
+ * ⚠️ Coordina workflow di sicurezza alimentare e compliance
+ * 
+ * @fileoverview Componente Principale HACCP - Sistema Critico di Sicurezza
+ * @requires AGENT_DIRECTIVES.md
+ * @critical Sicurezza alimentare - Coordinamento Moduli
+ * @version 1.0
+ */
+
 import React, { useState, useEffect } from 'react'
 import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, QrCode, Bot } from 'lucide-react'
 import Dashboard from './components/Dashboard'
@@ -623,7 +642,7 @@ function App() {
                       className="flex items-center gap-2"
                       asChild
                     >
-                      <span>
+                      <span className="flex items-center gap-2">
                         <Upload className="h-4 w-4" />
                         Importa
                       </span>
@@ -705,25 +724,25 @@ function App() {
               <Download className="h-4 w-4" />
               Esporta
             </Button>
-            <label className="cursor-pointer">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-                asChild
-              >
-                <span>
-                  <Upload className="h-4 w-4" />
-                  Importa
-                </span>
-              </Button>
-              <input
-                type="file"
-                accept=".json"
-                onChange={importData}
-                className="hidden"
-              />
-            </label>
+                              <label className="cursor-pointer">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-2"
+                      asChild
+                    >
+                      <span className="flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        <span>Importa</span>
+                      </span>
+                    </Button>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={importData}
+                      className="hidden"
+                    />
+                  </label>
 
           </div>
         </div>
@@ -801,45 +820,9 @@ function App() {
           {/* Tab Content */}
           <TabsContent value="dashboard">
             <div className="space-y-6">
-              {/* TEST BANNER - To see if this section renders */}
-              <div className="bg-red-100 border-2 border-red-500 p-4 rounded-lg">
-                <h2 className="text-red-800 font-bold text-xl">🚨 TEST BANNER - Mi vedi?</h2>
-                <p className="text-red-700">Se vedi questo banner, la sezione Dashboard funziona!</p>
-                <p className="text-sm text-red-600">Pending changes: {pendingChanges.length}</p>
-                <p className="text-sm text-red-600">Current user: {currentUser?.name || 'None'}</p>
-              </div>
+
               
-              {/* Sync Manager - Always visible at top */}
-              {currentUser ? (
-                <div className="bg-blue-100 border border-blue-300 p-4 rounded-lg">
-                  <h3 className="font-bold text-blue-800 mb-2">🔄 Sync Manager Test</h3>
-                  <p className="text-blue-700 mb-3">User: {currentUser.name}</p>
-                  <p className="text-blue-700 mb-3">Pending: {pendingChanges.length}</p>
-                  
-                  <button 
-                    onClick={() => {
-                      console.log('🧪 Manual test button clicked')
-                      addPendingChange('manual-test', { test: true }, `manual_${Date.now()}`)
-                    }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded mr-2"
-                  >
-                    ➕ Test Aggiungi
-                  </button>
-                  
-                  <button 
-                    onClick={() => {
-                      setPendingChanges([])
-                    }}
-                    className="bg-red-600 text-white px-4 py-2 rounded"
-                  >
-                    🗑️ Reset
-                  </button>
-                </div>
-              ) : (
-                <div className="bg-yellow-100 border border-yellow-300 p-4 rounded-lg">
-                  <p className="text-yellow-800">⚠️ Nessun utente loggato</p>
-                </div>
-              )}
+
               
               {/* Original SyncManager - commented out temporarily */}
               {/* 
@@ -956,8 +939,10 @@ function App() {
                   setTemperatures={setTemperatures}
                   cleaning={cleaning}
                   setCleaning={setCleaning}
-                  productLabels={productLabels}
-                  setProductLabels={setProductLabels}
+                  products={products}
+                  setProducts={setProducts}
+                  refrigerators={refrigerators}
+                  setRefrigerators={setRefrigerators}
                 />
               </div>
             </TabsContent>

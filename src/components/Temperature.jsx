@@ -1,14 +1,35 @@
+/**
+ * 🚨 ATTENZIONE CRITICA - LEGGERE PRIMA DI MODIFICARE 🚨
+ * 
+ * Questo componente gestisce le TEMPERATURE - FUNZIONALITÀ CRITICA HACCP
+ * 
+ * PRIMA di qualsiasi modifica, leggi OBBLIGATORIAMENTE:
+ * - AGENT_DIRECTIVES.md (nella root del progetto)
+ * - HACCP_APP_DOCUMENTATION.md
+ * 
+ * ⚠️ MODIFICHE NON AUTORIZZATE POSSONO COMPROMETTERE LA SICUREZZA ALIMENTARE
+ * ⚠️ Questo componente gestisce allarmi e validazioni temperature critiche
+ * ⚠️ Gestisce workflow di sicurezza alimentare e compliance HACCP
+ * 
+ * @fileoverview Componente Temperature HACCP - Sistema Critico di Sicurezza
+ * @requires AGENT_DIRECTIVES.md
+ * @critical Sicurezza alimentare - Monitoraggio Temperature
+ * @version 2.0 - Aggiornato per gestione range temperature uniforme
+ */
+
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Trash2, Thermometer, AlertTriangle, CheckCircle, User } from 'lucide-react'
+import TemperatureInput from './ui/TemperatureInput'
 
 function Temperature({ temperatures, setTemperatures, currentUser }) {
   const [formData, setFormData] = useState({
     location: '',
-    temperature: ''
+    temperatureMin: '',
+    temperatureMax: ''
   })
 
   // Save temperatures to localStorage whenever they change
@@ -16,29 +37,44 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
     localStorage.setItem('haccp-temperatures', JSON.stringify(temperatures))
   }, [temperatures])
 
-  const getTemperatureStatus = (temp) => {
-    if (temp < 0 || temp > 8) return 'danger'
-    if (temp >= 6 && temp <= 8) return 'warning'
+  const getTemperatureStatus = (tempMin, tempMax) => {
+    // Calcola la temperatura media per la valutazione
+    const avgTemp = (tempMin + tempMax) / 2
+    
+    if (avgTemp < 0 || avgTemp > 8) return 'danger'
+    if (avgTemp >= 6 && avgTemp <= 8) return 'warning'
     return 'ok'
   }
 
   const addTemperature = (e) => {
     e.preventDefault()
     
-    if (!formData.location.trim() || !formData.temperature.trim()) {
+    if (!formData.location.trim() || !formData.temperatureMin.trim() || !formData.temperatureMax.trim()) {
+      alert('Compila tutti i campi obbligatori')
       return
     }
 
-    const tempValue = parseFloat(formData.temperature)
-    if (isNaN(tempValue)) {
+    const tempMin = parseFloat(formData.temperatureMin)
+    const tempMax = parseFloat(formData.temperatureMax)
+    
+    if (isNaN(tempMin) || isNaN(tempMax)) {
+      alert('Inserisci temperature valide')
+      return
+    }
+
+    // Validazione: temperatura minima deve essere inferiore alla massima
+    if (tempMin >= tempMax) {
+      alert('La temperatura minima deve essere inferiore alla temperatura massima')
       return
     }
 
     const newTemperature = {
       id: Date.now(),
       location: formData.location.trim(),
-      temperature: tempValue,
-      status: getTemperatureStatus(tempValue),
+      temperatureMin: tempMin,
+      temperatureMax: tempMax,
+      temperature: `${tempMin}-${tempMax}°C`, // Mantiene compatibilità con sistema esistente
+      status: getTemperatureStatus(tempMin, tempMax),
       timestamp: new Date().toISOString(),
       time: new Date().toLocaleString('it-IT'),
       user: currentUser?.id,
@@ -55,17 +91,23 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
       user: currentUser?.id,
       userName: currentUser?.name,
       type: 'temperature_check',
-      description: `Controllo temperatura ${formData.location}: ${tempValue}°C`,
+      description: `Controllo temperatura ${formData.location}: ${tempMin}-${tempMax}°C`,
       location: formData.location,
-      value: tempValue,
-      status: getTemperatureStatus(tempValue)
+      valueMin: tempMin,
+      valueMax: tempMax,
+      status: getTemperatureStatus(tempMin, tempMax)
     }
     
     const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
     actions.push(action)
     localStorage.setItem('haccp-actions', JSON.stringify(actions))
-
-    setFormData({ location: '', temperature: '' })
+    
+    // Reset del form
+    setFormData({
+      location: '',
+      temperatureMin: '',
+      temperatureMax: ''
+    })
   }
 
   const deleteTemperature = (id) => {
@@ -120,20 +162,22 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
-                  placeholder="es. Frigo Carne, Congelatore A..."
+                  placeholder="es. Frigo Carne, Ambiente..."
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="temperature">Temperatura (°C)</Label>
-                <Input
-                  id="temperature"
-                  type="number"
-                  step="0.1"
-                  value={formData.temperature}
-                  onChange={(e) => setFormData({...formData, temperature: e.target.value})}
-                  placeholder="es. 4.2"
-                  required
+                <TemperatureInput
+                  label="Range Temperatura (°C) *"
+                  minValue={formData.temperatureMin}
+                  maxValue={formData.temperatureMax}
+                  onMinChange={(e) => setFormData({...formData, temperatureMin: e.target.value})}
+                  onMaxChange={(e) => setFormData({...formData, temperatureMax: e.target.value})}
+                  required={true}
+                  showValidation={true}
+                  showSuggestions={true}
+                  className="w-full"
+                  id="temperature-range"
                 />
               </div>
             </div>
@@ -217,7 +261,7 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div>
                           <span className="text-gray-600">Temperatura:</span>
-                          <div className="font-bold text-lg">{temp.temperature}°C</div>
+                          <div className="font-bold text-lg">{temp.temperature}</div>
                         </div>
                         
                         <div>

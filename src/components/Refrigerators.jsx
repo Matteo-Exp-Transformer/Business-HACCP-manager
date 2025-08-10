@@ -4,6 +4,24 @@ import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X } from 'lucide-react'
+import { getConservationSuggestions, getOptimalTemperature } from '../utils/temperatureDatabase'
+import TemperatureInput from './ui/TemperatureInput'
+
+// Categorie predefinite per i punti di conservazione (sincronizzate con Inventory.jsx)
+const STORAGE_CATEGORIES = [
+  { id: 'latticini', name: 'Latticini e Formaggi', description: 'Latte, formaggi freschi e stagionati' },
+  { id: 'carni', name: 'Carni e Salumi', description: 'Carni crude, salumi, pollame' },
+  { id: 'verdure', name: 'Verdure e Ortaggi', description: 'Verdure fresche, ortaggi, insalate' },
+  { id: 'frutta', name: 'Frutta Fresca', description: 'Frutta fresca di stagione' },
+  { id: 'pesce_fresco', name: 'Pesce Fresco', description: 'Pesce fresco, molluschi, crostacei' },
+  { id: 'pesce_surgelato', name: 'Pesce Surgelato', description: 'Pesce e prodotti della pesca surgelati' },
+  { id: 'surgelati', name: 'Surgelati', description: 'Tutti i prodotti surgelati' },
+  { id: 'dispensa', name: 'Dispensa Secca', description: 'Pasta, riso, farina, conserve' },
+  { id: 'condimenti', name: 'Oli e Condimenti', description: 'Oli, aceti, spezie, salse' },
+  { id: 'hot_holding', name: 'Mantenimento Caldo', description: 'Piatti pronti caldi, mantenuti a temperatura' },
+  { id: 'ambiente', name: 'Temperatura Ambiente', description: 'Prodotti conservati a temperatura ambiente (15-25°C)' },
+  { id: 'altro', name: 'Altro', description: 'Altre categorie di prodotti' }
+]
 
 function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerators, setRefrigerators }) {
   const [showAddModal, setShowAddModal] = useState(false)
@@ -11,7 +29,8 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
   const [editingRefrigerator, setEditingRefrigerator] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
-    setTemperature: '',
+    setTemperatureMin: '',
+    setTemperatureMax: '',
     location: '',
     dedicatedTo: '',
     nextMaintenance: ''
@@ -19,8 +38,113 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRefrigerator, setSelectedRefrigerator] = useState(null)
   const [showTemperatureHistory, setShowTemperatureHistory] = useState(false)
+  
+  // Nuovi stati per la gestione delle categorie personalizzate
+  const [customCategories, setCustomCategories] = useState([])
+  const [showAddCategoryForm, setShowAddCategoryForm] = useState(false)
+  const [newCategoryData, setNewCategoryData] = useState({
+    name: '',
+    description: '',
+    temperatureMin: '',
+    temperatureMax: '',
+    notes: ''
+  })
 
-  // Funzione per determinare il tipo di frigorifero in base alla temperatura
+  // Combina le categorie predefinite con quelle personalizzate
+  const allCategories = [...STORAGE_CATEGORIES, ...customCategories]
+
+  // Carica le categorie personalizzate dal localStorage all'avvio
+  useEffect(() => {
+    const savedCategories = localStorage.getItem('customStorageCategories')
+    if (savedCategories) {
+      try {
+        setCustomCategories(JSON.parse(savedCategories))
+      } catch (error) {
+        console.error('Errore nel caricamento delle categorie personalizzate:', error)
+      }
+    }
+  }, [])
+
+  // Salva le categorie personalizzate nel localStorage quando cambiano
+  useEffect(() => {
+    localStorage.setItem('customStorageCategories', JSON.stringify(customCategories))
+  }, [customCategories])
+
+
+
+  // Funzione per aggiungere una nuova categoria personalizzata
+  const addCustomCategory = () => {
+    if (!newCategoryData.name.trim() || !newCategoryData.description.trim()) {
+      alert('Nome e descrizione sono obbligatori')
+      return
+    }
+
+    // Validazione temperature se inserite
+    if (newCategoryData.temperatureMin && newCategoryData.temperatureMax) {
+      const tempMin = parseFloat(newCategoryData.temperatureMin)
+      const tempMax = parseFloat(newCategoryData.temperatureMax)
+      
+      if (isNaN(tempMin) || isNaN(tempMax)) {
+        alert('Inserisci temperature valide')
+        return
+      }
+      
+      if (tempMin >= tempMax) {
+        alert('La temperatura minima deve essere inferiore alla temperatura massima')
+        return
+      }
+    }
+
+    // Genera un ID univoco per la nuova categoria
+    const newCategory = {
+      id: `custom_${Date.now()}`,
+      name: newCategoryData.name.trim(),
+      description: newCategoryData.description.trim(),
+      temperatureMin: newCategoryData.temperatureMin ? parseFloat(newCategoryData.temperatureMin) : null,
+      temperatureMax: newCategoryData.temperatureMax ? parseFloat(newCategoryData.temperatureMax) : null,
+      temperatureRange: newCategoryData.temperatureMin && newCategoryData.temperatureMax ? 
+        `${newCategoryData.temperatureMin}-${newCategoryData.temperatureMax}°C` : '',
+      notes: newCategoryData.notes.trim(),
+      isCustom: true,
+      createdAt: new Date().toISOString()
+    }
+
+    setCustomCategories(prev => {
+      const updated = [...prev, newCategory]
+      console.log('🔍 Categorie aggiornate:', updated)
+      return updated
+    })
+    
+    // Reset del form e chiusura del form espandibile
+    setNewCategoryData({
+      name: '',
+      description: '',
+      temperatureMin: '',
+      temperatureMax: '',
+      notes: ''
+    })
+    setShowAddCategoryForm(false)
+    
+    // Mostra conferma
+    alert(`Categoria "${newCategory.name}" aggiunta con successo!`)
+  }
+
+  // Funzione per eliminare una categoria personalizzata
+  const deleteCustomCategory = (categoryId) => {
+    if (!confirm('Sei sicuro di voler eliminare questa categoria? I frigoriferi che la utilizzano non avranno più una categoria assegnata.')) {
+      return
+    }
+
+    // Rimuovi la categoria dai frigoriferi che la utilizzano
+    setRefrigerators(prev => prev.map(ref => 
+      ref.dedicatedTo === categoryId ? { ...ref, dedicatedTo: '' } : ref
+    ))
+
+    // Rimuovi la categoria
+    setCustomCategories(prev => prev.filter(cat => cat.id !== categoryId))
+  }
+
+  // Funzione per determinare il tipo di punto di conservazione in base alla temperatura
   const getRefrigeratorType = (temperature) => {
     if (temperature < -13.5 && temperature >= -80) {
       return 'Abbattitore'
@@ -28,6 +152,8 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       return 'Freezer'
     } else if ((temperature >= -2.5 && temperature <= 0) || (temperature > 0 && temperature <= 14)) {
       return 'Frigo'
+    } else if (temperature >= 15 && temperature <= 25) {
+      return 'Ambiente'
     } else {
       return 'N/A'
     }
@@ -51,7 +177,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
   const addRefrigerator = (e) => {
     e.preventDefault()
     
-    if (!formData.name.trim() || !formData.setTemperature.trim()) {
+    if (!formData.name.trim() || !formData.setTemperatureMin.trim() || !formData.setTemperatureMax.trim()) {
       return
     }
 
@@ -62,19 +188,46 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     )
     
     if (existingRefrigerator) {
-      alert(`Un frigorifero/freezer con questo nome esiste già: "${existingRefrigerator.name}" (creato il ${new Date(existingRefrigerator.createdAt).toLocaleDateString('it-IT')}). Scegli un nome diverso.`)
+      alert(`Un punto di conservazione con questo nome esiste già: "${existingRefrigerator.name}" (creato il ${new Date(existingRefrigerator.createdAt).toLocaleDateString('it-IT')}). Scegli un nome diverso.`)
       return
     }
 
-    const setTempValue = parseFloat(formData.setTemperature)
-    if (isNaN(setTempValue)) {
+    const setTempMin = parseFloat(formData.setTemperatureMin)
+    const setTempMax = parseFloat(formData.setTemperatureMax)
+    if (isNaN(setTempMin) || isNaN(setTempMax) || setTempMin >= setTempMax) {
+      alert('Inserisci un range di temperatura valido (min < max)')
       return
+    }
+
+    // Validazione temperatura se è stata selezionata una categoria
+    if (formData.dedicatedTo && formData.dedicatedTo !== 'altro') {
+      const optimalTemp = getOptimalTemperature(formData.dedicatedTo)
+      const avgTemp = (setTempMin + setTempMax) / 2
+      const tempDiff = Math.abs(avgTemp - (optimalTemp.min + optimalTemp.max) / 2)
+      
+      // Se la temperatura è troppo diversa da quella ottimale, mostra un warning
+      if (tempDiff > 5) {
+        const categoryName = STORAGE_CATEGORIES.find(cat => cat.id === formData.dedicatedTo)?.name
+        const shouldContinue = confirm(
+          `⚠️ ATTENZIONE: Temperatura non ottimale!\n\n` +
+          `Hai impostato: ${setTempMin}-${setTempMax}°C\n` +
+          `Temperatura ottimale per ${categoryName}: ${optimalTemp.min}-${optimalTemp.max}°C\n\n` +
+          `Questa temperatura potrebbe non essere adatta per la conservazione ottimale degli alimenti di questa categoria.\n\n` +
+          `Vuoi continuare comunque?`
+        )
+        
+        if (!shouldContinue) {
+          return
+        }
+      }
     }
 
     const newRefrigerator = {
       id: Date.now(),
       name: formData.name.trim(),
-      setTemperature: setTempValue,
+      setTemperatureMin: setTempMin,
+      setTemperatureMax: setTempMax,
+      setTemperature: `${setTempMin}-${setTempMax}°C`, // Mantiene compatibilità
       location: formData.location.trim(),
       dedicatedTo: formData.dedicatedTo.trim(),
       nextMaintenance: formData.nextMaintenance.trim(),
@@ -85,7 +238,8 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     setRefrigerators([...refrigerators, newRefrigerator])
     setFormData({
       name: '',
-      setTemperature: '',
+      setTemperatureMin: '',
+      setTemperatureMax: '',
       location: '',
       dedicatedTo: '',
       nextMaintenance: ''
@@ -94,16 +248,35 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
   }
 
   const deleteRefrigerator = (id) => {
-    if (confirm('Sei sicuro di voler eliminare questo frigorifero/freezer?')) {
+    if (confirm('Sei sicuro di voler eliminare questo punto di conservazione?')) {
       setRefrigerators(refrigerators.filter(ref => ref.id !== id))
     }
   }
 
   const editRefrigerator = (refrigerator) => {
     setEditingRefrigerator(refrigerator)
+    
+    // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+    let tempMin = ''
+    let tempMax = ''
+    
+    if (refrigerator.setTemperatureMin && refrigerator.setTemperatureMax) {
+      // Nuovo formato con range
+      tempMin = refrigerator.setTemperatureMin.toString()
+      tempMax = refrigerator.setTemperatureMax.toString()
+    } else if (refrigerator.setTemperature) {
+      // Vecchio formato - estrae il valore singolo
+      const temp = parseFloat(refrigerator.setTemperature)
+      if (!isNaN(temp)) {
+        tempMin = temp.toString()
+        tempMax = temp.toString()
+      }
+    }
+    
     setFormData({
       name: refrigerator.name,
-      setTemperature: refrigerator.setTemperature.toString(),
+      setTemperatureMin: tempMin,
+      setTemperatureMax: tempMax,
       location: refrigerator.location || '',
       dedicatedTo: refrigerator.dedicatedTo || '',
       nextMaintenance: refrigerator.nextMaintenance || ''
@@ -114,7 +287,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
   const updateRefrigerator = (e) => {
     e.preventDefault()
     
-    if (!formData.name.trim() || !formData.setTemperature.trim()) {
+    if (!formData.name.trim() || !formData.setTemperatureMin.trim() || !formData.setTemperatureMax.trim()) {
       return
     }
 
@@ -125,19 +298,63 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     )
     
     if (existingRefrigerator) {
-      alert('Un frigorifero/freezer con questo nome esiste già. Scegli un nome diverso.')
+      alert('Un punto di conservazione con questo nome esiste già. Scegli un nome diverso.')
       return
     }
 
-    const setTempValue = parseFloat(formData.setTemperature)
-    if (isNaN(setTempValue)) {
+    const setTempMin = parseFloat(formData.setTemperatureMin)
+    const setTempMax = parseFloat(formData.setTemperatureMax)
+    if (isNaN(setTempMin) || isNaN(setTempMax) || setTempMin >= setTempMax) {
+      alert('Inserisci un range di temperatura valido (min < max)')
       return
+    }
+
+    // Validazione temperatura se è stata selezionata una categoria
+    if (formData.dedicatedTo && formData.dedicatedTo !== 'altro') {
+      const optimalTemp = getOptimalTemperature(formData.dedicatedTo)
+      
+      // Verifica se il range di temperatura del frigorifero è compatibile con quello ottimale
+      const isCompatible = (
+        (setTempMin <= optimalTemp.max && setTempMax >= optimalTemp.min) ||
+        (optimalTemp.min <= setTempMax && optimalTemp.max >= setTempMin)
+      )
+      
+      if (!isCompatible) {
+        const categoryName = STORAGE_CATEGORIES.find(cat => cat.id === formData.dedicatedTo)?.name
+        const shouldContinue = confirm(
+          `🚨 ERRORE: Temperatura INCOMPATIBILE!\n\n` +
+          `Hai impostato: ${setTempMin}-${setTempMax}°C\n` +
+          `Temperatura ottimale per ${categoryName}: ${optimalTemp.min}-${optimalTemp.max}°C\n\n` +
+          `Questo range di temperatura NON è adatto per la conservazione degli alimenti di questa categoria.\n\n` +
+          `Vuoi continuare comunque? (Non raccomandato)`
+        )
+        
+        if (!shouldContinue) {
+          return
+        }
+      } else if (Math.abs(setTempMin - optimalTemp.min) > 2 || Math.abs(setTempMax - optimalTemp.max) > 2) {
+        // Se è compatibile ma non ottimale, mostra un warning
+        const categoryName = STORAGE_CATEGORIES.find(cat => cat.id === formData.dedicatedTo)?.name
+        const shouldContinue = confirm(
+          `⚠️ ATTENZIONE: Temperatura non ottimale!\n\n` +
+          `Hai impostato: ${setTempMin}-${setTempMax}°C\n` +
+          `Temperatura ottimale per ${categoryName}: ${optimalTemp.min}-${optimalTemp.max}°C\n\n` +
+          `Questa temperatura è compatibile ma potrebbe non essere ideale per la conservazione ottimale.\n\n` +
+          `Vuoi continuare comunque?`
+        )
+        
+        if (!shouldContinue) {
+          return
+        }
+      }
     }
 
     const updatedRefrigerator = {
       ...editingRefrigerator,
       name: formData.name.trim(),
-      setTemperature: setTempValue,
+      setTemperatureMin: setTempMin,
+      setTemperatureMax: setTempMax,
+      setTemperature: `${setTempMin}-${setTempMax}°C`, // Mantiene compatibilità
       location: formData.location.trim(),
       dedicatedTo: formData.dedicatedTo.trim(),
       nextMaintenance: formData.nextMaintenance.trim(),
@@ -151,7 +368,8 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     
     setFormData({
       name: '',
-      setTemperature: '',
+      setTemperatureMin: '',
+      setTemperatureMax: '',
       location: '',
       dedicatedTo: '',
       nextMaintenance: ''
@@ -209,34 +427,109 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
 
   return (
     <div className="space-y-6">
-      {/* Section 1: Frigoriferi e Freezer */}
+      {/* Section 1: Punti di Conservazione */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <Thermometer className="h-5 w-5" />
-              Frigoriferi e Freezer
+              Punti di Conservazione
             </span>
-            <Button 
-              onClick={() => setShowAddModal(true)}
-              className="flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Aggiungi Frigo / Freezer
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-2"
+              >
+                <Plus className="h-4 w-4" />
+                Aggiungi Punto di Conservazione
+              </Button>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Informazioni sulla nuova logica */}
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <div className="text-blue-600 mt-1">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-medium text-blue-800 mb-2">🆕 Nuova Logica di Gestione</h3>
+                <p className="text-sm text-blue-700 mb-2">
+                  Ora puoi assegnare categorie specifiche ai punti di conservazione per garantire la corretta gestione HACCP:
+                </p>
+                <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                  <li>Assegna categorie ai frigoriferi per limitare i tipi di prodotti</li>
+                  <li>Previeni errori di conservazione e contaminazioni</li>
+                  <li>Migliora la tracciabilità e la sicurezza alimentare</li>
+                  <li>L'applicazione valida automaticamente la compatibilità</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          {/* Sezione Categorie Personalizzate */}
+          {customCategories.length > 0 && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="text-green-600">
+                    <Plus className="h-5 w-5" />
+                  </div>
+                  <h3 className="font-medium text-green-800">📋 Categorie Personalizzate</h3>
+                </div>
+                <span className="text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
+                  {customCategories.length} categoria{customCategories.length === 1 ? 'a' : 'e'}
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {customCategories.map(category => (
+                  <div key={category.id} className="p-3 bg-white border border-green-200 rounded-lg">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <h4 className="font-medium text-green-800">{category.name}</h4>
+                        <p className="text-sm text-green-700">{category.description}</p>
+                        {category.temperatureRange && (
+                          <p className="text-xs text-green-600 mt-1">
+                            🌡️ {category.temperatureRange}
+                          </p>
+                        )}
+                        {category.notes && (
+                          <p className="text-xs text-green-600 mt-1">
+                            📝 {category.notes}
+                          </p>
+                        )}
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => deleteCustomCategory(category.id)}
+                        className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                        title="Elimina categoria"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="text-xs text-green-500">
+                      Creata il {new Date(category.createdAt).toLocaleDateString('it-IT')}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
           {refrigerators.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Thermometer className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>Nessun frigorifero/freezer registrato</p>
-              <p className="text-sm">Aggiungi il primo frigorifero per iniziare</p>
+              <p>Nessun punto di conservazione registrato</p>
+              <p className="text-sm">Aggiungi il primo punto di conservazione per iniziare</p>
             </div>
           ) : (
             <div className="space-y-6">
               {/* Categorie frigoriferi */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Frigoriferi (-2.5°C a 0°C e 0°C a +14°C) */}
                 <div className="border rounded-lg p-4 bg-blue-50">
                   <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
@@ -301,6 +594,14 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                                 <span className="font-medium">{refrigerator.setTemperature}°C</span>
                               </div>
                             </div>
+                            {refrigerator.dedicatedTo && (
+                              <div className="mt-2 text-xs">
+                                <span className="text-gray-500">Categoria: </span>
+                                <span className="font-medium text-gray-700">
+                                  {allCategories.find(cat => cat.id === refrigerator.dedicatedTo)?.name || refrigerator.dedicatedTo}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -374,6 +675,14 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                                 <span className="font-medium">{refrigerator.setTemperature}°C</span>
                               </div>
                             </div>
+                            {refrigerator.dedicatedTo && (
+                              <div className="mt-2 text-xs">
+                                <span className="text-gray-500">Categoria: </span>
+                                <span className="font-medium text-gray-700">
+                                  {STORAGE_CATEGORIES.find(cat => cat.id === refrigerator.dedicatedTo)?.name || refrigerator.dedicatedTo}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )
                       })}
@@ -447,11 +756,100 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                                 <span className="font-medium">{refrigerator.setTemperature}°C</span>
                               </div>
                             </div>
+                            {refrigerator.dedicatedTo && (
+                              <div className="mt-2 text-xs">
+                                <span className="text-gray-500">Categoria: </span>
+                                <span className="font-medium text-gray-700">
+                                  {STORAGE_CATEGORIES.find(cat => cat.id === refrigerator.dedicatedTo)?.name || refrigerator.dedicatedTo}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         )
                       })}
                     {filteredRefrigerators.filter(ref => ref.setTemperature < -13.5 && ref.setTemperature >= -80).length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">Nessun abbattitore</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Ambiente (15°C a 25°C) */}
+                <div className="border rounded-lg p-4 bg-green-50">
+                  <h3 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                    <Thermometer className="h-4 w-4" />
+                    Ambiente
+                  </h3>
+                  <div className="space-y-2">
+                    {filteredRefrigerators
+                      .filter(ref => ref.setTemperature >= 15 && ref.setTemperature <= 25)
+                      .map(refrigerator => {
+                        const status = getTemperatureStatus(refrigerator)
+                        return (
+                          <div key={refrigerator.id} className={`p-3 border rounded-lg ${
+                            status === 'green' ? 'bg-green-50 border-green-200' :
+                            status === 'orange' ? 'bg-orange-50 border-orange-200' :
+                            status === 'red' ? 'bg-red-50 border-red-200' :
+                            'bg-white border-gray-200'
+                          }`}>
+                            <div className="flex justify-between items-start mb-2">
+                              <div className="flex items-center gap-2">
+                                {getStatusDot(status)}
+                                <div>
+                                  <h4 className="font-medium text-sm">{refrigerator.name}</h4>
+                                  <p className={`text-xs ${
+                                    status === 'green' ? 'text-green-600' :
+                                    status === 'orange' ? 'text-orange-600' :
+                                    status === 'red' ? 'text-red-600' :
+                                    'text-gray-600'
+                                  }`}>{getStatusText(status)}</p>
+                                </div>
+                              </div>
+                              <div className="flex gap-1">
+                                {currentUser?.role === 'admin' && (
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => editRefrigerator(refrigerator)}
+                                    className="h-6 w-6 p-0"
+                                  >
+                                    <Edit className="h-3 w-3" />
+                                  </Button>
+                                )}
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => deleteRefrigerator(refrigerator.id)}
+                                  className="h-6 w-6 p-0"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              {refrigerator.location && (
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="h-3 w-3 text-gray-500" />
+                                  <span className="text-gray-600">{refrigerator.location}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-1">
+                                <Thermometer className="h-3 w-3 text-gray-500" />
+                                <span className="font-medium">{refrigerator.setTemperature}°C</span>
+                              </div>
+                            </div>
+                            {refrigerator.dedicatedTo && (
+                              <div className="mt-2 text-xs">
+                                <span className="text-gray-500">Categoria: </span>
+                                <span className="text-gray-700">
+                                  {STORAGE_CATEGORIES.find(cat => cat.id === refrigerator.dedicatedTo)?.name || refrigerator.dedicatedTo}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    {filteredRefrigerators.filter(ref => ref.setTemperature >= 15 && ref.setTemperature <= 25).length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-2">Nessun punto ambiente</p>
                     )}
                   </div>
                 </div>
@@ -545,20 +943,20 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
         </CardContent>
       </Card>
 
-      {/* Section 3: Stato Frigoriferi */}
+      {/* Section 3: Stato Punti di Conservazione */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
-            Stato Frigoriferi
+            Stato Punti di Conservazione
           </CardTitle>
         </CardHeader>
         <CardContent>
           {refrigerators.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>Nessun frigorifero registrato</p>
-              <p className="text-sm">Aggiungi frigoriferi per visualizzare lo stato</p>
+              <p>Nessun punto di conservazione registrato</p>
+              <p className="text-sm">Aggiungi punti di conservazione per visualizzare lo stato</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -632,35 +1030,169 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
         </CardContent>
       </Card>
 
+
+
       {/* Add Refrigerator Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h2 className="text-xl font-bold mb-4">Aggiungi Frigorifero/Freezer</h2>
+            <h2 className="text-xl font-bold mb-4">Aggiungi Punto di Conservazione</h2>
+            
+            {/* Informazioni sulla nuova logica */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <div className="text-blue-600 mt-0.5">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm text-blue-700">
+                    <strong>💡 Suggerimento:</strong> Assegna una categoria specifica al punto di conservazione per garantire che solo i prodotti compatibili possano essere inseriti.
+                  </p>
+                </div>
+              </div>
+            </div>
             
             <form onSubmit={addRefrigerator} className="space-y-4">
               <div>
-                <Label htmlFor="name">Nome Frigorifero</Label>
+                <Label htmlFor="name">Nome punto di conservazione</Label>
                 <Input
                   id="name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="es. Frigo Carne, Freezer A..."
+                  placeholder="es. ripiano A, Armadio 2, Freezer A..."
                   required
                 />
               </div>
               
               <div>
-                <Label htmlFor="setTemperature">Temperatura Impostata (°C)</Label>
-                <Input
-                  id="setTemperature"
-                  type="number"
-                  step="0.1"
-                  value={formData.setTemperature}
-                  onChange={(e) => setFormData({...formData, setTemperature: e.target.value})}
-                  placeholder="es. 4.0"
-                  required
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="dedicatedTo">Categoria punto di Conservazione</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddCategoryForm(!showAddCategoryForm)}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Nuova Categoria
+                  </Button>
+                </div>
+                <select
+                  id="dedicatedTo"
+                  value={formData.dedicatedTo}
+                  onChange={(e) => setFormData({...formData, dedicatedTo: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="">Seleziona una categoria</option>
+                  {allCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                {formData.dedicatedTo && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    {allCategories.find(cat => cat.id === formData.dedicatedTo)?.description}
+                  </p>
+                )}
+
+                {/* Form espandibile per nuova categoria */}
+                {showAddCategoryForm && (
+                  <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+                    <h3 className="text-sm font-semibold mb-3 text-gray-700">Crea Nuova Categoria</h3>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="categoryName" className="text-xs">Nome Categoria *</Label>
+                        <Input
+                          id="categoryName"
+                          type="text"
+                          value={newCategoryData.name}
+                          onChange={(e) => setNewCategoryData({...newCategoryData, name: e.target.value})}
+                          placeholder="es. Prodotti Biologici..."
+                          className="text-sm"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="categoryDescription" className="text-xs">Descrizione *</Label>
+                        <Input
+                          id="categoryDescription"
+                          type="text"
+                          value={newCategoryData.description}
+                          onChange={(e) => setNewCategoryData({...newCategoryData, description: e.target.value})}
+                          placeholder="Descrizione della categoria..."
+                          className="text-sm"
+                          required
+                        />
+                      </div>
+                      
+                      <div>
+                        <TemperatureInput
+                          label="Range Temperatura (°C)"
+                          minValue={newCategoryData.temperatureMin}
+                          maxValue={newCategoryData.temperatureMax}
+                          onMinChange={(e) => setNewCategoryData({...newCategoryData, temperatureMin: e.target.value})}
+                          onMaxChange={(e) => setNewCategoryData({...newCategoryData, temperatureMax: e.target.value})}
+                          required={false}
+                          showValidation={true}
+                          showSuggestions={true}
+                          className="w-full"
+                          id="category-temperature-range"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="categoryNotes" className="text-xs">Note</Label>
+                        <Input
+                          id="categoryNotes"
+                          type="text"
+                          value={newCategoryData.notes}
+                          onChange={(e) => setNewCategoryData({...newCategoryData, notes: e.target.value})}
+                          placeholder="Note aggiuntive..."
+                          className="text-sm"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2 pt-2">
+                        <Button 
+                          type="button" 
+                          size="sm" 
+                          className="flex-1 text-xs"
+                          onClick={addCustomCategory}
+                        >
+                          Crea Categoria
+                        </Button>
+                        <Button 
+                          type="button" 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowAddCategoryForm(false)}
+                          className="flex-1 text-xs"
+                        >
+                          Annulla
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <TemperatureInput
+                  label="Range Temperatura (°C) *"
+                  minValue={formData.setTemperatureMin}
+                  maxValue={formData.setTemperatureMax}
+                  onMinChange={(e) => setFormData({...formData, setTemperatureMin: e.target.value})}
+                  onMaxChange={(e) => setFormData({...formData, setTemperatureMax: e.target.value})}
+                  required={true}
+                  showValidation={true}
+                  showSuggestions={true}
+                  className="w-full"
+                  id="set-temperature-range"
                 />
               </div>
               
@@ -672,17 +1204,6 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
                   placeholder="es. Cucina principale, Deposito..."
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="dedicatedTo">Dedicato a</Label>
-                <Input
-                  id="dedicatedTo"
-                  type="text"
-                  value={formData.dedicatedTo}
-                  onChange={(e) => setFormData({...formData, dedicatedTo: e.target.value})}
-                  placeholder="es. Carne, Pesce, Verdure..."
                 />
               </div>
               
@@ -719,31 +1240,81 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       {showEditModal && editingRefrigerator && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h2 className="text-xl font-bold mb-4">Modifica Frigorifero/Freezer</h2>
+            <h2 className="text-xl font-bold mb-4">Modifica Punto di Conservazione</h2>
+            
+            {/* Informazioni sulla nuova logica */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <div className="text-blue-600 mt-0.5">
+                  <AlertTriangle className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-sm text-blue-700">
+                    <strong>💡 Suggerimento:</strong> Assegna una categoria specifica al punto di conservazione per garantire che solo i prodotti compatibili possano essere inseriti.
+                  </p>
+                </div>
+              </div>
+            </div>
             
             <form onSubmit={updateRefrigerator} className="space-y-4">
               <div>
-                <Label htmlFor="edit-name">Nome Frigorifero</Label>
+                <Label htmlFor="edit-name">Nome punto di conservazione</Label>
                 <Input
                   id="edit-name"
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  placeholder="es. Frigo Carne, Freezer A..."
+                  placeholder="es. ripiano A, Armadio 2, Freezer A..."
                   required
                 />
               </div>
               
               <div>
-                <Label htmlFor="edit-setTemperature">Temperatura Impostata (°C)</Label>
-                <Input
-                  id="edit-setTemperature"
-                  type="number"
-                  step="0.1"
-                  value={formData.setTemperature}
-                  onChange={(e) => setFormData({...formData, setTemperature: e.target.value})}
-                  placeholder="es. 4.0"
-                  required
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="edit-dedicatedTo">Categoria punto di Conservazione</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddCategoryForm(!showAddCategoryForm)}
+                    className="flex items-center gap-2 text-xs"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Nuova Categoria
+                  </Button>
+                </div>
+                <select
+                  id="edit-dedicatedTo"
+                  value={formData.dedicatedTo}
+                  onChange={(e) => setFormData({...formData, dedicatedTo: e.target.value})}
+                  className="w-full px-3 py-2 border rounded-md"
+                >
+                  <option value="">Seleziona una categoria</option>
+                  {allCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                {formData.dedicatedTo && (
+                  <p className="text-xs text-gray-600 mt-1">
+                    {allCategories.find(cat => cat.id === formData.dedicatedTo)?.description}
+                  </p>
+                )}
+              </div>
+              
+              <div>
+                <TemperatureInput
+                  label="Range Temperatura (°C) *"
+                  minValue={formData.setTemperatureMin}
+                  maxValue={formData.setTemperatureMax}
+                  onMinChange={(e) => setFormData({...formData, setTemperatureMin: e.target.value})}
+                  onMaxChange={(e) => setFormData({...formData, setTemperatureMax: e.target.value})}
+                  required={true}
+                  showValidation={true}
+                  showSuggestions={true}
+                  className="w-full"
+                  id="edit-set-temperature-range"
                 />
               </div>
               
@@ -755,17 +1326,6 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
                   placeholder="es. Cucina principale, Deposito..."
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="edit-dedicatedTo">Dedicato a</Label>
-                <Input
-                  id="edit-dedicatedTo"
-                  type="text"
-                  value={formData.dedicatedTo}
-                  onChange={(e) => setFormData({...formData, dedicatedTo: e.target.value})}
-                  placeholder="es. Carne, Pesce, Verdure..."
                 />
               </div>
               
@@ -840,8 +1400,13 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   <div className="font-medium">{selectedRefrigerator.location || 'Non specificato'}</div>
                 </div>
                 <div>
-                  <span className="text-gray-600">Dedicato a:</span>
-                  <div className="font-medium">{selectedRefrigerator.dedicatedTo || 'Non specificato'}</div>
+                  <span className="text-gray-600">Categoria punto di Conservazione:</span>
+                  <div className="font-medium">
+                    {selectedRefrigerator.dedicatedTo ? 
+                      allCategories.find(cat => cat.id === selectedRefrigerator.dedicatedTo)?.name || selectedRefrigerator.dedicatedTo
+                      : 'Non specificato'
+                    }
+                  </div>
                 </div>
                 <div>
                   <span className="text-gray-600">Prossima manutenzione:</span>
@@ -920,6 +1485,8 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
           </div>
         </div>
       )}
+
+
     </div>
   )
 }
