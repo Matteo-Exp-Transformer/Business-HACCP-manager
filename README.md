@@ -4,6 +4,14 @@ Business Haccp Manager
 [![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-4.5.14-purple.svg)](https://vitejs.dev/)
 
+## 🚨 ATTENZIONE AGENTI E SVILUPPATORI 🚨
+
+**⚠️ PRIMA di lavorare su questo progetto, leggi OBBLIGATORIAMENTE:**
+- **[`AGENT_DIRECTIVES.md`](./AGENT_DIRECTIVES.md)** - Direttive essenziali per agenti e sviluppatori
+- **[`HACCP_APP_DOCUMENTATION.md`](./HACCP_APP_DOCUMENTATION.md)** - Documentazione completa dell'applicazione
+
+**Questi file contengono informazioni CRITICHE per comprendere il sistema HACCP e evitare errori.**
+
 Sistema digitale completo per la gestione HACCP nei ristoranti e attività alimentari. Progressive Web App (PWA) con funzionalità offline-first.
 
 ## 🚀 Funzionalità Principali

@@ -1,3 +1,22 @@
+/**
+ * 🚨 ATTENZIONE CRITICA - LEGGERE PRIMA DI MODIFICARE 🚨
+ * 
+ * Questo componente gestisce il PERSONALE - FUNZIONALITÀ CRITICA HACCP
+ * 
+ * PRIMA di qualsiasi modifica, leggi OBBLIGATORIAMENTE:
+ * - AGENT_DIRECTIVES.md (nella root del progetto)
+ * - HACCP_APP_DOCUMENTATION.md
+ * 
+ * ⚠️ MODIFICHE NON AUTORIZZATE POSSONO COMPROMETTERE LA SICUREZZA ALIMENTARE
+ * ⚠️ Questo componente gestisce certificazioni e ruoli critici
+ * ⚠️ Coordina formazione e compliance del personale HACCP
+ * 
+ * @fileoverview Componente Staff HACCP - Sistema Critico di Gestione Personale
+ * @requires AGENT_DIRECTIVES.md
+ * @critical Sicurezza alimentare - Gestione Personale e Certificazioni
+ * @version 1.0
+ */
+
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
@@ -748,9 +767,9 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                   
                   <div className="col-span-2 flex items-center">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      member.department === 'Non assegnato' ? 'bg-gray-100 text-gray-600' : 'bg-purple-100 text-purple-700'
+                      member.role === 'Non assegnato' ? 'bg-gray-100 text-gray-600' : 'bg-purple-100 text-purple-700'
                     }`}>
-                      {member.department}
+                      {member.role}
                     </span>
                   </div>
                   

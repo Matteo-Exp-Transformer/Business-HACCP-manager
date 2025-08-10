@@ -35,16 +35,22 @@ function StorageManager({
   // Calcola le statistiche dello storage
   useEffect(() => {
     const calculateStorage = () => {
-      const tempSize = JSON.stringify(temperatures).length
-      const cleaningSize = JSON.stringify(cleaning).length
-      const productsSize = JSON.stringify(products).length
-      const refrigeratorsSize = JSON.stringify(refrigerators).length
+      // Controlli di sicurezza per evitare errori se le props sono undefined
+      const tempArray = temperatures || []
+      const cleaningArray = cleaning || []
+      const productsArray = products || []
+      const refrigeratorsArray = refrigerators || []
+      
+      const tempSize = JSON.stringify(tempArray).length
+      const cleaningSize = JSON.stringify(cleaningArray).length
+      const productsSize = JSON.stringify(productsArray).length
+      const refrigeratorsSize = JSON.stringify(refrigeratorsArray).length
       
       setStorageStats({
-        temperatures: temperatures.length,
-        cleaning: cleaning.length,
-        products: products.length,
-        refrigerators: refrigerators.length,
+        temperatures: tempArray.length,
+        cleaning: cleaningArray.length,
+        products: productsArray.length,
+        refrigerators: refrigeratorsArray.length,
         totalSize: tempSize + cleaningSize + productsSize + refrigeratorsSize
       })
     }
@@ -59,19 +65,23 @@ function StorageManager({
     const thirtyDaysAgo = new Date()
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
+    // Controlli di sicurezza per evitare errori se le props sono undefined
+    const tempArray = temperatures || []
+    const cleaningArray = cleaning || []
+
     // Archivia temperature vecchie
-    const archivedTemps = temperatures.filter(temp => 
+    const archivedTemps = tempArray.filter(temp => 
       new Date(temp.timestamp) < thirtyDaysAgo
     )
-    const activeTemps = temperatures.filter(temp => 
+    const activeTemps = tempArray.filter(temp => 
       new Date(temp.timestamp) >= thirtyDaysAgo
     )
 
     // Archivia attività completate vecchie
-    const archivedCleaning = cleaning.filter(task => 
+    const archivedCleaning = cleaningArray.filter(task => 
       task.completed && new Date(task.createdAt) < thirtyDaysAgo
     )
-    const activeCleaning = cleaning.filter(task => 
+    const activeCleaning = cleaningArray.filter(task => 
       !task.completed || new Date(task.createdAt) >= thirtyDaysAgo
     )
 

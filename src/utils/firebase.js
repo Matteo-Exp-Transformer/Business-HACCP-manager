@@ -1,3 +1,22 @@
+/**
+ * 🚨 ATTENZIONE CRITICA - LEGGERE PRIMA DI MODIFICARE 🚨
+ * 
+ * Questo file gestisce la CONFIGURAZIONE FIREBASE - FUNZIONALITÀ CRITICA HACCP
+ * 
+ * PRIMA di qualsiasi modifica, leggi OBBLIGATORIAMENTE:
+ * - AGENT_DIRECTIVES.md (nella root del progetto)
+ * - HACCP_APP_DOCUMENTATION.md
+ * 
+ * ⚠️ MODIFICHE NON AUTORIZZATE POSSONO COMPROMETTERE LA SICUREZZA ALIMENTARE
+ * ⚠️ Questo file gestisce sincronizzazione cloud e persistenza dati
+ * ⚠️ Coordina multi-tenancy e backup critici per compliance HACCP
+ * 
+ * @fileoverview Configurazione Firebase HACCP - Sistema Critico di Sincronizzazione
+ * @requires AGENT_DIRECTIVES.md
+ * @critical Sicurezza alimentare - Sincronizzazione e Backup
+ * @version 1.0
+ */
+
 // Firebase Configuration for HACCP Manager
 // Cloud-first architecture with offline fallback
 

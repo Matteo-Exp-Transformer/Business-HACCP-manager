@@ -1607,8 +1607,8 @@ function ProductLabels({ productLabels = [], setProductLabels, products = [], cu
                     className="p-2 border border-gray-300 rounded-md"
                   >
                     <option value="">Tutte le scadenze</option>
-                    <option value="fresh">Prodotti freschi (>7 giorni)</option>
-                    <option value="expiring">In scadenza (≤7 giorni)</option>
+                    <option value="fresh">Prodotti freschi (&gt;7 giorni)</option>
+                    <option value="expiring">In scadenza (&le;7 giorni)</option>
                     <option value="expired">Scaduti</option>
                   </select>
                 </div>
