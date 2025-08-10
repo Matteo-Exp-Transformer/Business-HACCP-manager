@@ -14,13 +14,13 @@
  * @fileoverview Componente Input Temperature HACCP - Sistema Standardizzato
  * @requires AGENT_DIRECTIVES.md
  * @critical Sicurezza alimentare - Input Temperature Uniforme
- * @version 1.0
+ * @version 1.1 - Ottimizzato per compattezza UI
  */
 
-import React from 'react'
+import React, { useState } from 'react'
 import { Input } from './Input'
 import { Label } from './Label'
-import { CheckCircle, AlertTriangle } from 'lucide-react'
+import { CheckCircle, AlertTriangle, Info, ChevronDown, ChevronUp } from 'lucide-react'
 
 function TemperatureInput({
   label = "Range Temperatura (°C)",
@@ -33,9 +33,11 @@ function TemperatureInput({
   required = false,
   showValidation = true,
   showSuggestions = true,
+  compactMode = false, // Nuova prop per modalità compatta
   className = "",
   id = "temperature-range"
 }) {
+  const [showDetails, setShowDetails] = useState(false)
   const tempMin = parseFloat(minValue)
   const tempMax = parseFloat(maxValue)
   const hasValidInputs = minValue && maxValue && !isNaN(tempMin) && !isNaN(tempMax)
@@ -55,6 +57,56 @@ function TemperatureInput({
     if (avgTemp < 0 || avgTemp > 8) return 'danger'
     if (avgTemp >= 6 && avgTemp <= 8) return 'warning'
     return 'ok'
+  }
+
+  // Modalità compatta per finestre più piccole
+  if (compactMode) {
+    return (
+      <div className={className}>
+        <Label htmlFor={id}>{label} {required && "*"}</Label>
+        
+        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border">
+          <span className="text-gray-700 font-medium text-xs whitespace-nowrap">da</span>
+          <Input
+            id={`${id}-min`}
+            type="number"
+            step="0.1"
+            value={minValue || ''}
+            onChange={onMinChange}
+            placeholder={minPlaceholder}
+            className="w-20 text-center font-medium text-sm"
+            required={required}
+          />
+          <span className="text-gray-700 font-medium text-xs whitespace-nowrap">°C</span>
+          <span className="text-gray-700 font-medium text-xs whitespace-nowrap">a</span>
+          <Input
+            id={`${id}-max`}
+            type="number"
+            step="0.1"
+            value={maxValue || ''}
+            onChange={onMaxChange}
+            placeholder={maxPlaceholder}
+            className="w-20 text-center font-medium text-sm"
+            required={required}
+          />
+          <span className="text-gray-700 font-medium text-xs whitespace-nowrap">°C</span>
+        </div>
+        
+        {/* Validazione compatta solo se ci sono errori */}
+        {showValidation && hasValidInputs && !hasValidRange && (
+          <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
+            ⚠️ Min &lt; Max
+          </div>
+        )}
+        
+        {/* Suggerimenti compatti inline */}
+        {showSuggestions && (
+          <div className="mt-1 text-xs text-gray-500">
+            💡 Carne (2-4°C), Pesce (0-2°C), Surgelati (-18°C)
+          </div>
+        )}
+      </div>
+    )
   }
 
   return (
@@ -88,35 +140,45 @@ function TemperatureInput({
         <span className="text-gray-700 font-medium text-sm whitespace-nowrap">°C</span>
       </div>
       
-      {/* Validazione e suggerimenti */}
+      {/* Validazione e suggerimenti espandibili */}
       {showValidation && hasValidInputs && (
-        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="h-4 w-4 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800">Informazioni temperatura</span>
-          </div>
-          <div className="text-sm text-blue-700 space-y-2">
-            <div>
-              <span className="font-medium">Tipo di conservazione: </span>
-              <span>{getTemperatureType(tempMin, tempMax)}</span>
-            </div>
-            <div>
-              <span className="font-medium">Stato: </span>
-              <span>
-                {getTemperatureStatus(tempMin, tempMax) === 'ok' ? '✅ Normale' : 
-                 getTemperatureStatus(tempMin, tempMax) === 'warning' ? '⚠️ Attenzione' : '🚨 Critica'}
-              </span>
-            </div>
-            {!hasValidRange && (
-              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
-                ⚠️ La temperatura minima deve essere inferiore alla massima
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setShowDetails(!showDetails)}
+            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors"
+          >
+            {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <Info className="h-4 w-4" />
+            Dettagli temperatura
+          </button>
+          
+          {showDetails && (
+            <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-sm text-blue-700 space-y-2">
+                <div>
+                  <span className="font-medium">Tipo: </span>
+                  <span>{getTemperatureType(tempMin, tempMax)}</span>
+                </div>
+                <div>
+                  <span className="font-medium">Stato: </span>
+                  <span>
+                    {getTemperatureStatus(tempMin, tempMax) === 'ok' ? '✅ Normale' : 
+                     getTemperatureStatus(tempMin, tempMax) === 'warning' ? '⚠️ Attenzione' : '🚨 Critica'}
+                  </span>
+                </div>
+                {!hasValidRange && (
+                  <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
+                    ⚠️ La temperatura minima deve essere inferiore alla massima
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
       
-      {/* Suggerimenti per temperature comuni */}
+      {/* Suggerimenti per temperature comuni - più compatti */}
       {showSuggestions && (
         <div className="mt-2 text-xs text-gray-500">
           💡 Suggerimenti: Carne fresca (2-4°C), Pesce (0-2°C), Surgelati (-18°C), Ambiente (15-25°C)

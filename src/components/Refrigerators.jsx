@@ -1034,12 +1034,12 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
 
       {/* Add Refrigerator Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Aggiungi Punto di Conservazione</h2>
             
             {/* Informazioni sulla nuova logica */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-start gap-2">
                 <div className="text-blue-600 mt-0.5">
                   <AlertTriangle className="h-4 w-4" />
@@ -1052,7 +1052,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
               </div>
             </div>
             
-            <form onSubmit={addRefrigerator} className="space-y-4">
+            <form onSubmit={addRefrigerator} className="space-y-3">
               <div>
                 <Label htmlFor="name">Nome punto di conservazione</Label>
                 <Input
@@ -1100,10 +1100,10 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
 
                 {/* Form espandibile per nuova categoria */}
                 {showAddCategoryForm && (
-                  <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
-                    <h3 className="text-sm font-semibold mb-3 text-gray-700">Crea Nuova Categoria</h3>
+                  <div className="mt-3 p-3 bg-blue-50 border-2 border-blue-300 rounded-lg shadow-sm">
+                    <h3 className="text-sm font-semibold mb-2 text-gray-700">Crea Nuova Categoria</h3>
                     
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <div>
                         <Label htmlFor="categoryName" className="text-xs">Nome Categoria *</Label>
                         <Input
@@ -1140,6 +1140,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                           required={false}
                           showValidation={true}
                           showSuggestions={true}
+                          compactMode={true}
                           className="w-full"
                           id="category-temperature-range"
                         />
@@ -1191,6 +1192,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   required={true}
                   showValidation={true}
                   showSuggestions={true}
+                  compactMode={true}
                   className="w-full"
                   id="set-temperature-range"
                 />
@@ -1238,12 +1240,12 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
 
       {/* Edit Refrigerator Modal */}
       {showEditModal && editingRefrigerator && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Modifica Punto di Conservazione</h2>
             
             {/* Informazioni sulla nuova logica */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-start gap-2">
                 <div className="text-blue-600 mt-0.5">
                   <AlertTriangle className="h-4 w-4" />
@@ -1256,7 +1258,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
               </div>
             </div>
             
-            <form onSubmit={updateRefrigerator} className="space-y-4">
+            <form onSubmit={updateRefrigerator} className="space-y-3">
               <div>
                 <Label htmlFor="edit-name">Nome punto di conservazione</Label>
                 <Input
@@ -1313,6 +1315,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   required={true}
                   showValidation={true}
                   showSuggestions={true}
+                  compactMode={true}
                   className="w-full"
                   id="edit-set-temperature-range"
                 />
