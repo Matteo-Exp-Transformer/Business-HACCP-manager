@@ -61,117 +61,107 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
 
   const addCleaningTask = (e) => {
     e.preventDefault()
-    if (!formData.task.trim() || !formData.assignee.trim() || !formData.frequency) return
-
-    const newTask = {
-      id: Date.now(),
-      task: formData.task.trim(),
-      assignee: formData.assignee.trim(),
-      frequency: formData.frequency,
-      completed: false,
-      date: new Date().toLocaleDateString('it-IT'),
-      createdAt: new Date().toLocaleString('it-IT'),
-      createdBy: currentUser?.name || 'Unknown'
+    
+    if (!formData.task || !formData.assignee || !formData.frequency) {
+      alert('Compila tutti i campi richiesti')
+      return
     }
 
-    setCleaning([...cleaning, newTask])
-    setFormData({ task: '', assignee: '', frequency: '' })
+    const newTask = {
+      id: Date.now().toString(),
+      task: formData.task,
+      assignee: formData.assignee,
+      frequency: formData.frequency,
+      date: new Date().toLocaleDateString('it-IT'),
+      completed: false,
+      completedAt: null,
+      completedBy: null
+    }
+
+    const updatedCleaning = [...(cleaning || []), newTask]
+    setCleaning(updatedCleaning)
+    localStorage.setItem('haccp-cleaning', JSON.stringify(updatedCleaning))
+    
+    setFormData({
+      task: '',
+      assignee: '',
+      frequency: ''
+    })
   }
 
   const addTemperature = (e) => {
     e.preventDefault()
     
-    if (!tempFormData.location.trim() || !tempFormData.temperatureMin.trim() || !tempFormData.temperatureMax.trim()) {
-      alert('Compila tutti i campi obbligatori')
+    if (!tempFormData.temperature || !tempFormData.refrigeratorId) {
+      alert('Compila tutti i campi richiesti')
       return
     }
 
-    const tempMinValue = parseFloat(tempFormData.temperatureMin)
-    const tempMaxValue = parseFloat(tempFormData.temperatureMax)
-
-    if (isNaN(tempMinValue) || isNaN(tempMaxValue)) {
-      alert('Inserisci temperature valide')
-      return
-    }
-
-    // Validazione: temperatura minima deve essere inferiore alla massima
-    if (tempMinValue >= tempMaxValue) {
-      alert('La temperatura minima deve essere inferiore alla temperatura massima')
+    const temp = parseFloat(tempFormData.temperature)
+    const tempMin = parseFloat(tempFormData.temperatureMin)
+    const tempMax = parseFloat(tempFormData.temperatureMax)
+    
+    if (isNaN(temp) || isNaN(tempMin) || isNaN(tempMax)) {
+      alert('Inserisci valori numerici validi per le temperature')
       return
     }
 
     const newTemperature = {
-      id: Date.now(),
-      location: tempFormData.location.trim(),
-      temperatureMin: tempMinValue,
-      temperatureMax: tempMaxValue,
-      temperature: `${tempMinValue}-${tempMaxValue}°C`, // Mantiene compatibilità con sistema esistente
-      status: getTemperatureStatus(tempMinValue, tempMaxValue),
-      timestamp: new Date().toISOString(),
-      time: new Date().toLocaleString('it-IT'),
-      user: currentUser?.id,
-      userName: currentUser?.name,
-      userDepartment: currentUser?.department
+      id: Date.now().toString(),
+      temperature: temp,
+      temperatureMin: tempMin,
+      temperatureMax: tempMax,
+      refrigeratorId: tempFormData.refrigeratorId,
+      refrigeratorName: refrigerators.find(r => r.id === tempFormData.refrigeratorId)?.name || 'Sconosciuto',
+      date: new Date().toLocaleString('it-IT'),
+      status: getTemperatureStatus(tempMin, tempMax),
+      recordedBy: currentUser?.name || 'Unknown'
     }
 
-    setTemperatures([...temperatures, newTemperature])
+    const updatedTemperatures = [...(temperatures || []), newTemperature]
+    setTemperatures(updatedTemperatures)
+    localStorage.setItem('haccp-temperatures', JSON.stringify(updatedTemperatures))
     
-    // Registra l'azione nel log
-    const action = {
-      id: Date.now() + 1,
-      timestamp: new Date().toISOString(),
-      user: currentUser?.id,
-      userName: currentUser?.name,
-      type: 'temperature_check',
-      description: `Controllo temperatura ${tempFormData.location}: ${tempMinValue}-${tempMaxValue}°C`,
-      location: tempFormData.location,
-      valueMin: tempMinValue,
-      valueMax: tempMaxValue,
-      status: getTemperatureStatus(tempMinValue, tempMaxValue)
-    }
-    
-    const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
-    actions.push(action)
-    localStorage.setItem('haccp-actions', JSON.stringify(actions))
-
-    setTempFormData({ location: '', temperatureMin: '', temperatureMax: '' })
+    setTempFormData({
+      temperature: '',
+      refrigeratorId: '',
+      temperatureMin: '',
+      temperatureMax: ''
+    })
   }
 
   const toggleTaskCompletion = (id) => {
-    setCleaning(cleaning.map(task => 
-      task.id === id 
-        ? { 
-            ...task, 
-            completed: !task.completed, 
+    if (!cleaning || !Array.isArray(cleaning)) return
+    
+    const updatedCleaning = cleaning.map(task =>
+      task.id === id
+        ? {
+            ...task,
+            completed: !task.completed,
             completedAt: !task.completed ? new Date().toLocaleString('it-IT') : null,
             completedBy: !task.completed ? currentUser?.name || 'Unknown' : null
           }
         : task
-    ))
+    )
+    
+    setCleaning(updatedCleaning)
+    localStorage.setItem('haccp-cleaning', JSON.stringify(updatedCleaning))
   }
 
   const deleteTask = (id) => {
-    if (confirm('Sei sicuro di voler eliminare questa attività?')) {
-      setCleaning(cleaning.filter(task => task.id !== id))
-    }
+    if (!cleaning || !Array.isArray(cleaning)) return
+    
+    const updatedCleaning = cleaning.filter(task => task.id !== id)
+    setCleaning(updatedCleaning)
+    localStorage.setItem('haccp-cleaning', JSON.stringify(updatedCleaning))
   }
 
   const deleteTemperature = (id) => {
-    setTemperatures(temperatures.filter(temp => temp.id !== id))
+    if (!temperatures || !Array.isArray(temperatures)) return
     
-    // Registra l'azione di cancellazione
-    const action = {
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      user: currentUser?.id,
-      userName: currentUser?.name,
-      type: 'temperature_delete',
-      description: `Eliminato controllo temperatura`
-    }
-    
-    const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
-    actions.push(action)
-    localStorage.setItem('haccp-actions', JSON.stringify(actions))
+    const updatedTemperatures = temperatures.filter(temp => temp.id !== id)
+    setTemperatures(updatedTemperatures)
+    localStorage.setItem('haccp-temperatures', JSON.stringify(updatedTemperatures))
   }
 
   const getStatusBadge = (status) => {
@@ -193,11 +183,13 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   }
 
   // Separate completed and pending tasks
-  const pendingTasks = cleaning.filter(task => !task.completed)
-  const completedTasks = cleaning.filter(task => task.completed)
+  const pendingTasks = (cleaning || []).filter(task => !task.completed)
+  const completedTasks = (cleaning || []).filter(task => task.completed)
   
   // Calcola mansioni mancate in base alla frequenza
   const getMissedTasks = () => {
+    if (!cleaning || !Array.isArray(cleaning)) return []
+    
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     
@@ -252,6 +244,14 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
 
   // Check if user is admin
   const isAdmin = currentUser?.role === 'admin'
+
+  const clearCompletedTasks = () => {
+    if (!cleaning || !Array.isArray(cleaning)) return
+    
+    const updatedCleaning = cleaning.filter(task => !task.completed)
+    setCleaning(updatedCleaning)
+    localStorage.setItem('haccp-cleaning', JSON.stringify(updatedCleaning))
+  }
 
   return (
     <div className="space-y-6">
