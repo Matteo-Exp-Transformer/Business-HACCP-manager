@@ -26,6 +26,10 @@ import { Trash2, Sparkles, CheckCircle, Clock, Thermometer, AlertTriangle, User 
 import TemperatureInput from './ui/TemperatureInput'
 
 function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, currentUser, refrigerators = [], setRefrigerators }) {
+  // Controlli di sicurezza per le props
+  const safeCleaning = cleaning || []
+  const safeTemperatures = temperatures || []
+  
   const [formData, setFormData] = useState({
     task: '',
     assignee: '',
@@ -42,13 +46,13 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
 
   // Persist to localStorage whenever cleaning data changes
   useEffect(() => {
-    localStorage.setItem('haccp-cleaning', JSON.stringify(cleaning))
-  }, [cleaning])
+    localStorage.setItem('haccp-cleaning', JSON.stringify(safeCleaning))
+  }, [safeCleaning])
 
   // Save temperatures to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('haccp-temperatures', JSON.stringify(temperatures))
-  }, [temperatures])
+    localStorage.setItem('haccp-temperatures', JSON.stringify(safeTemperatures))
+  }, [safeTemperatures])
 
   const getTemperatureStatus = (tempMin, tempMax) => {
     // Calcola la temperatura media per la valutazione
@@ -78,7 +82,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
       completedBy: null
     }
 
-    const updatedCleaning = [...(cleaning || []), newTask]
+    const updatedCleaning = [...safeCleaning, newTask]
     setCleaning(updatedCleaning)
     localStorage.setItem('haccp-cleaning', JSON.stringify(updatedCleaning))
     
@@ -118,7 +122,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
       recordedBy: currentUser?.name || 'Unknown'
     }
 
-    const updatedTemperatures = [...(temperatures || []), newTemperature]
+    const updatedTemperatures = [...safeTemperatures, newTemperature]
     setTemperatures(updatedTemperatures)
     localStorage.setItem('haccp-temperatures', JSON.stringify(updatedTemperatures))
     
@@ -131,9 +135,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   }
 
   const toggleTaskCompletion = (id) => {
-    if (!cleaning || !Array.isArray(cleaning)) return
-    
-    const updatedCleaning = cleaning.map(task =>
+    const updatedCleaning = safeCleaning.map(task =>
       task.id === id
         ? {
             ...task,
@@ -149,17 +151,13 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   }
 
   const deleteTask = (id) => {
-    if (!cleaning || !Array.isArray(cleaning)) return
-    
-    const updatedCleaning = cleaning.filter(task => task.id !== id)
+    const updatedCleaning = safeCleaning.filter(task => task.id !== id)
     setCleaning(updatedCleaning)
     localStorage.setItem('haccp-cleaning', JSON.stringify(updatedCleaning))
   }
 
   const deleteTemperature = (id) => {
-    if (!temperatures || !Array.isArray(temperatures)) return
-    
-    const updatedTemperatures = temperatures.filter(temp => temp.id !== id)
+    const updatedTemperatures = safeTemperatures.filter(temp => temp.id !== id)
     setTemperatures(updatedTemperatures)
     localStorage.setItem('haccp-temperatures', JSON.stringify(updatedTemperatures))
   }
@@ -183,17 +181,15 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   }
 
   // Separate completed and pending tasks
-  const pendingTasks = (cleaning || []).filter(task => !task.completed)
-  const completedTasks = (cleaning || []).filter(task => task.completed)
+  const pendingTasks = safeCleaning.filter(task => !task.completed)
+  const completedTasks = safeCleaning.filter(task => task.completed)
   
   // Calcola mansioni mancate in base alla frequenza
   const getMissedTasks = () => {
-    if (!cleaning || !Array.isArray(cleaning)) return []
-    
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     
-    return cleaning.filter(task => {
+    return safeCleaning.filter(task => {
       if (task.completed) return false // Escludi quelle completate
       
       // Calcola quando il task doveva essere completato in base alla frequenza
@@ -237,18 +233,16 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   const missedTasks = getMissedTasks()
 
   // Filter tasks by frequency
-  const dailyTasks = pendingTasks.filter(task => task.frequency === 'daily')
-  const weeklyTasks = pendingTasks.filter(task => task.frequency === 'weekly')
-  const monthlyTasks = pendingTasks.filter(task => task.frequency === 'monthly')
-  const yearlyTasks = pendingTasks.filter(task => task.frequency === 'yearly')
+  const dailyTasks = (pendingTasks || []).filter(task => task.frequency === 'daily')
+  const weeklyTasks = (pendingTasks || []).filter(task => task.frequency === 'weekly')
+  const monthlyTasks = (pendingTasks || []).filter(task => task.frequency === 'monthly')
+  const yearlyTasks = (pendingTasks || []).filter(task => task.frequency === 'yearly')
 
   // Check if user is admin
   const isAdmin = currentUser?.role === 'admin'
 
   const clearCompletedTasks = () => {
-    if (!cleaning || !Array.isArray(cleaning)) return
-    
-    const updatedCleaning = cleaning.filter(task => !task.completed)
+    const updatedCleaning = safeCleaning.filter(task => !task.completed)
     setCleaning(updatedCleaning)
     localStorage.setItem('haccp-cleaning', JSON.stringify(updatedCleaning))
   }
@@ -456,7 +450,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                   size="sm"
                   onClick={() => {
                     if (confirm('Sei sicuro di voler eliminare tutte le attività completate? Questa azione non può essere annullata.')) {
-                      setCleaning(cleaning.filter(task => !task.completed))
+                      setCleaning(safeCleaning.filter(task => !task.completed))
                     }
                   }}
                   className="text-red-600 hover:text-red-700"
@@ -622,7 +616,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
               <div>
                 <p className="text-sm text-gray-600">Temperature da Monitorare</p>
                 <p className="text-2xl font-bold text-red-600">
-                  {temperatures.filter(t => t.status === 'danger' || t.status === 'warning').length}
+                  {safeTemperatures.filter(t => t.status === 'danger' || t.status === 'warning').length}
                 </p>
               </div>
               <AlertTriangle className="h-10 w-10 md:h-8 md:w-8 text-red-500" />
