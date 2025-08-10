@@ -238,9 +238,9 @@ function App() {
     
     // Notifiche per Staff (nuovi membri)
     const lastCheckStaff = lastCheck.staff || '2000-01-01T00:00:00.000Z'
-    const newStaffMembers = staff.filter(member => 
-      new Date(member.addedDate || member.createdAt || '2000-01-01') > new Date(lastCheckStaff)
-    ).length
+    const newStaffMembers = staff && Array.isArray(staff) ? staff.filter(member => 
+      member && new Date(member.addedDate || member.createdAt || '2000-01-01') > new Date(lastCheckStaff)
+    ).length : 0
     notifications.staff += newStaffMembers
     
     // Notifiche per Temperature (nuove registrazioni critiche)

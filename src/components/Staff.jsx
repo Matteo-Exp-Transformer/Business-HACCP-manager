@@ -102,10 +102,10 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
 
   // Sync department member counts with actual staff
   useEffect(() => {
-    if (departments.length > 0 && staff.length >= 0) {
+    if (departments.length > 0 && staff && Array.isArray(staff) && staff.length >= 0) {
       const updatedDepartments = departments.map(dept => ({
         ...dept,
-        members: staff.filter(member => member.role === dept.name).map(member => member.id)
+        members: staff.filter(member => member && member.role === dept.name).map(member => member.id)
       }))
       
       // Only update if there's actually a change to avoid infinite loops
@@ -124,9 +124,9 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     if (!formData.name.trim() || !formData.role.trim()) return
 
     // Controllo per nomi duplicati
-    const nameExists = staff.some(member => 
-      member.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
-    )
+    const nameExists = staff && Array.isArray(staff) ? staff.some(member => 
+      member && member.name && member.name.toLowerCase().trim() === formData.name.toLowerCase().trim()
+    ) : false
     
     if (nameExists) {
       alert('⚠️ Attenzione: Esiste già un utente con questo nome.\nScegli un nome diverso per procedere con la registrazione.')
@@ -149,13 +149,13 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
 
   const deleteStaffMember = (id) => {
     if (confirm('Sei sicuro di voler rimuovere questo membro del personale?')) {
-      setStaff(staff.filter(member => member.id !== id))
+      setStaff(staff && Array.isArray(staff) ? staff.filter(member => member && member.id !== id) : [])
     }
   }
 
   // Get unique roles for statistics
-  const roles = [...new Set(staff.map(member => member.role))]
-  const certifiedStaff = staff.filter(member => member.certification.trim() !== '')
+  const roles = staff && Array.isArray(staff) ? [...new Set(staff.map(member => member?.role).filter(Boolean))] : []
+  const certifiedStaff = staff && Array.isArray(staff) ? staff.filter(member => member && member.certification && member.certification.trim() !== '') : []
 
   const roleColors = {
     'Amministratori': 'bg-red-100 text-red-800',
@@ -388,7 +388,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     if (!memberToReassign) return
     
     // Remove permanently
-    setStaff(staff.filter(member => member.id !== memberToReassign.id))
+          setStaff(staff && Array.isArray(staff) ? staff.filter(member => member && member.id !== memberToReassign.id) : [])
     
     // Close all modals and reset
     setShowReassignModal(false)
@@ -513,7 +513,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                         <p className="text-sm text-gray-600 mb-2">{dept.description}</p>
                       )}
                       <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>👥 {staff.filter(member => member.role === dept.name).length} membri</span>
+                        <span>👥 {staff && Array.isArray(staff) ? staff.filter(member => member && member.role === dept.name).length : 0} membri</span>
                         <span>📋 {dept.assignedTasks?.length || 0} compiti</span>
                       </div>
                     </div>
@@ -630,7 +630,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
             .slice()
             .sort((a, b) => a.name.localeCompare(b.name))
             .map(department => {
-              const roleMembers = staff.filter(member => member.role === department.name)
+              const roleMembers = staff && Array.isArray(staff) ? staff.filter(member => member && member.role === department.name) : []
               const count = roleMembers.length
               const isExpanded = expandedRoles[department.name]
               
