@@ -67,7 +67,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
     e.preventDefault()
     
     if (!formData.task || !formData.assignee || !formData.frequency) {
-      alert('Compila tutti i campi richiesti')
+      alert('⚠️ Attenzione: Per aggiungere una nuova attività devi compilare tutti i campi richiesti.\n\n• Attività: descrivi cosa fare\n• Assegnato a: chi è responsabile\n• Frequenza: ogni quanto ripetere')
       return
     }
 
@@ -86,37 +86,46 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
     setCleaning(updatedCleaning)
     localStorage.setItem('haccp-cleaning', JSON.stringify(updatedCleaning))
     
+    // Reset form con feedback positivo
     setFormData({
       task: '',
       assignee: '',
       frequency: ''
     })
+    
+    // Mostra conferma positiva
+    alert('✅ Perfetto! La nuova attività è stata aggiunta con successo.\n\nOra apparirà nella lista delle attività da svolgere e potrai monitorarne il progresso.')
   }
 
   const addTemperature = (e) => {
     e.preventDefault()
     
-    if (!tempFormData.temperature || !tempFormData.refrigeratorId) {
-      alert('Compila tutti i campi richiesti')
+    if (!tempFormData.location || !tempFormData.temperatureMin || !tempFormData.temperatureMax) {
+      alert('🌡️ Attenzione: Per registrare una temperatura devi compilare tutti i campi richiesti.\n\n• Frigorifero/Freezer: seleziona il punto di conservazione\n• Range Temperatura: inserisci i valori minimo e massimo')
       return
     }
 
-    const temp = parseFloat(tempFormData.temperature)
     const tempMin = parseFloat(tempFormData.temperatureMin)
     const tempMax = parseFloat(tempFormData.temperatureMax)
     
-    if (isNaN(temp) || isNaN(tempMin) || isNaN(tempMax)) {
-      alert('Inserisci valori numerici validi per le temperature')
+    if (isNaN(tempMin) || isNaN(tempMax)) {
+      alert('❌ Errore: I valori delle temperature devono essere numeri validi.\n\nEsempi corretti:\n• Min: -2, Max: 4\n• Min: 0, Max: 8\n• Min: -18, Max: -15')
+      return
+    }
+
+    // Validazione logica delle temperature
+    if (tempMin > tempMax) {
+      alert('⚠️ Attenzione: La temperatura minima non può essere maggiore della massima.\n\nCorreggi i valori:\n• Min: deve essere inferiore o uguale a Max\n• Esempio: Min: -2, Max: 4')
       return
     }
 
     const newTemperature = {
       id: Date.now().toString(),
-      temperature: temp,
+      temperature: (tempMin + tempMax) / 2, // Temperatura media
       temperatureMin: tempMin,
       temperatureMax: tempMax,
-      refrigeratorId: tempFormData.refrigeratorId,
-      refrigeratorName: refrigerators.find(r => r.id === tempFormData.refrigeratorId)?.name || 'Sconosciuto',
+      refrigeratorId: tempFormData.location,
+      refrigeratorName: tempFormData.location,
       date: new Date().toLocaleString('it-IT'),
       status: getTemperatureStatus(tempMin, tempMax),
       recordedBy: currentUser?.name || 'Unknown'
@@ -126,12 +135,21 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
     setTemperatures(updatedTemperatures)
     localStorage.setItem('haccp-temperatures', JSON.stringify(updatedTemperatures))
     
+    // Reset form con feedback positivo
     setTempFormData({
-      temperature: '',
-      refrigeratorId: '',
+      location: '',
       temperatureMin: '',
       temperatureMax: ''
     })
+    
+    // Mostra conferma positiva con informazioni utili
+    const statusMessage = newTemperature.status === 'ok' 
+      ? '✅ Temperatura nella norma' 
+      : newTemperature.status === 'warning' 
+        ? '⚠️ Attenzione: temperatura al limite' 
+        : '🚨 Attenzione: temperatura critica'
+    
+    alert(`🌡️ Temperatura registrata con successo!\n\n${statusMessage}\n\n• Frigorifero: ${newTemperature.refrigeratorName}\n• Range: ${tempMin}°C - ${tempMax}°C\n• Data: ${newTemperature.date}`)
   }
 
   const toggleTaskCompletion = (id) => {
@@ -256,12 +274,20 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
             <Sparkles className="h-5 w-5" />
             Nuove Attività / Mansioni
           </CardTitle>
+          <p className="text-sm text-gray-600">
+            📋 Crea nuove attività di pulizia e sanificazione per mantenere la conformità HACCP
+          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={addCleaningTask} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="task">Attività</Label>
+                <Label htmlFor="task" className="flex items-center gap-2">
+                  Attività
+                  <span className="text-xs text-gray-500" title="Descrivi in modo chiaro e specifico l'attività da svolgere">
+                    ℹ️
+                  </span>
+                </Label>
                 <Input
                   id="task"
                   placeholder="Es: Pulizia frigorifero, Sanificazione piano lavoro..."
@@ -269,9 +295,17 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                   onChange={(e) => setFormData({...formData, task: e.target.value})}
                   required
                 />
+                <p className="text-xs text-gray-500">
+                  💡 Suggerimento: Sii specifico (es. "Pulizia mensile frigorifero principale" invece di solo "Pulizia")
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="assignee">Assegnato a</Label>
+                <Label htmlFor="assignee" className="flex items-center gap-2">
+                  Assegnato a
+                  <span className="text-xs text-gray-500" title="Specifica chi è responsabile dell'esecuzione dell'attività">
+                    ℹ️
+                  </span>
+                </Label>
                 <Input
                   id="assignee"
                   placeholder="Nome del responsabile"
@@ -279,9 +313,17 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                   onChange={(e) => setFormData({...formData, assignee: e.target.value})}
                   required
                 />
+                <p className="text-xs text-gray-500">
+                  👤 Esempio: "Mario Rossi" o "Team Cucina"
+                </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="frequency">Frequenza</Label>
+                <Label htmlFor="frequency" className="flex items-center gap-2">
+                  Frequenza
+                  <span className="text-xs text-gray-500" title="Seleziona con quale frequenza l'attività deve essere ripetuta">
+                    ℹ️
+                  </span>
+                </Label>
                 <select
                   id="frequency"
                   value={formData.frequency}
@@ -290,18 +332,21 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                   required
                 >
                   <option value="">-- Seleziona Frequenza --</option>
-                  <option value="daily">Giornalmente</option>
-                  <option value="weekly">Settimanalmente</option>
-                  <option value="monthly">Mensilmente</option>
-                  <option value="yearly">Annualmente</option>
+                  <option value="daily">🔄 Giornalmente</option>
+                  <option value="weekly">📅 Settimanalmente</option>
+                  <option value="monthly">📆 Mensilmente</option>
+                  <option value="yearly">📅 Annualmente</option>
                   {currentUser?.role === 'admin' && (
-                    <option value="all">Tutti</option>
+                    <option value="all">🔧 Tutti</option>
                   )}
                 </select>
+                <p className="text-xs text-gray-500">
+                  📊 La frequenza aiuta a pianificare e monitorare le attività
+                </p>
               </div>
             </div>
             <Button type="submit" className="w-full">
-              Aggiungi Attività
+              ✨ Aggiungi Attività
             </Button>
           </form>
         </CardContent>
@@ -310,14 +355,23 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
       {/* Pending Tasks with Tabs */}
       <Card>
         <CardHeader>
-          <CardTitle>Attività da Svolgere ({pendingTasks.length})</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-yellow-600" />
+            Attività da Svolgere ({pendingTasks.length})
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            📋 Organizza e monitora le attività di pulizia e sanificazione per mantenere la conformità HACCP
+          </p>
         </CardHeader>
         <CardContent>
           {pendingTasks.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <CheckCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-              <p>Nessuna attività da svolgere</p>
-              <p className="text-sm">Tutte le attività sono completate!</p>
+              <p className="text-lg font-medium">🎉 Nessuna attività da svolgere</p>
+              <p className="text-sm">Tutte le attività sono completate! Ottimo lavoro nel mantenere la conformità HACCP.</p>
+              <p className="text-xs text-gray-400 mt-2">
+                💡 Suggerimento: Crea nuove attività per mantenere sempre aggiornato il piano di pulizia
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -331,7 +385,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Giornaliere ({dailyTasks.length})
+                  🔄 Giornaliere ({dailyTasks.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('weekly')}
@@ -341,7 +395,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Settimanali ({weeklyTasks.length})
+                  📅 Settimanali ({weeklyTasks.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('monthly')}
@@ -351,7 +405,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Mensili ({monthlyTasks.length})
+                  📆 Mensili ({monthlyTasks.length})
                 </button>
                 <button
                   onClick={() => setActiveTab('yearly')}
@@ -361,7 +415,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
                 >
-                  Annuali ({yearlyTasks.length})
+                  📅 Annuali ({yearlyTasks.length})
                 </button>
                 {currentUser?.role === 'admin' && (
                   <button
@@ -372,10 +426,13 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                         : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    Tutti ({pendingTasks.length})
+                    🔧 Tutti ({pendingTasks.length})
                   </button>
                 )}
               </div>
+              <p className="text-xs text-gray-500">
+                💡 Clicca sulle schede per filtrare le attività per frequenza e organizzare meglio il lavoro
+              </p>
 
               {/* Tasks List */}
               <div className="space-y-3">
@@ -443,13 +500,16 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              Attività Completate ({completedTasks.length})
+              <span className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+                Attività Completate ({completedTasks.length})
+              </span>
               {isAdmin && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (confirm('Sei sicuro di voler eliminare tutte le attività completate? Questa azione non può essere annullata.')) {
+                    if (confirm('⚠️ Attenzione: Sei sicuro di voler eliminare tutte le attività completate?\n\nQuesta azione non può essere annullata e rimuoverà la cronologia delle attività svolte.')) {
                       setCleaning(safeCleaning.filter(task => !task.completed))
                     }
                   }}
@@ -460,6 +520,9 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                 </Button>
               )}
             </CardTitle>
+            <p className="text-sm text-gray-600">
+              📊 Storico delle attività completate - Mantiene traccia di tutto il lavoro svolto per la conformità HACCP
+            </p>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -468,10 +531,10 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                   <div className="flex-1">
                     <h3 className="font-medium line-through">{task.task}</h3>
                     <p className="text-sm text-gray-600">
-                      Assegnato a: {task.assignee} • Completata: {task.completedAt}
+                      👤 Assegnato a: {task.assignee} • 📅 Completata: {task.completedAt}
                       {task.completedBy && (
                         <span className="ml-2 text-blue-600">
-                          • Completata da: {task.completedBy}
+                          • ✅ Completata da: {task.completedBy}
                         </span>
                       )}
                     </p>
@@ -500,9 +563,12 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
             <Thermometer className="h-5 w-5" />
             Registra Temperatura Frigorifero/Freezer
           </CardTitle>
+          <p className="text-sm text-gray-600">
+            🌡️ Monitora le temperature per garantire la sicurezza alimentare e la conformità HACCP
+          </p>
           {currentUser && (
             <p className="text-sm text-gray-600">
-              Registrando come: <span className="font-medium">{currentUser.name}</span> ({currentUser.department})
+              📝 Registrando come: <span className="font-medium">{currentUser.name}</span> ({currentUser.department})
             </p>
           )}
         </CardHeader>
@@ -510,11 +576,19 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
           <form onSubmit={addTemperature} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="temp-location">Frigorifero / Freezer</Label>
+                <Label htmlFor="temp-location" className="flex items-center gap-2">
+                  Frigorifero / Freezer
+                  <span className="text-xs text-gray-500" title="Seleziona il punto di conservazione dove hai misurato la temperatura">
+                    ℹ️
+                  </span>
+                </Label>
                 {refrigerators.length === 0 ? (
                   <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm text-yellow-800">
-                      Nessun punto di conservazione registrato. Aggiungi prima un punto di conservazione nella sezione "Punti di Conservazione".
+                      ⚠️ Nessun punto di conservazione registrato. 
+                    </p>
+                    <p className="text-sm text-yellow-700 mt-1">
+                      💡 Per registrare le temperature, devi prima aggiungere un frigorifero o freezer nella sezione "Punti di Conservazione".
                     </p>
                   </div>
                 ) : (
@@ -533,8 +607,17 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                     ))}
                   </select>
                 )}
+                <p className="text-xs text-gray-500 mt-1">
+                  🏷️ Seleziona il frigorifero o freezer dove hai misurato la temperatura
+                </p>
               </div>
               <div>
+                <Label htmlFor="temp-temperature-range" className="flex items-center gap-2">
+                  Range Temperatura (°C)
+                  <span className="text-xs text-gray-500" title="Inserisci la temperatura minima e massima rilevata nel punto di conservazione">
+                    ℹ️
+                  </span>
+                </Label>
                 <TemperatureInput
                   label="Range Temperatura (°C)"
                   minValue={tempFormData.temperatureMin}
@@ -547,6 +630,11 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                   className="w-full"
                   id="temp-temperature-range"
                 />
+                <div className="text-xs text-gray-500 mt-2 space-y-1">
+                  <p>🌡️ <strong>Frigoriferi:</strong> 0°C - 8°C (ideale: 2°C - 6°C)</p>
+                  <p>❄️ <strong>Freezer:</strong> -18°C o inferiore</p>
+                  <p>💡 <strong>Suggerimento:</strong> Misura in diversi punti per avere un range completo</p>
+                </div>
               </div>
             </div>
             <Button 
@@ -555,7 +643,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
               disabled={refrigerators.length === 0}
             >
               <Thermometer className="mr-2 h-4 w-4" />
-              Registra Temperatura
+              📊 Registra Temperatura
             </Button>
           </form>
         </CardContent>
@@ -569,6 +657,9 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
               <div>
                 <p className="text-sm text-gray-600">Mansioni da Svolgere</p>
                 <p className="text-2xl font-bold text-yellow-600">{pendingTasks.length}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {pendingTasks.length === 0 ? '🎉 Tutto sotto controllo!' : '⏰ Richiedono la tua attenzione'}
+                </p>
               </div>
               <Clock className="h-10 w-10 md:h-8 md:w-8 text-yellow-500" />
             </div>
@@ -581,6 +672,9 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
               <div>
                 <p className="text-sm text-gray-600">Mansioni Completate</p>
                 <p className="text-2xl font-bold text-green-600">{completedTasks.length}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {completedTasks.length === 0 ? '🚀 Inizia con la prima attività!' : '✅ Buon lavoro!'}
+                </p>
               </div>
               <CheckCircle className="h-10 w-10 md:h-8 md:w-8 text-green-500" />
             </div>
@@ -598,6 +692,12 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                   {missedTasks.length}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">
+                  {missedTasks.length === 0 
+                    ? '🎯 Perfetto! Nessuna scadenza mancata' 
+                    : '⚠️ Richiedono attenzione immediata'
+                  }
+                </p>
+                <p className="text-xs text-gray-400 mt-1">
                   (ultimi 7 giorni)
                 </p>
               </div>
@@ -617,6 +717,12 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                 <p className="text-sm text-gray-600">Temperature da Monitorare</p>
                 <p className="text-2xl font-bold text-red-600">
                   {safeTemperatures.filter(t => t.status === 'danger' || t.status === 'warning').length}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {safeTemperatures.filter(t => t.status === 'danger' || t.status === 'warning').length === 0 
+                    ? '🌡️ Temperature nella norma' 
+                    : '🚨 Richiedono verifica'
+                  }
                 </p>
               </div>
               <AlertTriangle className="h-10 w-10 md:h-8 md:w-8 text-red-500" />
