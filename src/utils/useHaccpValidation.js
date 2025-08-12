@@ -104,6 +104,77 @@ export const useHaccpValidation = (data = {}, currentSection = null) => {
   }
 
   /**
+   * Verifica la conformità HACCP di un punto di conservazione
+   * @param {Object} conservationPoint - Punto di conservazione da validare
+   * @returns {Object} Risultato della validazione
+   */
+  const validateConservationPoint = (conservationPoint) => {
+    if (!conservationPoint) {
+      return { isValid: false, errors: ['Punto di conservazione non definito'] }
+    }
+
+    const errors = []
+    
+    // Validazione temperatura
+    if (conservationPoint.setTemperatureMin && conservationPoint.setTemperatureMax) {
+      const tempMin = parseFloat(conservationPoint.setTemperatureMin)
+      const tempMax = parseFloat(conservationPoint.setTemperatureMax)
+      
+      if (isNaN(tempMin) || isNaN(tempMax)) {
+        errors.push('Temperature non valide')
+      } else if (tempMin >= tempMax) {
+        errors.push('Temperatura minima deve essere inferiore alla massima')
+      }
+    }
+
+    // Validazione categorie consentite
+    if (conservationPoint.allowedCategories && conservationPoint.allowedCategories.length === 0) {
+      errors.push('Almeno una categoria deve essere selezionata')
+    }
+
+    // Validazione nome e posizione
+    if (!conservationPoint.name?.trim()) {
+      errors.push('Nome del punto di conservazione obbligatorio')
+    }
+    if (!conservationPoint.location?.trim()) {
+      errors.push('Posizione del punto di conservazione obbligatoria')
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings: errors.length === 0 ? ['Punto di conservazione conforme agli standard HACCP'] : []
+    }
+  }
+
+  /**
+   * Ottiene messaggi educativi per l'utente
+   * @param {string} context - Contesto per cui ottenere i messaggi
+   * @returns {Array} Array di messaggi educativi
+   */
+  const getEducationalMessages = (context) => {
+    const messages = {
+      temperature: [
+        'Le temperature devono essere registrate almeno 2 volte al giorno',
+        'In caso di deviazione, isolare immediatamente i prodotti',
+        'Verificare sempre la temperatura prima di riutilizzare un punto di conservazione'
+      ],
+      conservation: [
+        'Ogni punto di conservazione deve avere categorie specifiche definite',
+        'Le categorie devono corrispondere alle temperature impostate',
+        'Monitorare regolarmente la conformità HACCP'
+      ],
+      onboarding: [
+        'Completa tutti i passaggi dell\'onboarding per accedere alle funzionalità HACCP',
+        'Configura correttamente i punti di conservazione',
+        'Verifica che tutti i prerequisiti siano soddisfatti'
+      ]
+    }
+
+    return messages[context] || messages.onboarding
+  }
+
+  /**
    * Ottiene i messaggi di validazione per un campo specifico
    * @param {string} type - Tipo di validazione (temperature, expiry, etc.)
    * @param {*} value - Valore da validare
@@ -192,6 +263,10 @@ export const useHaccpValidation = (data = {}, currentSection = null) => {
     validateField,
     getEducationalMessage,
     getSuggestions,
+    
+    // NUOVE FUNZIONI HACCP
+    validateConservationPoint,
+    getEducationalMessages,
     
     // Dati grezzi per debug
     onboardingStatus,

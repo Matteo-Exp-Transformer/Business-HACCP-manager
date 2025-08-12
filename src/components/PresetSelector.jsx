@@ -12,7 +12,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
-import { Pizza, Coffee, CheckCircle, Info, Thermometer, Building2, Users } from 'lucide-react'
+import { Pizza, Coffee, CheckCircle, Info, Thermometer, Building2, Users, HelpCircle, X } from 'lucide-react'
 
 const PRESETS = {
   pizzeria: {
@@ -26,6 +26,19 @@ const PRESETS = {
       'Dipartimenti: Cucina, Pizzeria',
       'Ruoli: Pizzaiolo, Cameriere, Cassiere'
     ],
+    // Categorie specifiche per ogni punto di conservazione
+    conservationPoints: {
+      'Frigo A': {
+        temperature: { min: 2, max: 4 },
+        allowedCategories: ['verdure', 'carni', 'formaggi', 'latticini'],
+        description: 'Conservazione prodotti freschi per pizza e cucina'
+      },
+      'Frigo B': {
+        temperature: { min: -19, max: -16 },
+        allowedCategories: ['surgelati', 'pesce_surgelato', 'gelati'],
+        description: 'Conservazione surgelati e gelati'
+      }
+    },
     whyMatters: 'Configura automaticamente i punti di conservazione e la struttura organizzativa specifica per pizzerie, garantendo la conformità HACCP fin dall\'inizio.'
   },
   bar: {
@@ -39,6 +52,19 @@ const PRESETS = {
       'Dipartimenti: Banco Bar, Magazzino',
       'Ruoli: Cameriere, Cassiere'
     ],
+    // Categorie specifiche per ogni punto di conservazione
+    conservationPoints: {
+      'Frigo A': {
+        temperature: { min: 2, max: 4 },
+        allowedCategories: ['latticini', 'formaggi', 'verdure'],
+        description: 'Conservazione latticini e ingredienti freschi per cocktail'
+      },
+      'Frigo B': {
+        temperature: { min: -19, max: -16 },
+        allowedCategories: ['surgelati', 'gelati', 'frutta_congelata'],
+        description: 'Conservazione gelati e frutta congelata per cocktail'
+      }
+    },
     whyMatters: 'Configura automaticamente i punti di conservazione e la struttura organizzativa specifica per bar, garantendo la conformità HACCP fin dall\'inizio.'
   }
 }
@@ -115,6 +141,19 @@ function PresetSelector({ onPresetSelect, currentPreset = null }) {
                     </div>
                   </div>
                   
+                  {/* Overlay informativo con simbolo "?" */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowInfo(true)
+                    }}
+                  >
+                    <HelpCircle className="h-4 w-4" />
+                  </Button>
+                  
                   {isApplied && (
                     <div className="flex items-center gap-1 text-green-600">
                       <CheckCircle className="h-5 w-5" />
@@ -174,6 +213,79 @@ function PresetSelector({ onPresetSelect, currentPreset = null }) {
           </div>
         </div>
       </div>
+
+      {/* Overlay informativo dettagliato */}
+      {showInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">
+                  Dettagli Preset HACCP
+                </h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowInfo(false)}
+                  className="h-8 w-8 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-6">
+                {Object.entries(PRESETS).map(([key, preset]) => (
+                  <div key={key} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-3">
+                      <preset.icon className={`h-6 w-6 ${preset.iconColor}`} />
+                      <h4 className="text-lg font-semibold text-gray-900">{preset.name}</h4>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div>
+                        <h5 className="font-medium text-gray-900 mb-2">Punti di Conservazione:</h5>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {Object.entries(preset.conservationPoints || {}).map(([pointName, config]) => (
+                            <div key={pointName} className="bg-gray-50 p-3 rounded border">
+                              <h6 className="font-medium text-gray-800 mb-1">{pointName}</h6>
+                              <p className="text-sm text-gray-600 mb-2">
+                                Temperatura: {config.temperature.min}°C a {config.temperature.max}°C
+                              </p>
+                              <p className="text-sm text-gray-600 mb-2">
+                                Categorie consentite: {config.allowedCategories.join(', ')}
+                              </p>
+                              <p className="text-xs text-gray-500">{config.description}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h5 className="font-medium text-gray-900 mb-2">Caratteristiche:</h5>
+                        <ul className="space-y-1">
+                          {preset.features.map((feature, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
+                              <span className="text-sm text-gray-700">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <p className="text-sm text-gray-600 text-center">
+                  Questi preset sono progettati secondo gli standard HACCP per garantire 
+                  la sicurezza alimentare e la conformità normativa.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="flex justify-center gap-4">

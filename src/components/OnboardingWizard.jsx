@@ -264,12 +264,12 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
     </div>
   )
 
-  // Step frigoriferi
+  // Step punti di conservazione (ex frigoriferi)
   const renderRefrigeratorsStep = () => (
     <div className="space-y-6">
       <div className="text-center">
         <h3 className="text-xl font-semibold mb-2">Configura i punti di conservazione</h3>
-        <p className="text-gray-600">I frigoriferi e freezer sono punti di controllo critici per la sicurezza alimentare</p>
+        <p className="text-gray-600">I punti di conservazione (frigoriferi e freezer) sono punti di controllo critici per la sicurezza alimentare HACCP</p>
       </div>
       
       <div className="space-y-4">
@@ -332,14 +332,15 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
         </Button>
       </div>
 
-      <div className="bg-orange-50 p-4 rounded-lg">
+      <div className="bg-blue-50 p-4 rounded-lg">
         <div className="flex items-start gap-3">
-          <Info className="h-5 w-5 text-orange-600 mt-0.5" />
+          <Info className="h-5 w-5 text-blue-600 mt-0.5" />
           <div>
-            <p className="font-medium text-orange-900">Perché è importante?</p>
-            <p className="text-sm text-orange-800 mt-1">
-              I punti di conservazione controllano le temperature critiche per la catena del freddo. 
-              Ogni temperatura registrata contribuisce alla sicurezza alimentare e alla compliance HACCP.
+            <p className="font-medium text-blue-900">Standard HACCP per punti di conservazione</p>
+            <p className="text-sm text-blue-800 mt-1">
+              <strong>Frigo A (Freschi):</strong> 2-4°C per latticini, salumi, verdure<br/>
+              <strong>Frigo B (Surgelati):</strong> -19 a -16°C per surgelati e gelati<br/>
+              <strong>Banco ingredienti:</strong> 0-8°C per ingredienti freschi
             </p>
           </div>
         </div>

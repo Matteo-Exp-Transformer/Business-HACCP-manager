@@ -68,15 +68,17 @@ export const useCan = (user) => {
   }), [userPermissions])
 
   // Verifica accesso alle sezioni
+  // Note: i nomi delle sezioni sono mantenuti per compatibilità interna
+  // UI mostra: Home, Punti di Conservazione, Attività e Mansioni, Inventario, Gestione Etichette, IA Assistant, Impostazioni e Dati, Gestione
   const canAccess = useMemo(() => ({
-    dashboard: () => canAccessSection(user, 'dashboard'),
-    refrigerators: () => canAccessSection(user, 'refrigerators'),
-    cleaning: () => canAccessSection(user, 'cleaning'),
-    inventory: () => canAccessSection(user, 'inventory'),
-    labels: () => canAccessSection(user, 'labels'),
-    aiAssistant: () => canAccessSection(user, 'ai-assistant'),
-    dataSettings: () => canAccessSection(user, 'data-settings'),
-    staff: () => canAccessSection(user, 'staff')
+    dashboard: () => canAccessSection(user, 'dashboard'),           // ex Dashboard → Home
+    refrigerators: () => canAccessSection(user, 'refrigerators'),   // ex Frigoriferi → Punti di Conservazione
+    cleaning: () => canAccessSection(user, 'cleaning'),             // ex Cleaning → Attività e Mansioni
+    inventory: () => canAccessSection(user, 'inventory'),           // ex Inventory → Inventario
+    labels: () => canAccessSection(user, 'labels'),                 // ex ProductLabels → Gestione Etichette
+    aiAssistant: () => canAccessSection(user, 'ai-assistant'),      // ex AIAssistant → IA Assistant
+    dataSettings: () => canAccessSection(user, 'data-settings'),    // ex DataSettings → Impostazioni e Dati
+    staff: () => canAccessSection(user, 'staff')                    // ex Staff → Gestione
   }), [user])
 
   // Ottiene messaggi educativi sui permessi

@@ -62,19 +62,32 @@ export const HACCP_GUIDE = {
       frequency: "Almeno 2 volte al giorno (inizio e metà turno)",
       criticalPoints: [
         {
-          name: "Frigorifero positivo",
-          range: { min: 0, max: 4, unit: "°C" },
-          description: "Latticini, formaggi freschi, salumi"
+          name: "Frigo A - Conservazione Freschi",
+          range: { min: 2, max: 4, unit: "°C" },
+          description: "Latticini, formaggi freschi, salumi, verdure fresche",
+          preset: "pizzeria-bar",
+          allowedCategories: ["latticini", "carni", "verdure", "formaggi"]
+        },
+        {
+          name: "Frigo B - Surgelati",
+          range: { min: -19, max: -16, unit: "°C" },
+          description: "Surgelati, pesce congelato, gelati",
+          preset: "pizzeria-bar",
+          allowedCategories: ["surgelati", "pesce_surgelato", "gelati"]
         },
         {
           name: "Banco ingredienti",
           range: { min: 0, max: 8, unit: "°C" },
-          description: "Pomodoro, mozzarella, verdure fresche"
+          description: "Pomodoro, mozzarella, verdure fresche",
+          preset: "pizzeria",
+          allowedCategories: ["verdure", "latticini", "condimenti"]
         },
         {
           name: "Freezer",
           range: { min: -18, max: null, unit: "°C" },
-          description: "Surgelati e prodotti congelati"
+          description: "Tutti i prodotti surgelati",
+          preset: "universal",
+          allowedCategories: ["surgelati", "pesce_surgelato", "gelati", "verdure_congelate"]
         }
       ],
       correctiveActions: [
@@ -84,6 +97,38 @@ export const HACCP_GUIDE = {
         "Verificare temperatura prima di riutilizzare"
       ],
       whyMatters: "Le temperature fuori range favoriscono la proliferazione batterica e compromettono la sicurezza alimentare"
+    },
+
+    // NUOVA SEZIONE: PUNTI DI CONSERVAZIONE HACCP
+    conservationPoints: {
+      id: "conservation-points-haccp",
+      title: "Punti di Conservazione HACCP",
+      description: "Gestione strutturata dei punti di conservazione secondo standard HACCP",
+      criticalPoints: [
+        {
+          name: "Frigo A - Conservazione Freschi",
+          temperature: { min: 2, max: 4, unit: "°C" },
+          categories: ["latticini", "carni", "verdure", "formaggi"],
+          monitoring: "2 volte al giorno",
+          correctiveAction: "Isolare prodotti e verificare temperatura",
+          preset: "pizzeria-bar"
+        },
+        {
+          name: "Frigo B - Surgelati",
+          temperature: { min: -19, max: -16, unit: "°C" },
+          categories: ["surgelati", "pesce_surgelato", "gelati"],
+          monitoring: "1 volta al giorno",
+          correctiveAction: "Verificare funzionamento e isolare prodotti",
+          preset: "pizzeria-bar"
+        }
+      ],
+      validationRules: [
+        "Temperatura deve essere sempre nel range specificato",
+        "Categorie prodotti devono corrispondere al punto di conservazione",
+        "Monitoraggio frequente e registrazione obbligatoria",
+        "Azioni correttive immediate in caso di deviazione"
+      ],
+      whyMatters: "La corretta gestione dei punti di conservazione è fondamentale per la sicurezza alimentare e la conformità HACCP"
     },
 
     cleaning: {

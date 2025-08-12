@@ -66,41 +66,43 @@ export const ONBOARDING_RULES = {
 }
 
 // Regole di accesso alle sezioni
+// Note: i nomi delle sezioni sono mantenuti per compatibilità interna
+// UI mostra: Home, Punti di Conservazione, Attività e Mansioni, Inventario, Gestione Etichette, IA Assistant, Impostazioni e Dati, Gestione
 export const SECTION_ACCESS_RULES = {
   // Sezioni sempre accessibili
-  always: ['dashboard', 'data-settings'],
+  always: ['dashboard', 'data-settings'],  // ex Dashboard → Home, ex DataSettings → Impostazioni e Dati
   
   // Sezioni con prerequisiti
   conditional: {
-    'refrigerators': {
+    'refrigerators': {  // ex Frigoriferi → Punti di Conservazione
       requires: ['departments'],
       minCounts: { departments: 1 },
       message: 'Prima di gestire i punti di conservazione, devi creare almeno un dipartimento per organizzare la struttura operativa.',
       whyMatters: 'I dipartimenti organizzano le responsabilità e facilitano la gestione HACCP'
     },
     
-    'cleaning': {
+    'cleaning': {  // ex Cleaning → Attività e Mansioni
       requires: ['departments', 'refrigerators'],
       minCounts: { departments: 1, refrigerators: 1 },
       message: 'Per gestire le attività e mansioni, devi prima creare dipartimenti e punti di conservazione.',
       whyMatters: 'Le attività HACCP devono essere associate a strutture organizzative e punti di controllo'
     },
     
-    'inventory': {
+    'inventory': {  // ex Inventory → Inventario
       requires: ['departments', 'refrigerators'],
       minCounts: { departments: 1, refrigerators: 1 },
       message: 'Per gestire l\'inventario, devi prima creare dipartimenti e punti di conservazione.',
       whyMatters: 'I prodotti devono essere assegnati a dipartimenti e conservati in punti controllati'
     },
     
-    'labels': {
+    'labels': {  // ex ProductLabels → Gestione Etichette
       requires: ['departments', 'refrigerators'],
       minCounts: { departments: 1, refrigerators: 1 },
       message: 'Per creare etichette prodotti, devi prima organizzare dipartimenti e punti di conservazione.',
       whyMatters: 'Le etichette devono tracciare la conservazione e la responsabilità HACCP'
     },
     
-    'staff': {
+    'staff': {  // ex Staff → Gestione
       requires: ['departments'],
       minCounts: { departments: 1 },
       message: 'Per gestire il personale, devi prima creare i dipartimenti di riferimento.',

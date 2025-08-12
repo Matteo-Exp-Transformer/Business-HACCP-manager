@@ -135,15 +135,17 @@ export const canAccessSection = (user, section) => {
   const permissions = getUserPermissions(user)
   
   // Mappatura sezioni → capacità richieste
+  // Note: i nomi delle sezioni sono mantenuti per compatibilità interna
+  // UI mostra: Home, Punti di Conservazione, Attività e Mansioni, Inventario, Gestione Etichette, IA Assistant, Impostazioni e Dati, Gestione
   const sectionRequirements = {
-    'dashboard': [CAPABILITIES.VIEW_ORG],
-    'refrigerators': [CAPABILITIES.USE_CORE],
-    'cleaning': [CAPABILITIES.USE_CORE],
-    'inventory': [CAPABILITIES.USE_CORE],
-    'labels': [CAPABILITIES.USE_CORE],
-    'ai-assistant': [CAPABILITIES.USE_CORE],
-    'data-settings': [CAPABILITIES.MANAGE_APP],
-    'staff': [CAPABILITIES.MANAGE_APP]
+    'dashboard': [CAPABILITIES.VIEW_ORG],           // ex Dashboard → Home
+    'refrigerators': [CAPABILITIES.USE_CORE],       // ex Frigoriferi → Punti di Conservazione
+    'cleaning': [CAPABILITIES.USE_CORE],            // ex Cleaning → Attività e Mansioni
+    'inventory': [CAPABILITIES.USE_CORE],           // ex Inventory → Inventario
+    'labels': [CAPABILITIES.USE_CORE],              // ex ProductLabels → Gestione Etichette
+    'ai-assistant': [CAPABILITIES.USE_CORE],        // ex AIAssistant → IA Assistant
+    'data-settings': [CAPABILITIES.MANAGE_APP],     // ex DataSettings → Impostazioni e Dati
+    'staff': [CAPABILITIES.MANAGE_APP]              // ex Staff → Gestione
   }
   
   const requiredCapabilities = sectionRequirements[section] || []
