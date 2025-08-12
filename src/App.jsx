@@ -14,7 +14,16 @@
  * @fileoverview Componente Principale HACCP - Sistema Critico di Sicurezza
  * @requires AGENT_DIRECTIVES.md
  * @critical Sicurezza alimentare - Coordinamento Moduli
- * @version 1.0
+ * @version 1.1 - Aggiornato con nomenclatura HACCP italiana
+ * 
+ * STRUTTURA SEZIONI (Glossario HACCP):
+ * - Home (ex Dashboard) – overview e statistiche
+ * - Punti di Conservazione (ex Frigoriferi) – gestione frigoriferi/freezer
+ * - Attività e Mansioni (ex Cleaning/Tasks) – mansioni staff e checklist
+ * - Inventario (ex Inventory) – prodotti e stock
+ * - Gestione Etichette (ex Product Labels) – creazione/modifica etichette
+ * - IA Assistant (ex AI Assistant) – assistente IA
+ * - Impostazioni e Dati (ex Settings/Data) – configurazioni, backup, manuale HACCP
  */
 
 import React, { useState, useEffect } from 'react'
@@ -38,6 +47,12 @@ import PDFExport from './components/PDFExport'
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/Card'
 import { Button } from './components/ui/Button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/Tabs'
+import { initializeDataSchemas, initializeDevModeIfRequested } from './utils/dataSchemas'
+import DevModeBanner from './components/DevModeBanner'
+import OnboardingWizard from './components/OnboardingWizard'
+import BottomSheetGuide from './components/BottomSheetGuide'
+import { shouldBypassOnboarding } from './utils/devMode'
+import { useHaccpValidation } from './utils/useHaccpValidation'
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -70,8 +85,59 @@ function App() {
     return localStorage.getItem('haccp-company-id') || 'demo-pizzeria'
   })
 
+  // Sistema onboarding
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false)
+  const [showBottomSheet, setShowBottomSheet] = useState(false)
+
+  // Dati dell'applicazione per validazione HACCP
+  const [appData, setAppData] = useState({
+    users: [],
+    departments: [],
+    refrigerators: [],
+    staff: [],
+    cleaning: [],
+    inventory: []
+  })
+
+  // Hook per validazione HACCP
+  const validation = useHaccpValidation(appData, activeTab)
+
+  // Carica i dati dell'applicazione per validazione HACCP
+  const loadAppData = () => {
+    const users = JSON.parse(localStorage.getItem('haccp-users') || '[]')
+    const departments = JSON.parse(localStorage.getItem('haccp-departments') || '[]')
+    const refrigerators = JSON.parse(localStorage.getItem('haccp-refrigerators') || '[]')
+    const staff = JSON.parse(localStorage.getItem('haccp-staff') || '[]')
+    const cleaning = JSON.parse(localStorage.getItem('haccp-cleaning') || '[]')
+    const inventory = JSON.parse(localStorage.getItem('haccp-products') || '[]')
+    
+    setAppData({
+      users,
+      departments,
+      refrigerators,
+      staff,
+      cleaning,
+      inventory
+    })
+  }
+
   // Load data from localStorage on app start
   useEffect(() => {
+    // Inizializza schemi dati HACCP se non esistono
+    const schemas = initializeDataSchemas()
+    Object.entries(schemas).forEach(([key, defaultValue]) => {
+      if (!localStorage.getItem(key)) {
+        localStorage.setItem(key, defaultValue)
+      }
+    })
+
+    // Inizializza modalità dev se richiesta via URL
+    initializeDevModeIfRequested()
+    
+    // Carica i dati dell'app per validazione HACCP
+    loadAppData()
+
     const temps = localStorage.getItem('haccp-temperatures')
     const cleaningData = localStorage.getItem('haccp-cleaning')
     const refrigeratorsData = localStorage.getItem('haccp-refrigerators')
@@ -567,10 +633,95 @@ function App() {
     reader.readAsText(file)
   }
 
+  // Controlla se mostrare l'onboarding
+  useEffect(() => {
+    if (currentUser && !onboardingCompleted) {
+      // Se la modalità dev è attiva, bypassa l'onboarding
+      if (shouldBypassOnboarding()) {
+        setOnboardingCompleted(true)
+        return
+      }
+      
+      // Controlla se l'onboarding è necessario
+      const savedOnboarding = localStorage.getItem('haccp-onboarding')
+      if (savedOnboarding) {
+        try {
+          const onboarding = JSON.parse(savedOnboarding)
+          if (onboarding.completed) {
+            setOnboardingCompleted(true)
+            return
+          }
+        } catch (error) {
+          console.warn('Errore nel parsing onboarding:', error)
+        }
+      }
+      
+      // Mostra l'onboarding se non è completato
+      setShowOnboarding(true)
+    }
+  }, [currentUser, onboardingCompleted])
+
+  // Gestisce il completamento dell'onboarding
+  const handleOnboardingComplete = (onboardingData) => {
+    setShowOnboarding(false)
+    setOnboardingCompleted(true)
+    
+    // Salva i dati dell'onboarding
+    const onboarding = {
+      ...onboardingData,
+      completed: true,
+      completedAt: new Date().toISOString()
+    }
+    localStorage.setItem('haccp-onboarding', JSON.stringify(onboarding))
+    
+    // Applica i dati dell'onboarding se necessario
+    if (onboardingData.preset) {
+      localStorage.setItem('haccp-presets', JSON.stringify({
+        selected: onboardingData.preset,
+        applied: true,
+        appliedAt: new Date().toISOString()
+      }))
+    }
+    
+    // Ricarica i dati dell'app per aggiornare la validazione
+    loadAppData()
+  }
+
+  // Gestisce i prerequisiti mancanti
+  const handleMissingRequirements = (section) => {
+    const access = validation.canAccessSection(section)
+    if (!access.isEnabled) {
+      setShowBottomSheet(true)
+    }
+  }
+
+  // Gestisce la richiesta di risolvere un prerequisito
+  const handleFixRequirement = (requirement) => {
+    if (requirement === 'onboarding') {
+      setShowOnboarding(true)
+    } else {
+      // Naviga alla sezione appropriata per risolvere il prerequisito
+      switch (requirement) {
+        case 'departments':
+          setActiveTab('staff') // Staff ha la gestione dipartimenti
+          break
+        case 'refrigerators':
+          setActiveTab('refrigerators')
+          break
+        case 'staff':
+          setActiveTab('staff')
+          break
+        default:
+          setActiveTab('dashboard')
+      }
+    }
+  }
+
   // Se non c'è utente loggato, mostra dashboard con pulsante "Inizia Turno"
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gray-50">
+        <DevModeBanner />
         <div className="container mx-auto px-4 py-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -703,6 +854,7 @@ function App() {
   // Se utente è loggato, mostra l'app completa
   return (
     <div className="min-h-screen bg-gray-50">
+      <DevModeBanner />
       <div className="container mx-auto px-4 py-8">
         {/* Header con info utente */}
         <div className="flex justify-between items-center mb-8">
@@ -750,18 +902,25 @@ function App() {
 
         {/* Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={(newTab) => {
+          // Controlla se la sezione è accessibile
+          const access = validation.canAccessSection(newTab)
+          if (!access.isEnabled) {
+            handleMissingRequirements(newTab)
+            return
+          }
+          
           setActiveTab(newTab)
           updateLastCheck(newTab)
         }}>
           <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 md:grid-cols-9' : 'grid-cols-3 md:grid-cols-8'} gap-1 mb-8`}>
             <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <BarChart3 className="h-4 w-4" />
-              <span className="hidden sm:inline">Dashboard</span>
+              <span className="hidden sm:inline">Home</span>
               <NotificationDot hasNotification={notifications.dashboard > 0} />
             </TabsTrigger>
             <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <Thermometer className="h-4 w-4" />
-              <span className="hidden sm:inline">Frigoriferi</span>
+              <span className="hidden sm:inline">Punti di Conservazione</span>
               <NotificationDot hasNotification={notifications.refrigerators > 0} />
             </TabsTrigger>
             <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
@@ -776,7 +935,7 @@ function App() {
             </TabsTrigger>
             <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
               <QrCode className="h-4 w-4" />
-              <span className="hidden sm:inline">Etichette</span>
+              <span className="hidden sm:inline">Gestione Etichette</span>
               <NotificationDot hasNotification={notifications.labels > 0} />
             </TabsTrigger>
             <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
@@ -785,7 +944,7 @@ function App() {
             </TabsTrigger>
             <TabsTrigger value="data-settings" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
               <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Dati</span>
+              <span className="hidden sm:inline">Impostazioni e Dati</span>
             </TabsTrigger>
             {isAdmin() && (
               <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
@@ -818,13 +977,11 @@ function App() {
             </div>
           </TabsList>
 
-          {/* Tab Content */}
+          {/* Tab Content - Mappatura Sezioni HACCP */}
+          
+          {/* Sezione: Home (ex Dashboard) - Overview e statistiche */}
           <TabsContent value="dashboard">
             <div className="space-y-6">
-
-              
-
-              
               {/* Original SyncManager - commented out temporarily */}
               {/* 
               <SyncManager
@@ -847,6 +1004,7 @@ function App() {
             </div>
           </TabsContent>
 
+          {/* Sezione: Punti di Conservazione (ex Frigoriferi) - Gestione frigoriferi/freezer */}
           <TabsContent value="refrigerators">
             <Refrigerators 
               temperatures={temperatures} 
@@ -863,6 +1021,7 @@ function App() {
             />
           </TabsContent>
 
+          {/* Sezione: Attività e Mansioni (ex Cleaning/Tasks) - Mansioni staff e checklist */}
           <TabsContent value="cleaning">
             <Cleaning 
               cleaning={cleaning} 
@@ -875,6 +1034,7 @@ function App() {
             />
           </TabsContent>
 
+          {/* Sezione: Inventario (ex Inventory) - Prodotti e stock */}
           <TabsContent value="inventory">
             <Inventory 
               products={products} 
@@ -887,6 +1047,7 @@ function App() {
             />
           </TabsContent>
 
+          {/* Sezione: Gestione Etichette (ex Product Labels) - Creazione/modifica etichette */}
           <TabsContent value="labels">
             <ProductLabels 
               productLabels={productLabels}
@@ -896,6 +1057,7 @@ function App() {
             />
           </TabsContent>
 
+          {/* Sezione: IA Assistant (ex AI Assistant) - Assistente IA */}
           <TabsContent value="ai-assistant">
             <AIAssistantSection 
               currentUser={currentUser}
@@ -910,6 +1072,7 @@ function App() {
             />
           </TabsContent>
 
+          {/* Sezione: Impostazioni e Dati (ex Settings/Data) - Configurazioni, backup, manuale HACCP */}
           <TabsContent value="data-settings">
             <DataSettings
               currentUser={currentUser}
@@ -921,6 +1084,7 @@ function App() {
             />
           </TabsContent>
 
+          {/* Sezione: Gestione (Admin only) - Gestione staff, utenti e configurazioni avanzate */}
           {isAdmin() && (
             <TabsContent value="staff">
               <div className="space-y-6">
@@ -985,6 +1149,25 @@ function App() {
 
         {/* PWA Install Prompt */}
         <PWAInstallPrompt />
+
+        {/* Onboarding Wizard */}
+        {showOnboarding && (
+          <OnboardingWizard
+            isOpen={showOnboarding}
+            onClose={() => setShowOnboarding(false)}
+            onComplete={handleOnboardingComplete}
+            currentData={appData}
+          />
+        )}
+
+        {/* Bottom Sheet Guide per prerequisiti mancanti */}
+        <BottomSheetGuide
+          isOpen={showBottomSheet}
+          onClose={() => setShowBottomSheet(false)}
+          missingRequirements={validation.missingRequirements}
+          suggestions={validation.getSuggestions()}
+          onFixRequirement={handleFixRequirement}
+        />
       </div>
     </div>
   )

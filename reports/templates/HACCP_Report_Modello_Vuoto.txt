@@ -1,0 +1,152 @@
+================================================================================
+                    REPORT ISPEZIONE ASL - MINI-ePACKPRO HACCP
+================================================================================
+
+DATA ISPEZIONE: [GG/MM/AAAA]
+ISPETTORE: Agente ASL IA - Analisi Tecnica Completa
+APPLICAZIONE: Mini-ePackPro HACCP v1.1
+TIPO ISPEZIONE: Verifica Compliance HACCP e Sicurezza Alimentare
+
+================================================================================
+                            VALUTAZIONE COMPLESSIVA
+================================================================================
+
+COMPLIANCE HACCP: [ALTO/MEDIO-ALTO/MEDIO/BASSO] ([XX]%)
+STATO GENERALE: [Descrizione stato]
+RISCHIO SICUREZZA ALIMENTARE: [BASSO/MEDIO/ALTO]
+RECOMMENDATION: [APPROVAZIONE/APPROVAZIONE CONDIZIONATA/RIFIUTO]
+
+================================================================================
+                        PROBLEMI IDENTIFICATI
+================================================================================
+
+🔴 PROBLEMI AD ALTA GRAVITÀ (CRITICI):
+
+[Numero]. **[TITOLO PROBLEMA]**
+   - Severità: ALTA
+   - Descrizione: [Descrizione dettagliata del problema]
+   - Rischio: [Descrizione del rischio per la sicurezza alimentare]
+   - File: [File coinvolti con righe specifiche]
+   - Raccomandazione: [Azione correttiva richiesta]
+
+🟡 PROBLEMI A MEDIA GRAVITÀ:
+
+[Numero]. **[TITOLO PROBLEMA]**
+   - Severità: MEDIA
+   - Descrizione: [Descrizione dettagliata del problema]
+   - Rischio: [Descrizione del rischio per la sicurezza alimentare]
+   - File: [File coinvolti con righe specifiche]
+   - Raccomandazione: [Azione correttiva richiesta]
+
+🟢 PROBLEMI A BASSA GRAVITÀ:
+
+[Numero]. **[TITOLO PROBLEMA]**
+   - Severità: BASSA
+   - Descrizione: [Descrizione dettagliata del problema]
+   - Rischio: [Descrizione del rischio per la sicurezza alimentare]
+   - File: [File coinvolti con righe specifiche]
+   - Raccomandazione: [Azione correttiva richiesta]
+
+================================================================================
+                        PUNTI DI FORZA IDENTIFICATI
+================================================================================
+
+✅ **[TITOLO PUNTO DI FORZA]**
+   - [Descrizione dettagliata]
+
+✅ **[TITOLO PUNTO DI FORZA]**
+   - [Descrizione dettagliata]
+
+✅ **[TITOLO PUNTO DI FORZA]**
+   - [Descrizione dettagliata]
+
+================================================================================
+                        ANALISI DETTAGLIATA PER SEZIONE
+================================================================================
+
+**HACCP E VALIDAZIONI: [X]/10**
+- Problema: [Descrizione problema]
+- Rischio: [Descrizione rischio]
+- Raccomandazione: [Azione correttiva]
+
+**UI E NAVIGAZIONE: [X]/10**
+- Problema: [Descrizione problema]
+- Rischio: [Descrizione rischio]
+- Raccomandazione: [Azione correttiva]
+
+**PERMESSI E ONBOARDING: [X]/10**
+- Problema: [Descrizione problema]
+- Rischio: [Descrizione rischio]
+- Raccomandazione: [Azione correttiva]
+
+**PRESET E PUNTI DI CONSERVAZIONE: [X]/10**
+- Problema: [Descrizione problema]
+- Rischio: [Descrizione rischio]
+- Raccomandazione: [Azione correttiva]
+
+================================================================================
+                        RACCOMANDAZIONI IMMEDIATE
+================================================================================
+
+🔴 **CORREZIONI OBBLIGATORIE (entro 7 giorni):**
+
+1. **[TITOLO CORREZIONE]**
+   - [Descrizione azione correttiva]
+   - [Dettagli implementazione]
+   - [Verifica richiesta]
+
+🟡 **CORREZIONI PRIORITARIE (entro 30 giorni):**
+
+4. **[TITOLO CORREZIONE]**
+   - [Descrizione azione correttiva]
+   - [Dettagli implementazione]
+   - [Verifica richiesta]
+
+🟢 **MIGLIORAMENTI (entro 60 giorni):**
+
+7. **[TITOLO MIGLIORAMENTO]**
+   - [Descrizione miglioramento]
+   - [Dettagli implementazione]
+   - [Verifica richiesta]
+
+================================================================================
+                        VALUTAZIONE FINALE
+================================================================================
+
+**COMPLIANCE HACCP: [XX]%**
+- [Descrizione conformità]
+- [Implementazione tecnica]
+- [Criticità gestibili]
+
+**SICUREZZA ALIMENTARE: [ACCETTABILE/NON ACCETTABILE]**
+- [Sistema di controllo]
+- [Tracciabilità]
+- [Validazione]
+
+**RISCHIO TECNICO: [BASSO/MEDIO/ALTO]**
+- [Architettura]
+- [Gestione errori]
+- [Sicurezza]
+
+**RACCOMANDAZIONE FINALE: [APPROVAZIONE/APPROVAZIONE CONDIZIONATA/RIFIUTO]**
+
+[Descrizione complessiva e giustificazione raccomandazione]
+
+**CONDIZIONI PER APPROVAZIONE:**
+1. [Condizione 1] entro [tempo]
+2. [Condizione 2] entro [tempo]
+3. [Condizione 3] entro [tempo]
+4. [Condizione 4] entro [tempo]
+
+[Descrizione finale e prospettive future]
+
+================================================================================
+                        FIRMA ISPETTORE
+================================================================================
+
+ISPETTORE: Agente ASL IA - Analisi Tecnica Completa
+DATA: [GG/MM/AAAA]
+STATO: REPORT COMPLETATO
+VALIDAZIONE: ANALISI APPROFONDITA COMPLETATA
+
+================================================================================

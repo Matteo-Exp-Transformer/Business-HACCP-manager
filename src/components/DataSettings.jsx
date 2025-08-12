@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Fragment } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { 
@@ -16,15 +16,22 @@ import {
   Package,
   Thermometer,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  BookOpen,
+  Truck,
+  Download
 } from 'lucide-react'
 import { createCloudSimulator } from '../utils/cloudSimulator'
+import HaccpManual from './HaccpManual'
+import Suppliers from './Suppliers'
+import BackupPanel from './BackupPanel'
 
 function DataSettings({ 
   currentUser, 
   isAdmin = false,
   onSettingsChange 
 }) {
+  const [showHaccpManual, setShowHaccpManual] = useState(false)
   const [settings, setSettings] = useState({
     // Cosa salvare sul telefono
     keepPhotosLocal: false,        // False = solo online
@@ -141,7 +148,8 @@ function DataSettings({
   )
 
   return (
-    <div className="space-y-6">
+    <Fragment>
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">📱 Gestione Dati</h1>
@@ -361,7 +369,96 @@ function DataSettings({
           </div>
         </CardContent>
       </Card>
+
+      {/* Backup e Export Dati */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Download className="h-5 w-5" />
+            Backup e Export Dati
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              💾 Gestisci il backup e l'export dei dati HACCP per garantire la sicurezza e la tracciabilità.
+              Esporta tutti i dati in formato JSON o importa da backup esistenti.
+            </p>
+            
+            <BackupPanel currentUser={currentUser} isAdmin={isAdmin} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gestione Fornitori */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Truck className="h-5 w-5" />
+            Gestione Fornitori
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              📋 Gestisci i fornitori per garantire la tracciabilità HACCP e la sicurezza alimentare.
+              Mantieni aggiornate le informazioni sui fornitori per la compliance normativa.
+            </p>
+            
+            <Suppliers currentUser={currentUser} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Manuale HACCP */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-5 w-5" />
+            Manuale HACCP
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-gray-600">
+              Consulta la guida completa per normative HACCP e procedure operative.
+              Questo manuale ti aiuterà a comprendere i requisiti e implementare correttamente le procedure.
+            </p>
+            
+            <Button 
+              variant="outline"
+              className="flex items-center gap-2 w-full"
+              onClick={() => setShowHaccpManual(true)}
+            >
+              <BookOpen className="h-4 w-4" />
+              Apri Manuale HACCP
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
+
+    {/* Modal Manuale HACCP */}
+    {showHaccpManual && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg w-full max-w-6xl h-full max-h-[90vh] overflow-hidden">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="text-xl font-semibold">Manuale HACCP</h2>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setShowHaccpManual(false)}
+            >
+              ✕ Chiudi
+            </Button>
+          </div>
+          <div className="overflow-y-auto h-full p-4">
+            <HaccpManual />
+          </div>
+        </div>
+      </div>
+    )}
+      </Fragment>
   )
 }
 

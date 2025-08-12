@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test BackupPanel HACCP</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .result {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+        }
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test BackupPanel HACCP</h1>
+    
+    <div class="test-section">
+        <h2>📊 Test Dati LocalStorage</h2>
+        <p>Verifica che i dati HACCP siano presenti nel localStorage</p>
+        <button class="test-button" onclick="testLocalStorage()">Test LocalStorage</button>
+        <div id="localStorage-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>💾 Test Export Dati</h2>
+        <p>Verifica l'export completo dei dati HACCP</p>
+        <button class="test-button" onclick="testExport()">Test Export</button>
+        <div id="export-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📥 Test Import Dati</h2>
+        <p>Verifica l'import dei dati HACCP</p>
+        <input type="file" id="import-file" accept=".json" style="display: none;">
+        <button class="test-button" onclick="document.getElementById('import-file').click()">Seleziona File</button>
+        <div id="import-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>⚙️ Test Impostazioni Backup</h2>
+        <p>Verifica le impostazioni del backup automatico</p>
+        <button class="test-button" onclick="testBackupSettings()">Test Impostazioni</button>
+        <div id="settings-result"></div>
+    </div>
+
+    <script>
+        // Chiavi HACCP da testare
+        const HACCP_KEYS = [
+            'haccp-temperatures',
+            'haccp-refrigerators',
+            'haccp-staff',
+            'haccp-cleaning',
+            'haccp-products',
+            'haccp-departments',
+            'haccp-users',
+            'haccp-actions',
+            'haccp-roles',
+            'haccp-suppliers',
+            'haccp-onboarding',
+            'haccp-presets',
+            'haccp-dev-mode'
+        ];
+
+        // Test LocalStorage
+        function testLocalStorage() {
+            const resultDiv = document.getElementById('localStorage-result');
+            let html = '<h3>Risultati Test LocalStorage:</h3>';
+            
+            HACCP_KEYS.forEach(key => {
+                const data = localStorage.getItem(key);
+                if (data) {
+                    try {
+                        const parsed = JSON.parse(data);
+                        const count = Array.isArray(parsed) ? parsed.length : 'N/A';
+                        html += `<div class="result success">✅ ${key}: ${count} elementi</div>`;
+                    } catch (error) {
+                        html += `<div class="result error">❌ ${key}: Errore parsing JSON</div>`;
+                    }
+                } else {
+                    html += `<div class="result">⚠️ ${key}: Nessun dato</div>`;
+                }
+            });
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // Test Export
+        function testExport() {
+            const resultDiv = document.getElementById('export-result');
+            resultDiv.innerHTML = '<div class="result">🔄 Test export in corso...</div>';
+            
+            try {
+                const exportData = {
+                    version: '1.0',
+                    timestamp: new Date().toISOString(),
+                    exportedBy: 'Test User',
+                    data: {}
+                };
+
+                // Esporta tutti i dati HACCP
+                HACCP_KEYS.forEach(key => {
+                    const data = localStorage.getItem(key);
+                    if (data) {
+                        try {
+                            exportData.data[key] = JSON.parse(data);
+                        } catch (error) {
+                            exportData.data[key] = data;
+                        }
+                    }
+                });
+
+                // Crea file di download
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `haccp-test-backup-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                resultDiv.innerHTML = `
+                    <div class="result success">
+                        ✅ Export completato con successo!<br>
+                        📁 File scaricato: ${a.download}<br>
+                        📊 Chiavi esportate: ${Object.keys(exportData.data).length}
+                    </div>
+                `;
+
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result error">
+                        ❌ Errore durante export: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Test Import
+        document.getElementById('import-file').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const resultDiv = document.getElementById('import-result');
+            resultDiv.innerHTML = '<div class="result">🔄 Test import in corso...</div>';
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importData = JSON.parse(e.target.result);
+                    
+                    if (!importData.version || !importData.data || !importData.timestamp) {
+                        resultDiv.innerHTML = `
+                            <div class="result error">
+                                ❌ Formato file non valido
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const dataKeys = Object.keys(importData.data);
+                    resultDiv.innerHTML = `
+                        <div class="result success">
+                            ✅ File valido rilevato!<br>
+                            📊 Chiavi trovate: ${dataKeys.length}<br>
+                            📅 Data export: ${new Date(importData.timestamp).toLocaleString('it-IT')}<br>
+                            👤 Esportato da: ${importData.exportedBy || 'sconosciuto'}
+                        </div>
+                    `;
+
+                } catch (error) {
+                    resultDiv.innerHTML = `
+                        <div class="result error">
+                            ❌ Errore durante import: ${error.message}
+                        </div>
+                    `;
+                }
+            };
+            
+            reader.readAsText(file);
+        });
+
+        // Test Impostazioni Backup
+        function testBackupSettings() {
+            const resultDiv = document.getElementById('settings-result');
+            let html = '<h3>Impostazioni Backup Attuali:</h3>';
+            
+            // Test chiave impostazioni backup
+            const backupSettings = localStorage.getItem('haccp-backup-settings');
+            if (backupSettings) {
+                try {
+                    const settings = JSON.parse(backupSettings);
+                    html += `
+                        <div class="result success">
+                            ✅ Impostazioni backup trovate:<br>
+                            🔄 Backup automatico: ${settings.autoBackupEnabled ? 'Abilitato' : 'Disabilitato'}<br>
+                            📅 Frequenza: ${settings.autoBackupFrequency || 'Non impostata'}<br>
+                            🕐 Ultimo backup: ${settings.lastBackupDate ? new Date(settings.lastBackupDate).toLocaleString('it-IT') : 'Mai'}
+                        </div>
+                    `;
+                } catch (error) {
+                    html += `<div class="result error">❌ Errore parsing impostazioni backup</div>`;
+                }
+            } else {
+                html += `<div class="result">⚠️ Nessuna impostazione backup trovata</div>`;
+            }
+
+            // Test cronologia backup
+            const backupHistory = localStorage.getItem('haccp-backup-history');
+            if (backupHistory) {
+                try {
+                    const history = JSON.parse(backupHistory);
+                    html += `
+                        <div class="result success">
+                            ✅ Cronologia backup trovata:<br>
+                            📊 Backup totali: ${history.length}<br>
+                            🔄 Backup automatici: ${history.filter(b => b.type === 'auto').length}<br>
+                            📥 Import: ${history.filter(b => b.type === 'import').length}
+                        </div>
+                    `;
+                } catch (error) {
+                    html += `<div class="result error">❌ Errore parsing cronologia backup</div>`;
+                }
+            } else {
+                html += `<div class="result">⚠️ Nessuna cronologia backup trovata</div>`;
+            }
+            
+            resultDiv.innerHTML = html;
+        }
+
+        // Inizializza dati di test se non presenti
+        function initializeTestData() {
+            if (!localStorage.getItem('haccp-test-initialized')) {
+                // Crea dati di test
+                const testData = {
+                    'haccp-temperatures': JSON.stringify([
+                        { id: '1', temperature: 3.5, location: 'Frigo A', time: '2024-01-15 08:00', user: 'Test User' }
+                    ]),
+                    'haccp-refrigerators': JSON.stringify([
+                        { id: '1', name: 'Frigo A', setTemperatureMin: 2, setTemperatureMax: 4, location: 'Cucina' }
+                    ]),
+                    'haccp-departments': JSON.stringify([
+                        { id: '1', name: 'Cucina', description: 'Dipartimento test' }
+                    ]),
+                    'haccp-staff': JSON.stringify([
+                        { id: '1', name: 'Test User', role: 'admin', department: 'Cucina' }
+                    ])
+                };
+
+                Object.entries(testData).forEach(([key, value]) => {
+                    localStorage.setItem(key, value);
+                });
+
+                localStorage.setItem('haccp-test-initialized', 'true');
+                console.log('✅ Dati di test inizializzati');
+            }
+        }
+
+        // Inizializza quando la pagina si carica
+        window.addEventListener('load', initializeTestData);
+    </script>
+</body>
+</html>

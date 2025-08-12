@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X } from 'lucide-react'
+import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X, HelpCircle } from 'lucide-react'
 import { getConservationSuggestions, getOptimalTemperature } from '../utils/temperatureDatabase'
 import TemperatureInput from './ui/TemperatureInput'
+import HelpOverlay from './HelpOverlay'
 
 // Categorie predefinite per i punti di conservazione (sincronizzate con Inventory.jsx)
 const STORAGE_CATEGORIES = [
@@ -49,9 +50,19 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     temperatureMax: '',
     notes: ''
   })
+  
+  // Stato per HelpOverlay
+  const [showHelpOverlay, setShowHelpOverlay] = useState(false)
+  const [helpType, setHelpType] = useState('')
 
   // Combina le categorie predefinite con quelle personalizzate
   const allCategories = [...STORAGE_CATEGORIES, ...customCategories]
+  
+  // Funzione per aprire l'HelpOverlay
+  const openHelpOverlay = (type) => {
+    setHelpType(type)
+    setShowHelpOverlay(true)
+  }
 
   // Carica le categorie personalizzate dal localStorage all'avvio
   useEffect(() => {
@@ -582,6 +593,13 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
                     <Thermometer className="h-4 w-4" />
                     Frigoriferi
+                    <button
+                      onClick={() => openHelpOverlay('pizzeria-frigoA')}
+                      className="text-blue-600 hover:text-blue-800 transition-colors"
+                      title="Guida posizionamento prodotti"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
@@ -687,6 +705,13 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   <h3 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
                     <Thermometer className="h-4 w-4" />
                     Freezer
+                    <button
+                      onClick={() => openHelpOverlay('pizzeria-frigoB')}
+                      className="text-purple-600 hover:text-purple-800 transition-colors"
+                      title="Guida posizionamento prodotti"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
@@ -792,6 +817,13 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   <h3 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
                     <Thermometer className="h-4 w-4" />
                     Abbattitore
+                    <button
+                      onClick={() => openHelpOverlay('abbattitore')}
+                      className="text-red-600 hover:text-red-800 transition-colors"
+                      title="Guida posizionamento prodotti"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
@@ -897,6 +929,13 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   <h3 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
                     <Thermometer className="h-4 w-4" />
                     Ambiente
+                    <button
+                      onClick={() => openHelpOverlay('ambiente')}
+                      className="text-green-600 hover:text-green-800 transition-colors"
+                      title="Guida posizionamento prodotti"
+                    >
+                      <HelpCircle className="h-4 w-4" />
+                    </button>
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
@@ -1632,6 +1671,14 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
         </div>
       )}
 
+      {/* HelpOverlay per guide posizionamento prodotti */}
+      {showHelpOverlay && (
+        <HelpOverlay
+          isOpen={showHelpOverlay}
+          onClose={() => setShowHelpOverlay(false)}
+          fridgeType={helpType}
+        />
+      )}
 
     </div>
   )
