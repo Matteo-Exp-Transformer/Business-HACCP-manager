@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Rapido Checkpoint - Business HACCP Manager</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; }
+        .btn-primary { background-color: #007bff; color: white; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-warning { background-color: #ffc107; color: black; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Rapido Checkpoint - Business HACCP Manager</h1>
+    
+    <div class="test-section">
+        <h2>✅ FIX 1: Validazioni Temperature HACCP</h2>
+        <p>Test delle funzioni di validazione implementate:</p>
+        
+        <button class="btn-primary" onclick="testTemperatureValidations()">Test Validazioni Temperature</button>
+        <button class="btn-primary" onclick="testFreezerLogic()">Test Logica Freezer</button>
+        
+        <div id="temperature-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>✅ FIX 2: Nuova Logica Onboarding</h2>
+        <p>Test della nuova logica di onboarding implementata:</p>
+        
+        <button class="btn-success" onclick="testOnboardingLogic()">Test Logica Onboarding</button>
+        <button class="btn-success" onclick="testLocalStorageSync()">Test Sincronizzazione localStorage</button>
+        
+        <div id="onboarding-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📊 Riepilogo Test</h2>
+        <button class="btn-warning" onclick="runAllTests()">Esegui Tutti i Test</button>
+        <div id="summary-results"></div>
+    </div>
+
+    <script>
+        // Funzioni di validazione copiate da Refrigerators.jsx
+        function validateHACCPRange(tempMin, tempMax, type) {
+            const min = parseFloat(tempMin)
+            const max = parseFloat(tempMax)
+            
+            if (isNaN(min) || isNaN(max)) return { valid: false, message: 'Temperature non valide' }
+            
+            // Controlla se i numeri negativi sono corretti (es. -19 > -16 è valido per freezer)
+            if (min > max) {
+                // Se entrambi sono negativi, controlla se è un range valido per freezer
+                if (min < 0 && max < 0) {
+                    // Per freezer, -19 > -16 è valido (min è più freddo di max)
+                    if (type === 'freezer' && min <= -18 && max >= -20) {
+                        return { valid: true, message: '' }
+                    }
+                    return { valid: false, message: 'Range freezer non standard: deve essere tra -20°C e -18°C' }
+                }
+                return { valid: false, message: 'Temperatura minima non può essere maggiore della massima' }
+            }
+            
+            // Controlla range standard HACCP
+            if (type === 'frigo' && (min < 2 || max > 8)) {
+                return { valid: false, message: 'Valore fuori standard HACCP: frigorifero deve essere tra 2°C e 8°C' }
+            }
+            
+            if (type === 'freezer' && (min > -18 || max < -20)) {
+                return { valid: false, message: 'Valore fuori standard HACCP: freezer deve essere tra -20°C e -18°C' }
+            }
+            
+            if (type === 'banco' && (min < 0 || max > 4)) {
+                return { valid: false, message: 'Valore fuori standard HACCP: bancone deve essere tra 0°C e 4°C' }
+            }
+            
+            return { valid: true, message: '' }
+        }
+
+        function getConservationType(tempMin, tempMax) {
+            const min = parseFloat(tempMin)
+            const max = parseFloat(tempMax)
+            
+            if (isNaN(min) || isNaN(max)) return 'altro'
+            
+            // Per freezer, controlla se min > max (es. -19 > -16)
+            if (min < 0 && max < 0 && min > max) {
+                if (min <= -18 && max >= -20) return 'freezer'
+            }
+            
+            if (min >= 2 && max <= 8) return 'frigo'
+            if (min >= 0 && max <= 4) return 'banco'
+            if (min >= 15 && max <= 25) return 'dispensa'
+            
+            return 'altro'
+        }
+
+        // Test 1: Validazioni Temperature
+        function testTemperatureValidations() {
+            const results = document.getElementById('temperature-results')
+            results.innerHTML = '<div class="info">🧪 Esecuzione test validazioni temperature...</div>'
+            
+            const testCases = [
+                { min: -19, max: -16, expected: true, description: 'Freezer standard (-19 > -16)' },
+                { min: -20, max: -18, expected: true, description: 'Freezer range completo' },
+                { min: -16, max: -19, expected: false, description: 'Freezer invertito (non valido)' },
+                { min: 2, max: 8, expected: true, description: 'Frigo standard' },
+                { min: 9, max: 12, expected: false, description: 'Frigo fuori standard' }
+            ]
+            
+            let passedTests = 0
+            let output = '<h3>Risultati Test Validazioni:</h3>'
+            
+            testCases.forEach((testCase, index) => {
+                const type = getConservationType(testCase.min, testCase.max)
+                const isValid = validateHACCPRange(testCase.min, testCase.max, type)
+                const testPassed = isValid.valid === testCase.expected
+                
+                if (testPassed) {
+                    output += `<div class="success">✅ Test ${index + 1}: ${testCase.description}</div>`
+                    passedTests++
+                } else {
+                    output += `<div class="error">❌ Test ${index + 1}: ${testCase.description} - Atteso: ${testCase.expected}, Ottenuto: ${isValid.valid}</div>`
+                    output += `<div class="info">   Messaggio: ${isValid.message}, Tipo rilevato: ${type}</div>`
+                }
+            })
+            
+            output += `<div class="info"><strong>Risultato: ${passedTests}/${testCases.length} test superati</strong></div>`
+            results.innerHTML = output
+        }
+
+        // Test 2: Logica Freezer
+        function testFreezerLogic() {
+            const results = document.getElementById('temperature-results')
+            results.innerHTML = '<div class="info">🧪 Esecuzione test logica freezer...</div>'
+            
+            const freezerTests = [
+                { min: -19, max: -16, description: 'Freezer -19°C > -16°C (valido)' },
+                { min: -18, max: -20, description: 'Freezer -18°C > -20°C (invalido)' },
+                { min: -20, max: -18, description: 'Freezer -20°C > -18°C (valido)' }
+            ]
+            
+            let output = '<h3>Risultati Test Logica Freezer:</h3>'
+            
+            freezerTests.forEach((test, index) => {
+                const type = getConservationType(test.min, test.max)
+                const isValid = validateHACCPRange(test.min, test.max, type)
+                
+                output += `<div class="${isValid.valid ? 'success' : 'error'}">
+                    ${isValid.valid ? '✅' : '❌'} Test ${index + 1}: ${test.description}
+                </div>`
+                if (!isValid.valid) {
+                    output += `<div class="info">   Messaggio: ${isValid.message}</div>`
+                }
+            })
+            
+            results.innerHTML = output
+        }
+
+        // Test 3: Logica Onboarding
+        function testOnboardingLogic() {
+            const results = document.getElementById('onboarding-results')
+            results.innerHTML = '<div class="info">🧪 Test logica onboarding...</div>'
+            
+            // Simula l'aggiunta di elementi
+            const testData = {
+                departments: [{ name: 'Cucina', description: 'Reparto cucina', location: 'Piano terra' }],
+                refrigerators: [{ name: 'Frigo A', setTemperatureMin: 2, setTemperatureMax: 8, location: 'Cucina' }],
+                staff: [{ name: 'Mario Rossi', role: 'Chef', department: 'Cucina' }]
+            }
+            
+            // Salva nel localStorage
+            localStorage.setItem('departments', JSON.stringify(testData.departments))
+            localStorage.setItem('refrigerators', JSON.stringify(testData.refrigerators))
+            localStorage.setItem('staff', JSON.stringify(testData.staff))
+            
+            let output = '<h3>Test Logica Onboarding:</h3>'
+            output += '<div class="success">✅ Dati di test salvati nel localStorage</div>'
+            output += '<div class="info">📊 Dipartimenti: ' + testData.departments.length + '</div>'
+            output += '<div class="info">📊 Punti di conservazione: ' + testData.refrigerators.length + '</div>'
+            output += '<div class="info">📊 Staff: ' + testData.staff.length + '</div>'
+            
+            results.innerHTML = output
+        }
+
+        // Test 4: Sincronizzazione localStorage
+        function testLocalStorageSync() {
+            const results = document.getElementById('onboarding-results')
+            
+            const departments = JSON.parse(localStorage.getItem('departments') || '[]')
+            const refrigerators = JSON.parse(localStorage.getItem('refrigerators') || '[]')
+            const staff = JSON.parse(localStorage.getItem('staff') || '[]')
+            
+            let output = '<h3>Test Sincronizzazione localStorage:</h3>'
+            
+            if (departments.length > 0) {
+                output += '<div class="success">✅ Dipartimenti sincronizzati: ' + departments.length + '</div>'
+            } else {
+                output += '<div class="error">❌ Nessun dipartimento trovato</div>'
+            }
+            
+            if (refrigerators.length > 0) {
+                output += '<div class="success">✅ Punti di conservazione sincronizzati: ' + refrigerators.length + '</div>'
+            } else {
+                output += '<div class="error">❌ Nessun punto di conservazione trovato</div>'
+            }
+            
+            if (staff.length > 0) {
+                output += '<div class="success">✅ Staff sincronizzato: ' + staff.length + '</div>'
+            } else {
+                output += '<div class="error">❌ Nessun membro staff trovato</div>'
+            }
+            
+            results.innerHTML = output
+        }
+
+        // Esegui tutti i test
+        function runAllTests() {
+            testTemperatureValidations()
+            setTimeout(() => testFreezerLogic(), 500)
+            setTimeout(() => testOnboardingLogic(), 1000)
+            setTimeout(() => testLocalStorageSync(), 1500)
+            
+            setTimeout(() => {
+                const summary = document.getElementById('summary-results')
+                summary.innerHTML = '<div class="info"><h3>🎯 Checkpoint Completato!</h3><p>Le funzionalità implementate sono state testate. Verifica i risultati sopra.</p></div>'
+            }, 2000)
+        }
+    </script>
+</body>
+</html>

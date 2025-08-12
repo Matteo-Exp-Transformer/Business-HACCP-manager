@@ -30,7 +30,8 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     name: '',
     role: '',
     certification: '',
-    notes: ''
+    notes: '',
+    haccpCertExpiry: '' // Nuovo campo per scadenza attestato HACCP
   })
 
   // Department/Category management
@@ -100,6 +101,33 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
     localStorage.setItem('haccp-departments', JSON.stringify(departments))
   }, [departments])
 
+  // Funzione per calcolare lo stato dell'attestato HACCP
+  const getHaccpCertStatus = (expiryDate) => {
+    if (!expiryDate) return 'none'
+    
+    const today = new Date()
+    const expiry = new Date(expiryDate)
+    const daysUntilExpiry = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24))
+    
+    if (daysUntilExpiry < 0) return 'expired'
+    if (daysUntilExpiry <= 30) return 'expiring'
+    return 'valid'
+  }
+
+  // Funzione per ottenere l'icona e colore dello stato attestato
+  const getHaccpCertIndicator = (status) => {
+    switch (status) {
+      case 'expired':
+        return { icon: '⚠️', color: 'text-red-600', bgColor: 'bg-red-100', borderColor: 'border-red-300' }
+      case 'expiring':
+        return { icon: '⏰', color: 'text-orange-600', bgColor: 'bg-orange-100', borderColor: 'border-orange-300' }
+      case 'valid':
+        return { icon: '✅', color: 'text-green-600', bgColor: 'bg-green-100', borderColor: 'border-green-300' }
+      default:
+        return { icon: '❓', color: 'text-gray-600', bgColor: 'bg-gray-100', borderColor: 'border-gray-300' }
+    }
+  }
+
   // Sync department member counts with actual staff
   useEffect(() => {
     if (departments.length > 0 && staff && Array.isArray(staff) && staff.length >= 0) {
@@ -139,12 +167,13 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
       role: formData.role.trim(),
       certification: formData.certification.trim(),
       notes: formData.notes.trim(),
+      haccpCertExpiry: formData.haccpCertExpiry.trim(),
       addedDate: new Date().toLocaleDateString('it-IT'),
       addedTime: new Date().toLocaleString('it-IT')
     }
 
     setStaff([...staff, newStaff])
-    setFormData({ name: '', role: '', certification: '', notes: '' })
+    setFormData({ name: '', role: '', certification: '', notes: '', haccpCertExpiry: '' })
   }
 
   const deleteStaffMember = (id) => {
@@ -309,7 +338,8 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
       name: member.name,
       role: member.role,
       certification: member.certification || '',
-      notes: member.notes || ''
+      notes: member.notes || '',
+      haccpCertExpiry: member.haccpCertExpiry || '' // Carica la scadenza esistente
     })
     setShowEditForm(true)
   }
@@ -337,13 +367,14 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
             role: formData.role.trim(),
             certification: formData.certification.trim(),
             notes: formData.notes.trim(),
+            haccpCertExpiry: formData.haccpCertExpiry.trim(),
             lastModified: new Date().toLocaleString('it-IT')
           }
         : member
     )
 
     setStaff(updatedStaff)
-    setFormData({ name: '', role: '', certification: '', notes: '' })
+    setFormData({ name: '', role: '', certification: '', notes: '', haccpCertExpiry: '' })
     setEditingMember(null)
     setShowEditForm(false)
   }
@@ -351,7 +382,7 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
   const cancelEdit = () => {
     setEditingMember(null)
     setShowEditForm(false)
-    setFormData({ name: '', role: '', certification: '', notes: '' })
+    setFormData({ name: '', role: '', certification: '', notes: '', haccpCertExpiry: '' })
   }
 
   // Role reassignment functions
@@ -573,13 +604,23 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="certification">Certificazioni HACCP (opzionale)</Label>
+                <Label htmlFor="certification">Certificazioni (opzionale)</Label>
                 <Input
                   id="certification"
                   placeholder="Es: Certificato HACCP livello 2, Corso sicurezza alimentare..."
                   value={formData.certification}
                   onChange={(e) => setFormData({...formData, certification: e.target.value})}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="haccpCertExpiry">Scadenza Attestato HACCP (opzionale)</Label>
+                <Input
+                  id="haccpCertExpiry"
+                  type="date"
+                  value={formData.haccpCertExpiry}
+                  onChange={(e) => setFormData({...formData, haccpCertExpiry: e.target.value})}
+                />
+                <p className="text-xs text-gray-500">Data di scadenza dell'attestato HACCP</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="notes">Note (opzionale)</Label>
@@ -678,6 +719,22 @@ function Staff({ staff, setStaff, users, setUsers, currentUser, isAdmin }) {
                                       <GraduationCap className="h-3 w-3" />
                                       {member.certification}
                                     </div>
+                                  )}
+                                  {member.haccpCertExpiry && (
+                                    (() => {
+                                      const status = getHaccpCertStatus(member.haccpCertExpiry)
+                                      const indicator = getHaccpCertIndicator(status)
+                                      return (
+                                        <div className={`text-xs flex items-center gap-1 mt-1 p-1 rounded ${indicator.bgColor} ${indicator.borderColor} border`}>
+                                          <span>{indicator.icon}</span>
+                                          <span className={indicator.color}>
+                                            HACCP: {new Date(member.haccpCertExpiry).toLocaleDateString('it-IT')}
+                                            {status === 'expired' && ' (Scaduto)'}
+                                            {status === 'expiring' && ' (In scadenza)'}
+                                          </span>
+                                        </div>
+                                      )
+                                    })()
                                   )}
                                   {member.notes && (
                                     <div className="text-xs text-blue-600 flex items-center gap-1">

@@ -8,7 +8,7 @@
  * 4. Registrazione personale
  * 5. Configurazioni opzionali
  * 
- * @version 1.0
+ * @version 2.0 - Aggiornato con validazioni e moduli integrati
  * @critical Onboarding - Configurazione iniziale
  */
 
@@ -28,7 +28,10 @@ import {
   Truck, 
   BookOpen,
   Sparkles,
-  Info
+  Info,
+  Plus,
+  Edit,
+  Trash2
 } from 'lucide-react'
 import { shouldBypassOnboarding } from '../utils/devMode'
 import PresetSelector from './PresetSelector'
@@ -88,8 +91,12 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
     refrigerators: [],
     staff: [],
     suppliers: [],
-    manual: false
+    manual: false,
+    manualVersion: '',
+    manualDate: '',
+    manualNotes: ''
   })
+  const [showSuccessScreen, setShowSuccessScreen] = useState(false)
 
   // Controlla se l'onboarding è bypassato in modalità dev
   useEffect(() => {
@@ -162,7 +169,19 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
       }
     }
     
-    onComplete && onComplete(formData)
+    // Salva i dati nel localStorage per sincronizzazione
+    localStorage.setItem('haccp-departments', JSON.stringify(formData.departments))
+    localStorage.setItem('haccp-refrigerators', JSON.stringify(formData.refrigerators))
+    localStorage.setItem('haccp-staff', JSON.stringify(formData.staff))
+    localStorage.setItem('haccp-suppliers', JSON.stringify(formData.suppliers))
+    localStorage.setItem('haccp-manual', JSON.stringify({
+      version: formData.manualVersion,
+      date: formData.manualDate,
+      notes: formData.manualNotes
+    }))
+    
+    // Mostra schermata di successo con pulsanti guida
+    setShowSuccessScreen(true)
   }
 
   // Aggiorna i dati del form
@@ -171,8 +190,31 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
     saveProgress()
   }
 
+  // Aggiunge un elemento e aggiorna i dati
+  const addItem = (key, item) => {
+    const newItems = [...formData[key], item]
+    updateFormData(key, newItems)
+  }
+
+  // Rimuove un elemento
+  const removeItem = (key, index) => {
+    const newItems = formData[key].filter((_, i) => i !== index)
+    updateFormData(key, newItems)
+  }
+
+  // Aggiorna un elemento specifico
+  const updateItem = (key, index, updatedItem) => {
+    const newItems = [...formData[key]]
+    newItems[index] = updatedItem
+    updateFormData(key, newItems)
+  }
+
   // Renderizza lo step corrente
   const renderCurrentStep = () => {
+    if (showSuccessScreen) {
+      return renderSuccessScreen()
+    }
+    
     const step = ONBOARDING_STEPS[currentStep]
     
     switch (step.id) {
@@ -192,6 +234,69 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
         return null
     }
   }
+
+  // Schermata di successo con pulsanti guida
+  const renderSuccessScreen = () => (
+    <div className="text-center space-y-8 py-8">
+      <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center">
+        <CheckCircle className="h-12 w-12 text-green-600" />
+      </div>
+      
+      <div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-2">Configurazione Completata!</h3>
+        <p className="text-gray-600 mb-6">
+          La tua configurazione HACCP è stata salvata. Ora puoi iniziare a utilizzare l'app o continuare con la configurazione.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto">
+        <Button
+          onClick={() => {
+            // Naviga alla sezione Staff
+            window.location.hash = '#staff'
+            onComplete && onComplete(formData)
+          }}
+          className="h-auto p-4 flex flex-col items-center space-y-2"
+        >
+          <Users className="h-6 w-6" />
+          <span>Aggiungi Membro Personale</span>
+        </Button>
+
+        <Button
+          onClick={() => {
+            // Naviga alla sezione Inventario
+            window.location.hash = '#inventory'
+            onComplete && onComplete(formData)
+          }}
+          className="h-auto p-4 flex flex-col items-center space-y-2"
+        >
+          <Plus className="h-6 w-6" />
+          <span>Aggiungi Prodotto a Inventario</span>
+        </Button>
+
+        <Button
+          onClick={() => {
+            // Naviga alla sezione Mansioni
+            window.location.hash = '#departments'
+            onComplete && onComplete(formData)
+          }}
+          className="h-auto p-4 flex flex-col items-center space-y-2"
+        >
+          <Building2 className="h-6 w-6" />
+          <span>Crea Mansione</span>
+        </Button>
+      </div>
+
+      <div className="pt-6">
+        <Button
+          onClick={() => onComplete && onComplete(formData)}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          Vai alla Dashboard
+        </Button>
+      </div>
+    </div>
+  )
 
   // Step selezione preset
   const renderPresetStep = () => (
@@ -216,23 +321,16 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
           <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
             <Input
               value={dept}
-              onChange={(e) => {
-                const newDepts = [...formData.departments]
-                newDepts[index] = e.target.value
-                updateFormData('departments', newDepts)
-              }}
+              onChange={(e) => updateItem('departments', index, e.target.value)}
               placeholder="Nome dipartimento"
               className="flex-1"
             />
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                const newDepts = formData.departments.filter((_, i) => i !== index)
-                updateFormData('departments', newDepts)
-              }}
+              onClick={() => removeItem('departments', index)}
             >
-              Rimuovi
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         ))}
@@ -240,12 +338,31 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
         <Button
           variant="outline"
           onClick={() => {
-            const newDepts = [...formData.departments, '']
-            updateFormData('departments', newDepts)
+            // Aggiungi direttamente nelle sezioni appropriate dell'app
+            const newDept = { name: '', description: '', location: '' }
+            const currentDepts = JSON.parse(localStorage.getItem('departments') || '[]')
+            currentDepts.push(newDept)
+            localStorage.setItem('departments', JSON.stringify(currentDepts))
+            
+            // Aggiorna anche il form locale
+            addItem('departments', '')
+            
+            // Mostra messaggio di conferma
+            alert('Dipartimento aggiunto! Ora puoi compilarlo e salvarlo.')
           }}
           className="w-full"
         >
+          <Plus className="h-4 w-4 mr-2" />
           + Aggiungi Dipartimento
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={() => addItem('departments', '')}
+          className="w-full bg-blue-50 hover:bg-blue-100"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          + Aggiungi Nuovo
         </Button>
       </div>
 
@@ -278,43 +395,29 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <Input
                 value={fridge.name}
-                onChange={(e) => {
-                  const newFridges = [...formData.refrigerators]
-                  newFridges[index] = { ...fridge, name: e.target.value }
-                  updateFormData('refrigerators', newFridges)
-                }}
+                onChange={(e) => updateItem('refrigerators', index, { ...fridge, name: e.target.value })}
                 placeholder="Nome (es. Frigo A)"
               />
               <Input
                 type="number"
                 value={fridge.tempMin}
-                onChange={(e) => {
-                  const newFridges = [...formData.refrigerators]
-                  newFridges[index] = { ...fridge, tempMin: e.target.value }
-                  updateFormData('refrigerators', newFridges)
-                }}
+                onChange={(e) => updateItem('refrigerators', index, { ...fridge, tempMin: e.target.value })}
                 placeholder="Temp. min (°C)"
               />
               <Input
                 type="number"
                 value={fridge.tempMax}
-                onChange={(e) => {
-                  const newFridges = [...formData.refrigerators]
-                  newFridges[index] = { ...fridge, tempMax: e.target.value }
-                  updateFormData('refrigerators', newFridges)
-                }}
+                onChange={(e) => updateItem('refrigerators', index, { ...fridge, tempMax: e.target.value })}
                 placeholder="Temp. max (°C)"
               />
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                const newFridges = formData.refrigerators.filter((_, i) => i !== index)
-                updateFormData('refrigerators', newFridges)
-              }}
+              onClick={() => removeItem('refrigerators', index)}
               className="mt-3"
             >
+              <Trash2 className="h-4 w-4 mr-2" />
               Rimuovi
             </Button>
           </Card>
@@ -323,12 +426,38 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
         <Button
           variant="outline"
           onClick={() => {
-            const newFridges = [...formData.refrigerators, { name: '', tempMin: '', tempMax: '' }]
-            updateFormData('refrigerators', newFridges)
+            // Aggiungi direttamente nelle sezioni appropriate dell'app
+            const newRefrigerator = { 
+              name: '', 
+              setTemperatureMin: '', 
+              setTemperatureMax: '', 
+              location: '',
+              dedicatedTo: '',
+              nextMaintenance: ''
+            }
+            const currentRefrigerators = JSON.parse(localStorage.getItem('refrigerators') || '[]')
+            currentRefrigerators.push(newRefrigerator)
+            localStorage.setItem('refrigerators', JSON.stringify(currentRefrigerators))
+            
+            // Aggiorna anche il form locale
+            addItem('refrigerators', { name: '', tempMin: '', tempMax: '' })
+            
+            // Mostra messaggio di conferma
+            alert('Punto di conservazione aggiunto! Ora puoi compilarlo e salvarlo.')
           }}
           className="w-full"
         >
+          <Plus className="h-4 w-4 mr-2" />
           + Aggiungi Punto di Conservazione
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={() => addItem('refrigerators', { name: '', tempMin: '', tempMax: '' })}
+          className="w-full bg-blue-50 hover:bg-blue-100"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          + Aggiungi Nuovo
         </Button>
       </div>
 
@@ -362,20 +491,12 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Input
                 value={member.name}
-                onChange={(e) => {
-                  const newStaff = [...formData.staff]
-                  newStaff[index] = { ...member, name: e.target.value }
-                  updateFormData('staff', newStaff)
-                }}
+                onChange={(e) => updateItem('staff', index, { ...member, name: e.target.value })}
                 placeholder="Nome completo"
               />
               <select
                 value={member.role}
-                onChange={(e) => {
-                  const newStaff = [...formData.staff]
-                  newStaff[index] = { ...member, role: e.target.value }
-                  updateFormData('staff', newStaff)
-                }}
+                onChange={(e) => updateItem('staff', index, { ...member, role: e.target.value })}
                 className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Seleziona ruolo</option>
@@ -388,12 +509,10 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                const newStaff = formData.staff.filter((_, i) => i !== index)
-                updateFormData('staff', newStaff)
-              }}
+              onClick={() => removeItem('staff', index)}
               className="mt-3"
             >
+              <Trash2 className="h-4 w-4 mr-2" />
               Rimuovi
             </Button>
           </Card>
@@ -402,12 +521,38 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
         <Button
           variant="outline"
           onClick={() => {
-            const newStaff = [...formData.staff, { name: '', role: '' }]
-            updateFormData('staff', newStaff)
+            // Aggiungi direttamente nelle sezioni appropriate dell'app
+            const newStaff = { 
+              name: '', 
+              role: '', 
+              department: '',
+              email: '',
+              phone: '',
+              trainingDate: ''
+            }
+            const currentStaff = JSON.parse(localStorage.getItem('staff') || '[]')
+            currentStaff.push(newStaff)
+            localStorage.setItem('staff', JSON.stringify(currentStaff))
+            
+            // Aggiorna anche il form locale
+            addItem('staff', { name: '', role: '' })
+            
+            // Mostra messaggio di conferma
+            alert('Membro staff aggiunto! Ora puoi compilarlo e salvarlo.')
           }}
           className="w-full"
         >
+          <Plus className="h-4 w-4 mr-2" />
           + Aggiungi Membro Staff
+        </Button>
+        
+        <Button
+          variant="outline"
+          onClick={() => addItem('staff', { name: '', role: '' })}
+          className="w-full bg-blue-50 hover:bg-blue-100"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          + Aggiungi Nuovo
         </Button>
       </div>
 
@@ -426,7 +571,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
     </div>
   )
 
-  // Step fornitori (opzionale)
+  // Step fornitori (opzionale) - MODULO INTEGRATO
   const renderSuppliersStep = () => (
     <div className="space-y-6">
       <div className="text-center">
@@ -434,25 +579,67 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
         <p className="text-gray-600">I fornitori qualificati garantiscono materie prime sicure e conformi</p>
       </div>
       
-      <div className="text-center py-8">
-        <Truck className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-        <p className="text-gray-600 mb-4">
-          Questa sezione è opzionale e può essere configurata successivamente.
-        </p>
+      <div className="space-y-4">
+        {formData.suppliers.map((supplier, index) => (
+          <Card key={index} className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Input
+                value={supplier.name}
+                onChange={(e) => updateItem('suppliers', index, { ...supplier, name: e.target.value })}
+                placeholder="Nome fornitore"
+              />
+              <Input
+                value={supplier.contact}
+                onChange={(e) => updateItem('suppliers', index, { ...supplier, contact: e.target.value })}
+                placeholder="Contatto (email/telefono)"
+              />
+            </div>
+            <div className="mt-3">
+              <Input
+                value={supplier.products}
+                onChange={(e) => updateItem('suppliers', index, { ...supplier, products: e.target.value })}
+                placeholder="Prodotti forniti (es. carne, verdure, latticini)"
+                className="w-full"
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => removeItem('suppliers', index)}
+              className="mt-3"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Rimuovi
+            </Button>
+          </Card>
+        ))}
+        
         <Button
           variant="outline"
-          onClick={() => {
-            updateFormData('suppliers', [])
-            nextStep()
-          }}
+          onClick={() => addItem('suppliers', { name: '', contact: '', products: '' })}
+          className="w-full"
         >
-          Salta per ora
+          <Plus className="h-4 w-4 mr-2" />
+          + Aggiungi Fornitore
         </Button>
+      </div>
+
+      <div className="bg-orange-50 p-4 rounded-lg">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-orange-600 mt-0.5" />
+          <div>
+            <p className="font-medium text-orange-900">Perché è importante?</p>
+            <p className="text-sm text-orange-800 mt-1">
+              I fornitori qualificati garantiscono la tracciabilità e la sicurezza delle materie prime. 
+              Questa sezione è opzionale e può essere configurata successivamente.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
 
-  // Step manuale (opzionale)
+  // Step manuale (opzionale) - MODULO INTEGRATO
   const renderManualStep = () => (
     <div className="space-y-6">
       <div className="text-center">
@@ -460,20 +647,53 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
         <p className="text-gray-600">Consulta la guida operativa per le procedure HACCP</p>
       </div>
       
-      <div className="text-center py-8">
-        <BookOpen className="h-16 w-16 mx-auto mb-4 text-gray-400" />
-        <p className="text-gray-600 mb-4">
-          Il manuale HACCP è sempre disponibile nella sezione Impostazioni e Dati.
-        </p>
-        <Button
-          variant="outline"
-          onClick={() => {
-            updateFormData('manual', true)
-            nextStep()
-          }}
-        >
-          Salta per ora
-        </Button>
+      <div className="space-y-4">
+        <Card className="p-4">
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="manual-version">Versione Manuale</Label>
+              <Input
+                id="manual-version"
+                value={formData.manualVersion || ''}
+                onChange={(e) => updateFormData('manualVersion', e.target.value)}
+                placeholder="Versione (es. 1.0 - 2024)"
+              />
+            </div>
+            <div>
+              <Label htmlFor="manual-date">Data Revisione</Label>
+              <Input
+                id="manual-date"
+                type="date"
+                value={formData.manualDate || ''}
+                onChange={(e) => updateFormData('manualDate', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="manual-notes">Note Aggiuntive</Label>
+              <textarea
+                id="manual-notes"
+                value={formData.manualNotes || ''}
+                onChange={(e) => updateFormData('manualNotes', e.target.value)}
+                placeholder="Note specifiche per la tua attività..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows="3"
+              />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="flex items-start gap-3">
+          <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div>
+            <p className="font-medium text-blue-900">Manuale HACCP</p>
+            <p className="text-sm text-blue-800 mt-1">
+              Il manuale HACCP è sempre disponibile nella sezione Impostazioni e Dati. 
+              Qui puoi configurare le impostazioni base del tuo manuale personalizzato.
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -481,6 +701,8 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
   // Calcola il progresso
   const progress = Math.round((completedSteps.size / ONBOARDING_STEPS.length) * 100)
   const isLastStep = currentStep === ONBOARDING_STEPS.length - 1
+  
+  // VALIDAZIONE MIGLIORATA: non si può andare avanti senza aver aggiunto elementi
   const canProceed = () => {
     const step = ONBOARDING_STEPS[currentStep]
     if (!step.required) return true
@@ -551,38 +773,40 @@ function OnboardingWizard({ isOpen, onClose, onComplete, currentData = {} }) {
           {renderCurrentStep()}
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t bg-gray-50 flex justify-between">
-          <Button
-            variant="outline"
-            onClick={prevStep}
-            disabled={currentStep === 0}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Precedente
-          </Button>
-          
-          <div className="flex gap-2">
-            {isLastStep ? (
-              <Button
-                onClick={completeOnboarding}
-                disabled={!canProceed()}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                <CheckCircle className="h-4 w-4 mr-2" />
-                Completa Configurazione
-              </Button>
-            ) : (
-              <Button
-                onClick={nextStep}
-                disabled={!canProceed()}
-              >
-                Avanti
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
-            )}
+        {/* Footer - solo se non siamo nella schermata di successo */}
+        {!showSuccessScreen && (
+          <div className="p-6 border-t bg-gray-50 flex justify-between">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 0}
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Precedente
+            </Button>
+            
+            <div className="flex gap-2">
+              {isLastStep ? (
+                <Button
+                  onClick={completeOnboarding}
+                  disabled={!canProceed()}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Completa Configurazione
+                </Button>
+              ) : (
+                <Button
+                  onClick={nextStep}
+                  disabled={!canProceed()}
+                >
+                  Avanti
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

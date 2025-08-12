@@ -257,6 +257,7 @@ export const getValidationMessage = (type, value, context = {}) => {
     const isHot = context.isHot || temp > 50
     
     if (isFreezer) {
+      // Per freezer, controlla se è nel range -20°C a -18°C
       if (temp < rules.negative.min || temp > rules.negative.max) {
         return `Temperature freezer critiche: ${rules.negative.min}°C a ${rules.negative.max}°C. ${rules.negative.whyMatters}`
       }

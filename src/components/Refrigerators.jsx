@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X, HelpCircle } from 'lucide-react'
+import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X, HelpCircle, Info } from 'lucide-react'
 import { getConservationSuggestions, getOptimalTemperature } from '../utils/temperatureDatabase'
 import TemperatureInput from './ui/TemperatureInput'
 import HelpOverlay from './HelpOverlay'
@@ -23,6 +23,31 @@ const STORAGE_CATEGORIES = [
   { id: 'ambiente', name: 'Temperatura Ambiente', description: 'Prodotti conservati a temperatura ambiente (15-25°C)' },
   { id: 'altro', name: 'Altro', description: 'Altre categorie di prodotti' }
 ]
+
+// Opzioni per il campo Luogo
+const LOCATION_OPTIONS = [
+  { value: 'cucina', label: 'Cucina' },
+  { value: 'bancone', label: 'Bancone' },
+  { value: 'magazzino', label: 'Magazzino' }
+]
+
+// Mapping temperatura -> categorie suggerite
+const TEMPERATURE_CATEGORIES = {
+  '2-4': 'Latticini, salumi, freschi pronti',
+  '0-8': 'Verdure, frutta, ingredienti freschi',
+  '-19--16': 'Surgelati, gelati',
+  '-18--15': 'Pesce surgelato, carne surgelata',
+  '15-25': 'Dispensa secca, condimenti',
+  '60-70': 'Mantenimento caldo, piatti pronti'
+}
+
+// Validazioni range standard HACCP
+const HACCP_TEMPERATURE_RANGES = {
+  'frigo': { min: 2, max: 8, name: 'Frigorifero' },
+  'freezer': { min: -20, max: -18, name: 'Freezer' },
+  'banco': { min: 0, max: 4, name: 'Bancone refrigerato' },
+  'dispensa': { min: 15, max: 25, name: 'Dispensa' }
+}
 
 function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerators, setRefrigerators }) {
   const [showAddModal, setShowAddModal] = useState(false)
@@ -55,6 +80,9 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
   const [showHelpOverlay, setShowHelpOverlay] = useState(false)
   const [helpType, setHelpType] = useState('')
 
+  // Stato per il mini-riepilogo
+  const [sessionRefrigerators, setSessionRefrigerators] = useState([])
+
   // Combina le categorie predefinite con quelle personalizzate
   const allCategories = [...STORAGE_CATEGORIES, ...customCategories]
   
@@ -81,7 +109,94 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     localStorage.setItem('customStorageCategories', JSON.stringify(customCategories))
   }, [customCategories])
 
+  // Funzione per validare range temperature HACCP
+  const validateHACCPRange = (tempMin, tempMax, type) => {
+    const min = parseFloat(tempMin)
+    const max = parseFloat(tempMax)
+    
+    if (isNaN(min) || isNaN(max)) return { valid: false, message: 'Temperature non valide' }
+    
+    // Controlla se i numeri negativi sono corretti (es. -19 > -16 è valido per freezer)
+    if (min > max) {
+      // Se entrambi sono negativi, controlla se è un range valido per freezer
+      if (min < 0 && max < 0) {
+        // Per freezer, -19 > -16 è valido (min è più freddo di max)
+        if (type === 'freezer' && min <= -18 && max >= -20) {
+          return { valid: true, message: '' }
+        }
+        return { valid: false, message: 'Range freezer non standard: deve essere tra -20°C e -18°C' }
+      }
+      return { valid: false, message: 'Temperatura minima non può essere maggiore della massima' }
+    }
+    
+    // Controlla range standard HACCP
+    if (type === 'frigo' && (min < 2 || max > 8)) {
+      return { valid: false, message: 'Valore fuori standard HACCP: frigorifero deve essere tra 2°C e 8°C' }
+    }
+    
+    if (type === 'freezer' && (min > -18 || max < -20)) {
+      return { valid: false, message: 'Valore fuori standard HACCP: freezer deve essere tra -20°C e -18°C' }
+    }
+    
+    if (type === 'banco' && (min < 0 || max > 4)) {
+      return { valid: false, message: 'Valore fuori standard HACCP: bancone deve essere tra 0°C e 4°C' }
+    }
+    
+    return { valid: true, message: '' }
+  }
 
+  // Funzione per ottenere categorie suggerite in base alla temperatura
+  const getSuggestedCategories = (tempMin, tempMax) => {
+    const min = parseFloat(tempMin)
+    const max = parseFloat(tempMax)
+    
+    if (isNaN(min) || isNaN(max)) return ''
+    
+    // Determina il tipo di conservazione
+    let type = ''
+    
+    // Per freezer, controlla se min > max (es. -19 > -16)
+    if (min < 0 && max < 0 && min > max) {
+      if (min <= -18 && max >= -20) type = 'freezer'
+    }
+    
+    if (min >= 2 && max <= 8) type = 'frigo'
+    if (min >= 0 && max <= 4) type = 'banco'
+    if (min >= 15 && max <= 25) type = 'dispensa'
+    
+    // Restituisci le categorie suggerite
+    switch (type) {
+      case 'frigo':
+        return 'Questa temperatura va bene per: latticini, salumi, verdure, frutta, pesce fresco'
+      case 'freezer':
+        return 'Questa temperatura va bene per: surgelati, gelati, carne surgelata, pesce surgelato'
+      case 'banco':
+        return 'Questa temperatura va bene per: ingredienti freschi, preparazioni pronte, banco vendita'
+      case 'dispensa':
+        return 'Questa temperatura va bene per: dispensa secca, condimenti, conserve'
+      default:
+        return 'Temperatura personalizzata - verifica compatibilità prodotti'
+    }
+  }
+
+  // Funzione per determinare il tipo di conservazione
+  const getConservationType = (tempMin, tempMax) => {
+    const min = parseFloat(tempMin)
+    const max = parseFloat(tempMax)
+    
+    if (isNaN(min) || isNaN(max)) return 'altro'
+    
+    // Per freezer, controlla se min > max (es. -19 > -16)
+    if (min < 0 && max < 0 && min > max) {
+      if (min <= -18 && max >= -20) return 'freezer'
+    }
+    
+    if (min >= 2 && max <= 8) return 'frigo'
+    if (min >= 0 && max <= 4) return 'banco'
+    if (min >= 15 && max <= 25) return 'dispensa'
+    
+    return 'altro'
+  }
 
   // Funzione per aggiungere una nuova categoria personalizzata
   const addCustomCategory = () => {
@@ -100,33 +215,34 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
         return
       }
       
-      if (tempMin >= tempMax) {
-        alert('La temperatura minima deve essere inferiore alla temperatura massima')
-        return
+      // Controlla se min > max (anche per numeri negativi)
+      if (tempMin > tempMax) {
+        // Se entrambi sono negativi, potrebbe essere valido per freezer
+        if (tempMin < 0 && tempMax < 0) {
+          if (tempMin <= -18 && tempMax >= -20) {
+            // Range freezer valido
+          } else {
+            alert('Range freezer non standard: deve essere tra -20°C e -18°C')
+            return
+          }
+        } else {
+          alert('Temperatura minima non può essere maggiore della massima')
+          return
+        }
       }
     }
 
-    // Genera un ID univoco per la nuova categoria
     const newCategory = {
       id: `custom_${Date.now()}`,
       name: newCategoryData.name.trim(),
       description: newCategoryData.description.trim(),
-      temperatureMin: newCategoryData.temperatureMin ? parseFloat(newCategoryData.temperatureMin) : null,
-      temperatureMax: newCategoryData.temperatureMax ? parseFloat(newCategoryData.temperatureMax) : null,
-      temperatureRange: newCategoryData.temperatureMin && newCategoryData.temperatureMax ? 
-        `${newCategoryData.temperatureMin}-${newCategoryData.temperatureMax}°C` : '',
-      notes: newCategoryData.notes.trim(),
-      isCustom: true,
-      createdAt: new Date().toISOString()
+      temperatureMin: newCategoryData.temperatureMin || null,
+      temperatureMax: newCategoryData.temperatureMax || null,
+      notes: newCategoryData.notes || '',
+      isCustom: true
     }
 
-    setCustomCategories(prev => {
-      const updated = [...prev, newCategory]
-      console.log('🔍 Categorie aggiornate:', updated)
-      return updated
-    })
-    
-    // Reset del form e chiusura del form espandibile
+    setCustomCategories(prev => [...prev, newCategory])
     setNewCategoryData({
       name: '',
       description: '',
@@ -135,9 +251,6 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       notes: ''
     })
     setShowAddCategoryForm(false)
-    
-    // Mostra conferma
-    alert(`Categoria "${newCategory.name}" aggiunta con successo!`)
   }
 
   // Funzione per eliminare una categoria personalizzata
@@ -222,9 +335,36 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
 
     const setTempMin = parseFloat(formData.setTemperatureMin)
     const setTempMax = parseFloat(formData.setTemperatureMax)
-    if (isNaN(setTempMin) || isNaN(setTempMax) || setTempMin >= setTempMax) {
-      alert('Inserisci un range di temperatura valido (min < max)')
+    
+    if (isNaN(setTempMin) || isNaN(setTempMax)) {
+      alert('Inserisci temperature valide')
       return
+    }
+
+    // Determina il tipo di conservazione per la validazione HACCP
+    const conservationType = getConservationType(setTempMin, setTempMax)
+    
+    // Validazione range HACCP
+    const haccpValidation = validateHACCPRange(setTempMin, setTempMax, conservationType)
+    if (!haccpValidation.valid) {
+      alert(haccpValidation.message)
+      return
+    }
+
+    // Controlla se min > max (gestisce correttamente i numeri negativi)
+    if (setTempMin > setTempMax) {
+      // Se entrambi sono negativi, potrebbe essere valido per freezer
+      if (setTempMin < 0 && setTempMax < 0) {
+        if (setTempMin <= -18 && setTempMax >= -20) {
+          // Range freezer valido (-19 > -16 è corretto)
+        } else {
+          alert('Range freezer non standard: deve essere tra -20°C e -18°C')
+          return
+        }
+      } else {
+        alert('Temperatura minima non può essere maggiore della massima')
+        return
+      }
     }
 
     // Validazione temperatura se è stata selezionata una categoria
@@ -256,14 +396,18 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       setTemperatureMin: setTempMin,
       setTemperatureMax: setTempMax,
       setTemperature: `${setTempMin}-${setTempMax}°C`, // Mantiene compatibilità
-      location: formData.location.trim(),
-      dedicatedTo: formData.dedicatedTo.trim(),
-      nextMaintenance: formData.nextMaintenance.trim(),
+      location: formData.location || '',
+      dedicatedTo: formData.dedicatedTo || '',
+      nextMaintenance: formData.nextMaintenance || '',
       createdAt: new Date().toISOString(),
       createdBy: currentUser?.name || 'Unknown'
     }
 
     setRefrigerators([...refrigerators, newRefrigerator])
+    
+    // Aggiorna il mini-riepilogo della sessione
+    setSessionRefrigerators(prev => [...prev, newRefrigerator])
+    
     setFormData({
       name: '',
       setTemperatureMin: '',
@@ -332,9 +476,36 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
 
     const setTempMin = parseFloat(formData.setTemperatureMin)
     const setTempMax = parseFloat(formData.setTemperatureMax)
-    if (isNaN(setTempMin) || isNaN(setTempMax) || setTempMin >= setTempMax) {
-      alert('Inserisci un range di temperatura valido (min < max)')
+    
+    if (isNaN(setTempMin) || isNaN(setTempMax)) {
+      alert('Inserisci temperature valide')
       return
+    }
+
+    // Determina il tipo di conservazione per la validazione HACCP
+    const conservationType = getConservationType(setTempMin, setTempMax)
+    
+    // Validazione range HACCP
+    const haccpValidation = validateHACCPRange(setTempMin, setTempMax, conservationType)
+    if (!haccpValidation.valid) {
+      alert(haccpValidation.message)
+      return
+    }
+
+    // Controlla se min > max (gestisce correttamente i numeri negativi)
+    if (setTempMin > setTempMax) {
+      // Se entrambi sono negativi, potrebbe essere valido per freezer
+      if (setTempMin < 0 && setTempMax < 0) {
+        if (setTempMin <= -18 && setTempMax >= -20) {
+          // Range freezer valido (-19 > -16 è corretto)
+        } else {
+          alert('Range freezer non standard: deve essere tra -20°C e -18°C')
+          return
+        }
+      } else {
+        alert('Temperatura minima non può essere maggiore della massima')
+        return
+      }
     }
 
     // Validazione temperatura se è stata selezionata una categoria
@@ -1164,9 +1335,20 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           <h3 className="font-semibold text-lg">{refrigerator.name}</h3>
-                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                                                            {getRefrigeratorType(refrigerator)}
+                          
+                          {/* Pill di range temperatura */}
+                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                            {refrigerator.setTemperatureMin && refrigerator.setTemperatureMax 
+                              ? `${refrigerator.setTemperatureMin}-${refrigerator.setTemperatureMax}°C`
+                              : getRefrigeratorType(refrigerator)
+                            }
                           </span>
+                          
+                          {/* Pill di tipo */}
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                            {getRefrigeratorType(refrigerator)}
+                          </span>
+                          
                           {getStatusDot(status)}
                           <span className={`text-sm font-medium ${
                             status === 'green' ? 'text-green-700' :
@@ -1183,8 +1365,14 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                           </div>
                           
                           <div>
-                            <span className="text-gray-600">Posizionamento:</span>
-                            <div className="font-medium">{refrigerator.location || 'Non specificato'}</div>
+                            <span className="text-gray-600">Luogo:</span>
+                            <div className="font-medium">
+                              {refrigerator.location ? (
+                                <span className="capitalize">{refrigerator.location}</span>
+                              ) : (
+                                'Non specificato'
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -1378,17 +1566,38 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   className="w-full"
                   id="set-temperature-range"
                 />
+                
+                {/* Categorie suggerite in base alla temperatura */}
+                {formData.setTemperatureMin && formData.setTemperatureMax && (
+                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-700">
+                      {getSuggestedCategories(formData.setTemperatureMin, formData.setTemperatureMax)}
+                    </p>
+                  </div>
+                )}
               </div>
               
               <div>
-                <Label htmlFor="location">Posizionamento</Label>
-                <Input
+                <Label htmlFor="location">Luogo *</Label>
+                <select
                   id="location"
-                  type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({...formData, location: e.target.value})}
-                  placeholder="es. Cucina principale, Deposito..."
-                />
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Seleziona luogo</option>
+                  {LOCATION_OPTIONS.map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                {formData.dedicatedTo && formData.dedicatedTo.includes('frigo') && (
+                  <p className="text-xs text-blue-600 mt-1">
+                    💡 Suggerito: Bancone
+                  </p>
+                )}
               </div>
               
               <div>
@@ -1401,6 +1610,61 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   placeholder="es. 15/12/2024"
                 />
               </div>
+              
+              {/* Mini-riepilogo PdC creati in questa sessione */}
+              {sessionRefrigerators.length > 0 && (
+                <div className="bg-gray-50 p-3 rounded-lg border">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">PdC creati in questa sessione:</h4>
+                  <div className="space-y-2">
+                    {sessionRefrigerators.map((ref, index) => (
+                      <div key={ref.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{ref.name}</p>
+                          <p className="text-xs text-gray-600">
+                            {ref.location && `${ref.location} • `}
+                            {ref.setTemperatureMin}-{ref.setTemperatureMax}°C
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setFormData({
+                                name: ref.name,
+                                setTemperatureMin: ref.setTemperatureMin.toString(),
+                                setTemperatureMax: ref.setTemperatureMax.toString(),
+                                location: ref.location,
+                                dedicatedTo: ref.dedicatedTo,
+                                nextMaintenance: ref.nextMaintenance
+                              })
+                              setEditingRefrigerator(ref)
+                              setShowAddModal(false)
+                              setShowEditModal(true)
+                            }}
+                            className="h-6 px-2 text-xs"
+                          >
+                            <Edit className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSessionRefrigerators(prev => prev.filter((_, i) => i !== index))
+                              setRefrigerators(prev => prev.filter(r => r.id !== ref.id))
+                            }}
+                            className="h-6 px-2 text-xs text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               <div className="flex gap-2 pt-4">
                 <Button type="submit" className="flex-1">

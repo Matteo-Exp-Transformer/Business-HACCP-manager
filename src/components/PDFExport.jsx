@@ -5,10 +5,11 @@ import { Button } from './ui/Button'
 function PDFExport({ activeTab, temperatures }) {
   const [showPDFButton, setShowPDFButton] = useState(false)
 
-  // Show PDF button only on temperature tab
+  // Show PDF button only on temperature tab AND if there are temperature records
   useEffect(() => {
-    setShowPDFButton(activeTab === 'temperature')
-  }, [activeTab])
+    const hasTemperatureData = temperatures && temperatures.length > 0
+    setShowPDFButton(activeTab === 'temperature' && hasTemperatureData)
+  }, [activeTab, temperatures])
 
   const exportTemperaturePDF = () => {
     // Check if PDF libraries are loaded
@@ -92,6 +93,20 @@ function PDFExport({ activeTab, temperatures }) {
     }
   }
 
+  // Se non ci sono dati, mostra messaggio informativo
+  if (activeTab === 'temperature' && (!temperatures || temperatures.length === 0)) {
+    return (
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className="bg-gray-100 border border-gray-300 rounded-lg p-3 shadow-lg">
+          <p className="text-sm text-gray-600 text-center">
+            Aggiungi almeno 1 rilevazione per esportare
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Se non è la sezione temperature o non ci sono dati, non mostrare nulla
   if (!showPDFButton) return null
 
   return (

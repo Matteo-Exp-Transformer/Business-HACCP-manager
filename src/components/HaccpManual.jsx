@@ -4,7 +4,7 @@
  * Questo componente mostra la guida HACCP completa in una sezione dedicata
  * accessibile dalle Impostazioni. Non invasivo, solo se l'utente lo cerca.
  * 
- * @version 1.0
+ * @version 1.1 - Aggiornato con ricerca e contenuto migliorato
  * @critical Sicurezza alimentare - Guida utente
  */
 
@@ -12,6 +12,7 @@ import React, { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs'
+import { Input } from './ui/Input'
 import { 
   BookOpen, 
   Shield, 
@@ -24,7 +25,10 @@ import {
   CheckCircle,
   Info,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Search,
+  Clock,
+  AlertCircle
 } from 'lucide-react'
 import { HACCP_GUIDE } from '../utils/haccpGuide'
 
@@ -43,15 +47,17 @@ function HaccpManual() {
     setExpandedSections(newExpanded)
   }
 
-  // Funzione di ricerca
+  // Funzione di ricerca migliorata
   const filteredPrinciples = HACCP_GUIDE.principles.filter(principle =>
     principle.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    principle.description.toLowerCase().includes(searchTerm.toLowerCase())
+    principle.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    principle.implementation.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const filteredGuidelines = Object.entries(HACCP_GUIDE.guidelines).filter(([key, guideline]) =>
     guideline.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (guideline.whyMatters && guideline.whyMatters.toLowerCase().includes(searchTerm.toLowerCase()))
+    (guideline.whyMatters && guideline.whyMatters.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (guideline.frequency && guideline.frequency.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   const renderPrinciple = (principle) => (
@@ -104,53 +110,6 @@ function HaccpManual() {
         </div>
       )}
 
-      {guideline.zones && (
-        <div className="mb-3">
-          <p className="text-sm font-medium text-green-800">Zone e Frequenza:</p>
-          <div className="space-y-2">
-            {guideline.zones.map((zone, idx) => (
-              <div key={idx} className="bg-green-100 p-2 rounded">
-                <p className="font-medium text-green-900">{zone.name}</p>
-                <p className="text-sm text-green-800">Frequenza: {zone.frequency}</p>
-                <p className="text-sm text-green-700">Prodotti: {zone.products.join(', ')}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {guideline.roles && (
-        <div className="mb-3">
-          <p className="text-sm font-medium text-green-800">Ruoli e Responsabilità:</p>
-          <div className="space-y-2">
-            {guideline.roles.map((role, idx) => (
-              <div key={idx} className="bg-green-100 p-2 rounded">
-                <p className="font-medium text-green-900">{role.name}</p>
-                <div className="text-sm text-green-800">
-                  <p>Responsabilità:</p>
-                  <ul className="list-disc list-inside ml-2">
-                    {role.responsibilities.map((resp, respIdx) => (
-                      <li key={respIdx}>{resp}</li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {guideline.correctiveActions && (
-        <div className="mb-3">
-          <p className="text-sm font-medium text-green-800">Azioni Correttive:</p>
-          <ul className="list-disc list-inside space-y-1">
-            {guideline.correctiveActions.map((action, idx) => (
-              <li key={idx} className="text-green-700">{action}</li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {guideline.whyMatters && (
         <div className="bg-green-100 p-3 rounded">
           <p className="text-sm font-medium text-green-900 mb-1">Perché è importante:</p>
@@ -160,195 +119,208 @@ function HaccpManual() {
     </div>
   )
 
-  const renderRequirement = (section, requirement) => (
-    <div key={section} className="mb-4 p-4 bg-orange-50 rounded-lg border-l-4 border-orange-500">
-      <h4 className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
-        <Info className="h-5 w-5" />
-        {getSectionDisplayName(section)}
-      </h4>
-      
-      <div className="mb-3">
-        <p className="text-sm font-medium text-orange-800">Dati obbligatori:</p>
-        <ul className="list-disc list-inside space-y-1">
-          {requirement.mandatory.map((field, idx) => (
-            <li key={idx} className="text-orange-700">{field}</li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="mb-3">
-        <p className="text-sm font-medium text-orange-800">Validazione:</p>
-        <p className="text-orange-700">{requirement.validation}</p>
-      </div>
-
-      {requirement.blocking && requirement.blocking.length > 0 && (
-        <div className="mb-3">
-          <p className="text-sm font-medium text-orange-800">Blocca sezioni:</p>
-          <p className="text-orange-700">{requirement.blocking.join(', ')}</p>
-        </div>
-      )}
-
-      <div className="bg-orange-100 p-3 rounded">
-        <p className="text-sm font-medium text-orange-900 mb-1">Perché è importante:</p>
-        <p className="text-sm text-orange-800">{requirement.whyMatters}</p>
-      </div>
-    </div>
-  )
-
   const getGuidelineIcon = (section) => {
     const icons = {
-      temperature: <Thermometer className="h-5 w-5" />,
-      cleaning: <Sparkles className="h-5 w-5" />,
-      staff: <Users className="h-5 w-5" />,
-      products: <Package className="h-5 w-5" />,
-      suppliers: <Truck className="h-5 w-5" />,
-      nonConformity: <AlertTriangle className="h-5 w-5" />
+      'temperature': <Thermometer className="h-5 w-5" />,
+      'cleaning': <Sparkles className="h-5 w-5" />,
+      'staff': <Users className="h-5 w-5" />,
+      'inventory': <Package className="h-5 w-5" />,
+      'suppliers': <Truck className="h-5 w-5" />,
+      'autoprodotti': <Clock className="h-5 w-5" />
     }
     return icons[section] || <Info className="h-5 w-5" />
   }
 
-  const getSectionDisplayName = (section) => {
-    const names = {
-      refrigerators: "Gestione Frigoriferi",
-      temperature: "Registrazione Temperature",
-      staff: "Gestione Personale",
-      cleaning: "Gestione Pulizie",
-      products: "Gestione Prodotti",
-      suppliers: "Gestione Fornitori",
-      nonConformity: "Gestione Non Conformità"
-    }
-    return names[section] || section
-  }
+  const renderAutoprodottiSection = () => (
+    <div className="space-y-4">
+      <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+        <h4 className="font-semibold text-purple-900 mb-3 flex items-center gap-2">
+          <Clock className="h-5 w-5" />
+          Autoprodotti e Lavorati
+        </h4>
+        <div className="space-y-3">
+          <div className="bg-purple-100 p-3 rounded">
+            <h5 className="font-medium text-purple-800 mb-2">Pasta Fresca</h5>
+            <p className="text-sm text-purple-700">Conservazione: 2-4°C • Durata: 24-48 ore</p>
+            <p className="text-xs text-purple-600 mt-1">Se >4°C: sposta i prodotti e riprova tra 10 minuti</p>
+          </div>
+          
+          <div className="bg-purple-100 p-3 rounded">
+            <h5 className="font-medium text-purple-800 mb-2">Salse Preparate</h5>
+            <p className="text-sm text-purple-700">Conservazione: 2-4°C • Durata: 72 ore</p>
+            <p className="text-xs text-purple-600 mt-1">Controlla odore e colore prima dell'uso</p>
+          </div>
+          
+          <div className="bg-purple-100 p-3 rounded">
+            <h5 className="font-medium text-purple-800 mb-2">Impasti Lievitati</h5>
+            <p className="text-sm text-purple-700">Conservazione: 2-4°C • Durata: 24 ore</p>
+            <p className="text-xs text-purple-600 mt-1">Verifica consistenza e odore prima della cottura</p>
+          </div>
+          
+          <div className="bg-purple-100 p-3 rounded">
+            <h5 className="font-medium text-purple-800 mb-2">Dolci Freschi</h5>
+            <p className="text-sm text-purple-700">Conservazione: 2-4°C • Durata: 48-72 ore</p>
+            <p className="text-xs text-purple-600 mt-1">Controlla muffe e odori sgradevoli</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Header con ricerca */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-3 text-2xl">
-            <BookOpen className="h-8 w-8 text-blue-600" />
+          <CardTitle className="flex items-center gap-2">
+            <BookOpen className="h-6 w-6 text-blue-600" />
             Manuale HACCP - Guida Completa
           </CardTitle>
-          <p className="text-gray-600">
-            Riferimento completo per normative HACCP e procedure operative
-          </p>
         </CardHeader>
+        <CardContent>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              type="text"
+              placeholder="Cerca nel manuale HACCP..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full"
+            />
+          </div>
+          {searchTerm && (
+            <p className="text-sm text-gray-600 mt-2">
+              Risultati per: <span className="font-medium">"{searchTerm}"</span>
+            </p>
+          )}
+        </CardContent>
       </Card>
 
-      {/* Tabs principali */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="principles">Principi Base</TabsTrigger>
-          <TabsTrigger value="guidelines">Linee Guida</TabsTrigger>
-          <TabsTrigger value="requirements">Requisiti</TabsTrigger>
+      {/* Contenuto principale */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="principles" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Principi
+          </TabsTrigger>
+          <TabsTrigger value="guidelines" className="flex items-center gap-2">
+            <Info className="h-4 w-4" />
+            Linee Guida
+          </TabsTrigger>
+          <TabsTrigger value="autoprodotti" className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            Autoprodotti
+          </TabsTrigger>
+          <TabsTrigger value="quick-actions" className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4" />
+            Azioni Rapide
+          </TabsTrigger>
         </TabsList>
 
-        {/* Tab Principi Base */}
         <TabsContent value="principles" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="h-6 w-6 text-blue-600" />
-                Principi Fondamentali HACCP
-              </CardTitle>
-              <p className="text-gray-600">
-                Questi principi garantiscono la conformità alle normative di sicurezza alimentare
-              </p>
-              
-              {/* Barra di ricerca */}
-              <div className="mt-4 relative">
-                <input
-                  type="text"
-                  placeholder="Cerca nei principi..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm('')}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
+              <CardTitle>I 7 Principi HACCP</CardTitle>
             </CardHeader>
             <CardContent>
-              {filteredPrinciples.map(renderPrinciple)}
+              {searchTerm ? (
+                filteredPrinciples.length > 0 ? (
+                  filteredPrinciples.map(renderPrinciple)
+                ) : (
+                  <p className="text-gray-500 text-center py-8">Nessun risultato trovato per "{searchTerm}"</p>
+                )
+              ) : (
+                HACCP_GUIDE.principles.map(renderPrinciple)
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Tab Linee Guida */}
         <TabsContent value="guidelines" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <BookOpen className="h-6 w-6 text-green-600" />
-                Linee Guida Operative
-              </CardTitle>
-              <p className="text-gray-600">
-                Procedure dettagliate per ogni area operativa
-              </p>
+              <CardTitle>Linee Guida Operative</CardTitle>
             </CardHeader>
             <CardContent>
-              {filteredGuidelines.map(([section, guideline]) => 
-                renderGuideline(section, guideline)
+              {searchTerm ? (
+                filteredGuidelines.length > 0 ? (
+                  filteredGuidelines.map(([key, guideline]) => renderGuideline(key, guideline))
+                ) : (
+                  <p className="text-gray-500 text-center py-8">Nessun risultato trovato per "{searchTerm}"</p>
+                )
+              ) : (
+                Object.entries(HACCP_GUIDE.guidelines).map(([key, guideline]) => renderGuideline(key, guideline))
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Tab Requisiti */}
-        <TabsContent value="requirements" className="space-y-4">
+        <TabsContent value="autoprodotti" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <CheckCircle className="h-6 w-6 text-orange-600" />
-                Requisiti Minimi e Validazioni
-              </CardTitle>
-              <p className="text-gray-600">
-                Dati obbligatori e controlli automatici per ogni sezione
-              </p>
+              <CardTitle>Gestione Autoprodotti e Lavorati</CardTitle>
             </CardHeader>
             <CardContent>
-              {Object.entries(HACCP_GUIDE.requirements).map(([section, requirement]) => 
-                renderRequirement(section, requirement)
-              )}
+              {renderAutoprodottiSection()}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="quick-actions" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>Azioni Rapide HACCP</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-red-50 rounded-lg border-l-4 border-red-500">
+                  <h4 className="font-medium text-red-800 mb-2 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4" />
+                    Temperatura Alta
+                  </h4>
+                  <p className="text-sm text-red-700 mb-2">Se >4°C: sposta i prodotti e riprova tra 10 minuti</p>
+                  <Button size="sm" variant="outline" className="text-red-700 border-red-300">
+                    Azione Correttiva
+                  </Button>
+                </div>
+                
+                <div className="p-4 bg-orange-50 rounded-lg border-l-4 border-orange-500">
+                  <h4 className="font-medium text-orange-800 mb-2 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Scadenza Imminente
+                  </h4>
+                  <p className="text-sm text-orange-700 mb-2">Prodotti che scadono entro 24 ore</p>
+                  <Button size="sm" variant="outline" className="text-orange-700 border-orange-300">
+                    Verifica Inventario
+                  </Button>
+                </div>
+                
+                <div className="p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
+                  <h4 className="font-medium text-yellow-800 mb-2 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Pulizia Necessaria
+                  </h4>
+                  <p className="text-sm text-yellow-700 mb-2">Superfici e attrezzature da pulire</p>
+                  <Button size="sm" variant="outline" className="text-yellow-700 border-yellow-300">
+                    Pianifica Pulizia
+                  </Button>
+                </div>
+                
+                <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                  <h4 className="font-medium text-blue-800 mb-2 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Formazione Staff
+                  </h4>
+                  <p className="text-sm text-blue-700 mb-2">Verifica certificazioni e formazione</p>
+                  <Button size="sm" variant="outline" className="text-blue-700 border-blue-300">
+                    Controlla Certificazioni
+                  </Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Messaggi educativi */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Info className="h-6 w-6 text-purple-600" />
-            Informazioni Importanti
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {Object.entries(HACCP_GUIDE.educationalMessages).map(([key, message]) => (
-              <div key={key} className="p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-                <p className="text-purple-800">{message}</p>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Footer */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="text-center text-sm text-gray-500">
-            <p>Versione {HACCP_GUIDE.version} • Ultimo aggiornamento: {HACCP_GUIDE.lastUpdated}</p>
-            <p className="mt-1">Questo manuale è conforme alle normative HACCP vigenti</p>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
