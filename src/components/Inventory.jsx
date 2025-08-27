@@ -146,8 +146,7 @@ const STORAGE_CATEGORIES = [
   { id: 'surgelato', name: 'Surgelati', description: 'Tutti i prodotti surgelati' },
   { id: 'dispensa', name: 'Dispensa Secca', description: 'Pasta, riso, farina, conserve' },
   { id: 'condimenti', name: 'Oli e Condimenti', description: 'Oli, aceti, spezie, salse' },
-  { id: 'hot_holding', name: 'Mantenimento Caldo', description: 'Piatti pronti caldi, mantenuti a temperatura' },
-  { id: 'altro', name: 'Altro', description: 'Altre categorie di prodotti' }
+  { id: 'hot_holding', name: 'Mantenimento Caldo', description: 'Piatti pronti caldi, mantenuti a temperatura' }
 ]
 
 function Inventory({ products = [], setProducts, currentUser, refrigerators = [] }) {

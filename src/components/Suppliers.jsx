@@ -36,8 +36,7 @@ const SUPPLIER_CATEGORIES = [
   { key: 'salumi', name: 'Salumi', icon: '🥓', description: 'Prosciutto, salame, mortadella' },
   { key: 'verdure', name: 'Verdure', icon: '🥬', description: 'Verdure fresche e ortaggi' },
   { key: 'farine', name: 'Farine', icon: '🌾', description: 'Farine, cereali, impasti' },
-  { key: 'surgelati', name: 'Surgelati', icon: '❄️', description: 'Prodotti surgelati' },
-  { key: 'altro', name: 'Altro', icon: '📦', description: 'Altri prodotti alimentari' }
+  { key: 'surgelati', name: 'Surgelati', icon: '❄️', description: 'Prodotti surgelati' }
 ]
 
 function Suppliers({ currentUser }) {

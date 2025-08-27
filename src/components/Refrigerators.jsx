@@ -7,6 +7,7 @@ import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, Ma
 import { getConservationSuggestions, getOptimalTemperature } from '../utils/temperatureDatabase'
 import TemperatureInput from './ui/TemperatureInput'
 import HelpOverlay from './HelpOverlay'
+import { getHaccpGuidelines } from '../utils/haccpRules'
 
 // Categorie predefinite per i punti di conservazione (sincronizzate con Inventory.jsx)
 const STORAGE_CATEGORIES = [
@@ -20,8 +21,7 @@ const STORAGE_CATEGORIES = [
   { id: 'dispensa', name: 'Dispensa Secca', description: 'Pasta, riso, farina, conserve' },
   { id: 'condimenti', name: 'Oli e Condimenti', description: 'Oli, aceti, spezie, salse' },
   { id: 'hot_holding', name: 'Mantenimento Caldo', description: 'Piatti pronti caldi, mantenuti a temperatura' },
-  { id: 'ambiente', name: 'Temperatura Ambiente', description: 'Prodotti conservati a temperatura ambiente (15-25°C)' },
-  { id: 'altro', name: 'Altro', description: 'Altre categorie di prodotti' }
+  { id: 'ambiente', name: 'Temperatura Ambiente', description: 'Prodotti conservati a temperatura ambiente (15-25°C)' }
 ]
 
 // Opzioni per il campo Luogo
@@ -126,7 +126,10 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
         }
         return { valid: false, message: 'Range freezer non standard: deve essere tra -20°C e -18°C' }
       }
-      return { valid: false, message: 'Temperatura minima non può essere maggiore della massima' }
+      // Solo per temperature positive, min non può essere maggiore di max
+      if (min >= 0 && max >= 0) {
+        return { valid: false, message: 'Temperatura minima non può essere maggiore della massima' }
+      }
     }
     
     // Controlla range standard HACCP
@@ -143,6 +146,83 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     }
     
     return { valid: true, message: '' }
+  }
+
+  // Funzione per validare temperature HACCP con tolleranza di 2°C
+  const validateHACCPTemperature = (category, minTemp, maxTemp) => {
+    if (!category) return { valid: true, message: '', suggestion: '' }
+    
+    const guidelines = getHaccpGuidelines(category)
+    if (!guidelines) return { valid: true, message: '', suggestion: '' }
+    
+    const min = parseFloat(minTemp)
+    const max = parseFloat(maxTemp)
+    
+    if (isNaN(min) || isNaN(max)) {
+      return { valid: false, message: 'Temperature non valide', suggestion: 'Inserisci temperature numeriche valide' }
+    }
+    
+    // Trova il range più appropriato per la categoria
+    let bestRange = guidelines.ranges[0]
+    let minDeviation = Infinity
+    
+    for (const range of guidelines.ranges) {
+      const rangeAvg = (range.min + range.max) / 2
+      const deviation = Math.abs((min + max) / 2 - rangeAvg)
+      
+      if (deviation < minDeviation) {
+        minDeviation = deviation
+        bestRange = range
+      }
+    }
+    
+    // Calcola le deviazioni dai limiti
+    const deviationFromMin = bestRange.min - min
+    const deviationFromMax = max - bestRange.max
+    
+    // Determina se le temperature sono nel range di tolleranza
+    const isInTolerance = (min >= bestRange.min - 2) && (max <= bestRange.max + 2)
+    
+    if (!isInTolerance) {
+      // Temperature fuori tolleranza - blocco completo
+      let message = `❌ Temperature NON conformi alle normative HACCP per ${guidelines.name}`
+      let suggestion = ''
+      
+      if (deviationFromMin > 2) {
+        suggestion = `La temperatura minima ${min}°C è troppo alta. Range consigliato: ${bestRange.min}°C ÷ ${bestRange.max}°C`
+      } else if (deviationFromMax > 2) {
+        suggestion = `La temperatura massima ${max}°C è troppo alta. Range consigliato: ${bestRange.min}°C ÷ ${bestRange.max}°C`
+      }
+      
+      return {
+        valid: false,
+        message,
+        suggestion,
+        category: guidelines.name,
+        recommendedRange: `${bestRange.min}°C ÷ ${bestRange.max}°C`,
+        currentRange: `${min}°C ÷ ${max}°C`
+      }
+    } else if (min < bestRange.min || max > bestRange.max) {
+      // Temperature in tolleranza ma non ottimali - warning
+      return {
+        valid: true,
+        message: `⚠️ Temperature leggermente fuori range ottimale per ${guidelines.name}`,
+        suggestion: `Range ottimale: ${bestRange.min}°C ÷ ${bestRange.max}°C. Le tue temperature sono accettabili ma considera di regolarle per piena conformità HACCP.`,
+        category: guidelines.name,
+        recommendedRange: `${bestRange.min}°C ÷ ${bestRange.max}°C`,
+        currentRange: `${min}°C ÷ ${max}°C`
+      }
+    } else {
+      // Temperature perfettamente conformi
+      return {
+        valid: true,
+        message: `✅ Temperature conformi alle normative HACCP per ${guidelines.name}`,
+        suggestion: `Range ottimale: ${bestRange.min}°C ÷ ${bestRange.max}°C`,
+        category: guidelines.name,
+        recommendedRange: `${bestRange.min}°C ÷ ${bestRange.max}°C`,
+        currentRange: `${min}°C ÷ ${max}°C`
+      }
+    }
   }
 
   // Funzione per ottenere categorie suggerite in base alla temperatura
@@ -184,7 +264,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     const min = parseFloat(tempMin)
     const max = parseFloat(tempMax)
     
-    if (isNaN(min) || isNaN(max)) return 'altro'
+    if (isNaN(min) || isNaN(max)) return 'ambiente'
     
     // Per freezer, controlla se min > max (es. -19 > -16)
     if (min < 0 && max < 0 && min > max) {
@@ -367,28 +447,26 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       }
     }
 
-    // Validazione temperatura se è stata selezionata una categoria
-    if (formData.dedicatedTo && formData.dedicatedTo !== 'altro') {
-      const optimalTemp = getOptimalTemperature(formData.dedicatedTo)
-      const avgTemp = (setTempMin + setTempMax) / 2
-      const tempDiff = Math.abs(avgTemp - (optimalTemp.min + optimalTemp.max) / 2)
-      
-      // Se la temperatura è troppo diversa da quella ottimale, mostra un warning
-      if (tempDiff > 5) {
-        const categoryName = STORAGE_CATEGORIES.find(cat => cat.id === formData.dedicatedTo)?.name
-        const shouldContinue = confirm(
-          `⚠️ ATTENZIONE: Temperatura non ottimale!\n\n` +
-          `Hai impostato: ${setTempMin}-${setTempMax}°C\n` +
-          `Temperatura ottimale per ${categoryName}: ${optimalTemp.min}-${optimalTemp.max}°C\n\n` +
-          `Questa temperatura potrebbe non essere adatta per la conservazione ottimale degli alimenti di questa categoria.\n\n` +
-          `Vuoi continuare comunque?`
-        )
+          // Validazione temperatura HACCP con tolleranza di 2°C
+      if (formData.dedicatedTo) {
+        const haccpValidation = validateHACCPTemperature(formData.dedicatedTo, setTempMin, setTempMax)
         
-        if (!shouldContinue) {
+        if (!haccpValidation.valid) {
+          alert(`${haccpValidation.message}\n\n${haccpValidation.suggestion}\n\nImpossibile aggiungere il punto di conservazione: correggi le temperature per rispettare i limiti HACCP.`)
           return
         }
+        
+        // Se è un warning, chiedi conferma ma permetti di continuare
+        if (haccpValidation.message.includes('⚠️')) {
+          const shouldContinue = confirm(
+            `${haccpValidation.message}\n\n${haccpValidation.suggestion}\n\nVuoi continuare comunque?`
+          )
+          
+          if (!shouldContinue) {
+            return
+          }
+        }
       }
-    }
 
     const newRefrigerator = {
       id: Date.now(),
@@ -508,45 +586,26 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       }
     }
 
-    // Validazione temperatura se è stata selezionata una categoria
-    if (formData.dedicatedTo && formData.dedicatedTo !== 'altro') {
-      const optimalTemp = getOptimalTemperature(formData.dedicatedTo)
-      
-      // Verifica se il range di temperatura del frigorifero è compatibile con quello ottimale
-      const isCompatible = (
-        (setTempMin <= optimalTemp.max && setTempMax >= optimalTemp.min) ||
-        (optimalTemp.min <= setTempMax && optimalTemp.max >= setTempMin)
-      )
-      
-      if (!isCompatible) {
-        const categoryName = STORAGE_CATEGORIES.find(cat => cat.id === formData.dedicatedTo)?.name
-        const shouldContinue = confirm(
-          `🚨 ERRORE: Temperatura INCOMPATIBILE!\n\n` +
-          `Hai impostato: ${setTempMin}-${setTempMax}°C\n` +
-          `Temperatura ottimale per ${categoryName}: ${optimalTemp.min}-${optimalTemp.max}°C\n\n` +
-          `Questo range di temperatura NON è adatto per la conservazione degli alimenti di questa categoria.\n\n` +
-          `Vuoi continuare comunque? (Non raccomandato)`
-        )
+          // Validazione temperatura HACCP con tolleranza di 2°C
+      if (formData.dedicatedTo) {
+        const haccpValidation = validateHACCPTemperature(formData.dedicatedTo, setTempMin, setTempMax)
         
-        if (!shouldContinue) {
+        if (!haccpValidation.valid) {
+          alert(`${haccpValidation.message}\n\n${haccpValidation.suggestion}\n\nImpossibile modificare il punto di conservazione: correggi le temperature per rispettare i limiti HACCP.`)
           return
         }
-      } else if (Math.abs(setTempMin - optimalTemp.min) > 2 || Math.abs(setTempMax - optimalTemp.max) > 2) {
-        // Se è compatibile ma non ottimale, mostra un warning
-        const categoryName = STORAGE_CATEGORIES.find(cat => cat.id === formData.dedicatedTo)?.name
-        const shouldContinue = confirm(
-          `⚠️ ATTENZIONE: Temperatura non ottimale!\n\n` +
-          `Hai impostato: ${setTempMin}-${setTempMax}°C\n` +
-          `Temperatura ottimale per ${categoryName}: ${optimalTemp.min}-${optimalTemp.max}°C\n\n` +
-          `Questa temperatura è compatibile ma potrebbe non essere ideale per la conservazione ottimale.\n\n` +
-          `Vuoi continuare comunque?`
-        )
         
-        if (!shouldContinue) {
-          return
+        // Se è un warning, chiedi conferma ma permetti di continuare
+        if (haccpValidation.message.includes('⚠️')) {
+          const shouldContinue = confirm(
+            `${haccpValidation.message}\n\n${haccpValidation.suggestion}\n\nVuoi continuare comunque?`
+          )
+          
+          if (!shouldContinue) {
+            return
+          }
         }
       }
-    }
 
     const updatedRefrigerator = {
       ...editingRefrigerator,
@@ -1405,7 +1464,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       {/* Add Refrigerator Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Aggiungi Punto di Conservazione</h2>
             
             {/* Informazioni sulla nuova logica */}
@@ -1567,12 +1626,35 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   id="set-temperature-range"
                 />
                 
-                {/* Categorie suggerite in base alla temperatura */}
-                {formData.setTemperatureMin && formData.setTemperatureMax && (
-                  <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-xs text-blue-700">
-                      {getSuggestedCategories(formData.setTemperatureMin, formData.setTemperatureMax)}
-                    </p>
+                {/* Casella unificata per suggerimenti e validazione HACCP */}
+                {formData.setTemperatureMin && formData.setTemperatureMax && formData.dedicatedTo && (
+                  <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-medium text-blue-800 mb-2">💡 Validazione HACCP</h4>
+                    
+                    {/* Validazione HACCP */}
+                    {(() => {
+                      const haccpValidation = validateHACCPTemperature(formData.dedicatedTo, formData.setTemperatureMin, formData.setTemperatureMax)
+                      
+                      if (haccpValidation.valid) {
+                        return (
+                          <div className={`p-3 rounded border ${
+                            haccpValidation.message.includes('✅') 
+                              ? 'bg-green-100 border-green-300 text-green-800' 
+                              : 'bg-yellow-100 border-yellow-300 text-yellow-800'
+                          }`}>
+                            <p className="text-sm font-medium">{haccpValidation.message}</p>
+                            <p className="text-xs mt-1">{haccpValidation.suggestion}</p>
+                          </div>
+                        )
+                      } else {
+                        return (
+                          <div className="p-3 bg-red-100 border border-red-300 rounded text-red-800">
+                            <p className="text-sm font-medium">{haccpValidation.message}</p>
+                            <p className="text-xs mt-1">{haccpValidation.suggestion}</p>
+                          </div>
+                        )
+                      }
+                    })()}
                   </div>
                 )}
               </div>
@@ -1687,7 +1769,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       {/* Edit Refrigerator Modal */}
       {showEditModal && editingRefrigerator && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Modifica Punto di Conservazione</h2>
             
             {/* Informazioni sulla nuova logica */}
@@ -1765,6 +1847,38 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
                   className="w-full"
                   id="edit-set-temperature-range"
                 />
+                
+                {/* Casella unificata per suggerimenti e validazione HACCP */}
+                {formData.setTemperatureMin && formData.setTemperatureMax && formData.dedicatedTo && (
+                  <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-medium text-blue-800 mb-2">💡 Validazione HACCP</h4>
+                    
+                    {/* Validazione HACCP */}
+                    {(() => {
+                      const haccpValidation = validateHACCPTemperature(formData.dedicatedTo, formData.setTemperatureMin, formData.setTemperatureMax)
+                      
+                      if (haccpValidation.valid) {
+                        return (
+                          <div className={`p-3 rounded border ${
+                            haccpValidation.message.includes('✅') 
+                              ? 'bg-green-100 border-green-300 text-green-800' 
+                              : 'bg-yellow-100 border-yellow-300 text-yellow-800'
+                          }`}>
+                            <p className="text-sm font-medium">{haccpValidation.message}</p>
+                            <p className="text-xs mt-1">{haccpValidation.suggestion}</p>
+                          </div>
+                        )
+                      } else {
+                        return (
+                          <div className="p-3 bg-red-100 border border-red-300 rounded text-red-800">
+                            <p className="text-sm font-medium">{haccpValidation.message}</p>
+                            <p className="text-xs mt-1">{haccpValidation.suggestion}</p>
+                          </div>
+                        )
+                      }
+                    })()}
+                  </div>
+                )}
               </div>
               
               <div>

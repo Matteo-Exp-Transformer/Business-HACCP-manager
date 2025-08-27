@@ -19,8 +19,7 @@ const STORAGE_CATEGORIES = [
   { id: 'dispensa', name: 'Dispensa Secca', description: 'Pasta, riso, farina, conserve' },
   { id: 'condimenti', name: 'Oli e Condimenti', description: 'Oli, aceti, spezie, salse' },
   { id: 'hot_holding', name: 'Mantenimento Caldo', description: 'Piatti pronti caldi, mantenuti a temperatura' },
-  { id: 'ambiente', name: 'Temperatura Ambiente', description: 'Prodotti conservati a temperatura ambiente (15-25°C)' },
-  { id: 'altro', name: 'Altro', description: 'Altre categorie di prodotti' }
+  { id: 'ambiente', name: 'Temperatura Ambiente', description: 'Prodotti conservati a temperatura ambiente (15-25°C)' }
 ]
 
 function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerators, setRefrigerators }) {
@@ -217,7 +216,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     }
 
     // Validazione temperatura se è stata selezionata una categoria
-    if (formData.dedicatedTo && formData.dedicatedTo !== 'altro') {
+    if (formData.dedicatedTo) {
       const optimalTemp = getOptimalTemperature(formData.dedicatedTo)
       const avgTemp = (setTempMin + setTempMax) / 2
       const tempDiff = Math.abs(avgTemp - (optimalTemp.min + optimalTemp.max) / 2)
@@ -327,7 +326,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
     }
 
     // Validazione temperatura se è stata selezionata una categoria
-    if (formData.dedicatedTo && formData.dedicatedTo !== 'altro') {
+    if (formData.dedicatedTo) {
       const optimalTemp = getOptimalTemperature(formData.dedicatedTo)
       
       // Verifica se il range di temperatura del frigorifero è compatibile con quello ottimale
@@ -1173,7 +1172,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       {/* Add Refrigerator Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Aggiungi Punto di Conservazione</h2>
             
             {/* Informazioni sulla nuova logica */}
@@ -1379,7 +1378,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       {/* Edit Refrigerator Modal */}
       {showEditModal && editingRefrigerator && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-4 w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Modifica Punto di Conservazione</h2>
             
             {/* Informazioni sulla nuova logica */}

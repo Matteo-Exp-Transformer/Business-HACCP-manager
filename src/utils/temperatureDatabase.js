@@ -315,7 +315,7 @@ export const getProductCategory = (foodItem) => {
   if (item.includes('olio') || item.includes('aceto') || item.includes('spezie')) return 'condimenti'
   if (item.includes('biscotti') || item.includes('crackers') || item.includes('pane') || item.includes('scatolame')) return 'ambiente'
   
-  return 'altro'
+  return 'ambiente'
 }
 
 // Funzione per ottenere la temperatura ottimale per una categoria
