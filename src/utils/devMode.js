@@ -16,21 +16,23 @@ const DEV_MODE_KEY = 'haccp-dev-mode'
 
 // Funzione per verificare se la modalità dev è attiva
 export const isDevMode = () => {
-  // Controlla URL parameter
-  const urlParams = new URLSearchParams(window.location.search)
-  if (urlParams.get('dev') === '1') {
-    return true
-  }
-  
   // Controlla localStorage
   try {
     const devMode = localStorage.getItem(DEV_MODE_KEY)
-    if (devMode) {
+    if (devMode && devMode !== 'undefined' && devMode !== 'null') {
+      // Se è già un oggetto, usalo direttamente
+      if (typeof devMode === 'object') {
+        return devMode && typeof devMode === 'object' && devMode.enabled === true
+      }
+      
+      // Altrimenti prova a parsare come JSON
       const parsed = JSON.parse(devMode)
-      return parsed.enabled === true
+      return parsed && typeof parsed === 'object' && parsed.enabled === true
     }
   } catch (error) {
     console.warn('Errore nel parsing dev mode:', error)
+    // Pulisce il valore corrotto
+    localStorage.removeItem(DEV_MODE_KEY)
   }
   
   return false
@@ -69,11 +71,18 @@ export const toggleDevMode = (enabled = null, reason = '') => {
 export const getDevModeSettings = () => {
   try {
     const devMode = localStorage.getItem(DEV_MODE_KEY)
-    if (devMode) {
-      return JSON.parse(devMode)
+    if (devMode && devMode !== 'undefined' && devMode !== 'null') {
+      // localStorage.getItem restituisce sempre stringhe o null
+      // Quindi proviamo sempre a parsare come JSON
+      const parsed = JSON.parse(devMode)
+      if (parsed && typeof parsed === 'object') {
+        return parsed
+      }
     }
   } catch (error) {
     console.warn('Errore nel parsing dev mode settings:', error)
+    // Pulisce il valore corrotto
+    localStorage.removeItem(DEV_MODE_KEY)
   }
   
   return {

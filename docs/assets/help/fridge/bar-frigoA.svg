@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="300" height="400" viewBox="0 0 300 400" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .fridge { fill: #f0f9ff; stroke: #0ea5e9; stroke-width: 2; }
+      .shelf { fill: #ffffff; stroke: #64748b; stroke-width: 1; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; fill: #1e293b; }
+      .temp { font-family: Arial, sans-serif; font-size: 14px; font-weight: bold; fill: #059669; }
+      .icon { font-size: 16px; }
+      .title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #1e293b; }
+    </style>
+  </defs>
+  
+  <!-- Titolo -->
+  <text x="150" y="25" text-anchor="middle" class="title">Frigo A - Bar</text>
+  
+  <!-- Frigorifero -->
+  <rect x="50" y="40" width="200" height="320" rx="8" class="fridge"/>
+  
+  <!-- Scaffalature -->
+  <rect x="60" y="60" width="180" height="30" rx="4" class="shelf"/>
+  <rect x="60" y="100" width="180" height="30" rx="4" class="shelf"/>
+  <rect x="60" y="140" width="180" height="30" rx="4" class="shelf"/>
+  <rect x="60" y="180" width="180" height="30" rx="4" class="shelf"/>
+  <rect x="60" y="220" width="180" height="30" rx="4" class="shelf"/>
+  <rect x="60" y="260" width="180" height="30" rx="4" class="shelf"/>
+  <rect x="60" y="300" width="180" height="30" rx="4" class="shelf"/>
+  <rect x="60" y="340" width="180" height="30" rx="4" class="shelf"/>
+  
+  <!-- Etichette scaffalature -->
+  <text x="70" y="80" class="label">🥛 Latticini (2-4°C)</text>
+  <text x="70" y="120" class="label">🥛 Latticini (2-4°C)</text>
+  <text x="70" y="160" class="label">🥛 Latticini (2-4°C)</text>
+  <text x="70" y="200" class="label">🥛 Latticini (2-4°C)</text>
+  <text x="70" y="240" class="label">🥛 Latticini (2-4°C)</text>
+  <text x="70" y="280" class="label">🥛 Latticini (2-4°C)</text>
+  <text x="70" y="320" class="label">🥛 Latticini (2-4°C)</text>
+  <text x="70" y="360" class="label">🥛 Latticini (2-4°C)</text>
+  
+  <!-- Temperatura -->
+  <text x="150" y="390" text-anchor="middle" class="temp">Temperatura: 2-4°C</text>
+  
+  <!-- Icone prodotti -->
+  <text x="250" y="80" class="icon">🥛</text>
+  <text x="250" y="120" class="icon">🥛</text>
+  <text x="250" y="160" class="icon">🥛</text>
+  <text x="250" y="200" class="icon">🥛</text>
+  <text x="250" y="240" class="icon">🥛</text>
+  <text x="250" y="280" class="icon">🥛</text>
+  <text x="250" y="320" class="icon">🥛</text>
+  <text x="250" y="360" class="icon">🥛</text>
+  
+  <!-- Note di sicurezza -->
+  <text x="150" y="410" text-anchor="middle" class="label" style="font-size: 10px; fill: #dc2626;">
+    ⚠️ Controlla temperatura 2 volte al giorno
+  </text>
+  
+  <!-- Prodotti tipici bar -->
+  <text x="150" y="430" text-anchor="middle" class="label" style="font-size: 11px; fill: #475569;">
+    🥛 Latte, panna, yogurt, formaggi freschi
+  </text>
+</svg>

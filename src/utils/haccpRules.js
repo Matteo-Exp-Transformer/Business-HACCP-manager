@@ -151,6 +151,212 @@ export const HACCP_VALIDATION_RULES = {
   }
 }
 
+// Regole HACCP per punti di conservazione
+export const CONSERVATION_POINT_RULES = {
+  categories: [
+    {
+      id: 'fresh_dairy',
+      name: 'Latticini Freschi',
+      minTemp: 2,
+      maxTemp: 4,
+      description: 'Latte, formaggi freschi, yogurt',
+      incompatibleWith: ['frozen', 'dry_goods', 'hot_holding']
+    },
+    {
+      id: 'fresh_meat',
+      name: 'Carni Fresche',
+      minTemp: 0,
+      maxTemp: 4,
+      description: 'Carni crude, pollame, salumi freschi',
+      incompatibleWith: ['frozen', 'dry_goods', 'hot_holding']
+    },
+    {
+      id: 'fresh_fish',
+      name: 'Pesce Fresco',
+      minTemp: 0,
+      maxTemp: 2,
+      description: 'Pesce fresco, molluschi, crostacei',
+      incompatibleWith: ['frozen', 'dry_goods', 'hot_holding']
+    },
+    {
+      id: 'fresh_produce',
+      name: 'Verdure e Ortaggi',
+      minTemp: 2,
+      maxTemp: 8,
+      description: 'Verdure fresche, insalate, ortaggi',
+      incompatibleWith: ['frozen', 'hot_holding']
+    },
+    {
+      id: 'fresh_fruits',
+      name: 'Frutta Fresca',
+      minTemp: 2,
+      maxTemp: 8,
+      description: 'Frutta fresca di stagione',
+      incompatibleWith: ['frozen', 'hot_holding']
+    },
+    {
+      id: 'frozen',
+      name: 'Surgelati',
+      minTemp: -20,
+      maxTemp: -16,
+      description: 'Tutti i prodotti surgelati',
+      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'hot_holding']
+    },
+    {
+      id: 'deep_frozen',
+      name: 'Ultra Surgelati',
+      minTemp: -25,
+      maxTemp: -18,
+      description: 'Prodotti ultra surgelati (es. gelati)',
+      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'hot_holding']
+    },
+    {
+      id: 'dry_goods',
+      name: 'Dispensa Secca',
+      minTemp: 15,
+      maxTemp: 25,
+      description: 'Pasta, riso, farina, conserve',
+      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'frozen', 'deep_frozen']
+    },
+    {
+      id: 'hot_holding',
+      name: 'Mantenimento Caldo',
+      minTemp: 60,
+      maxTemp: 70,
+      description: 'Piatti pronti caldi, mantenuti a temperatura',
+      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'frozen', 'deep_frozen']
+    },
+    {
+      id: 'chilled_ready',
+      name: 'Pronti Freddi',
+      minTemp: 2,
+      maxTemp: 8,
+      description: 'Piatti pronti freddi, insalate pronte',
+      incompatibleWith: ['frozen', 'deep_frozen', 'hot_holding']
+    }
+  ],
+  
+  // Tolleranza standard per tutte le categorie (±2°C)
+  tolerance: 2,
+  
+  // Validazione punto di conservazione
+  validateConservationPoint: (point) => {
+    const errors = [];
+    
+    if (!point.name?.trim()) {
+      errors.push('Nome punto di conservazione obbligatorio');
+    }
+    
+    if (!point.location) {
+      errors.push('Posizione obbligatoria');
+    }
+    
+    if (!point.minTemp || !point.maxTemp) {
+      errors.push('Range temperature obbligatorio');
+    }
+    
+    if (!point.assignedRole) {
+      errors.push('Ruolo assegnato obbligatorio');
+    }
+    
+    // Validazione temperature se sono presenti
+    if (point.minTemp && point.maxTemp) {
+      const min = parseFloat(point.minTemp);
+      const max = parseFloat(point.maxTemp);
+      
+      if (isNaN(min) || isNaN(max)) {
+        errors.push('Temperature non valide');
+      } else if (min >= max) {
+        errors.push('Temperatura minima deve essere inferiore alla massima');
+      }
+    }
+    
+    return {
+      isValid: errors.length === 0,
+      errors
+    };
+  },
+  
+  // Validazione compatibilità temperature con categorie
+  validateTemperatureCompatibility: (minTemp, maxTemp, selectedCategories) => {
+    if (!selectedCategories || selectedCategories.length === 0) {
+      return { compatible: true, message: 'Nessuna categoria selezionata' };
+    }
+    
+    const min = parseFloat(minTemp);
+    const max = parseFloat(maxTemp);
+    
+    if (isNaN(min) || isNaN(max)) {
+      return { compatible: false, message: 'Temperature non valide' };
+    }
+    
+    const tolerance = CONSERVATION_POINT_RULES.tolerance;
+    
+    // Controlla compatibilità per ogni categoria selezionata
+    for (const categoryId of selectedCategories) {
+      const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
+      if (!category) continue;
+      
+      // Controlla se le temperature rientrano nel range della categoria ± tolleranza
+      const categoryMin = category.minTemp - tolerance;
+      const categoryMax = category.maxTemp + tolerance;
+      
+      if (min < categoryMin || max > categoryMax) {
+        return {
+          compatible: false,
+          message: `Temperature non compatibili con ${category.name}. Range consentito: ${category.minTemp}°C - ${category.maxTemp}°C (±${tolerance}°C)`,
+          category: category.name,
+          requiredRange: { min: category.minTemp, max: category.maxTemp }
+        };
+      }
+    }
+    
+    return { compatible: true, message: 'Temperature compatibili con tutte le categorie selezionate' };
+  },
+  
+  // Ottieni suggerimenti per temperature ottimali
+  getOptimalTemperatureSuggestions: (selectedCategories) => {
+    if (!selectedCategories || selectedCategories.length === 0) {
+      return null;
+    }
+    
+    const categories = CONSERVATION_POINT_RULES.categories.filter(c => selectedCategories.includes(c.id));
+    
+    if (categories.length === 0) return null;
+    
+    // Se c'è solo una categoria, suggerisci il suo range
+    if (categories.length === 1) {
+      const cat = categories[0];
+      return {
+        minTemp: cat.minTemp,
+        maxTemp: cat.maxTemp,
+        message: `Range ottimale per ${cat.name}: ${cat.minTemp}°C - ${cat.maxTemp}°C`
+      };
+    }
+    
+    // Se ci sono più categorie, trova l'intersezione dei range
+    const minTemps = categories.map(c => c.minTemp);
+    const maxTemps = categories.map(c => c.maxTemp);
+    
+    const maxMin = Math.max(...minTemps);
+    const minMax = Math.min(...maxTemps);
+    
+    if (maxMin <= minMax) {
+      return {
+        minTemp: maxMin,
+        maxTemp: minMax,
+        message: `Range ottimale per tutte le categorie: ${maxMin}°C - ${minMax}°C`
+      };
+    } else {
+      return {
+        compatible: false,
+        message: 'Le categorie selezionate richiedono range di temperatura incompatibili',
+        categories: categories.map(c => c.name)
+      };
+    }
+  }
+};
+
 // Funzione per verificare se una sezione è accessibile
 export const checkSectionAccess = (section, data) => {
   // Sezioni sempre accessibili

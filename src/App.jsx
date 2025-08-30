@@ -642,17 +642,30 @@ function App() {
         return
       }
       
-      // Controlla se l'onboarding è necessario
+      // Ottieni i dati dell'onboarding dal localStorage
       const savedOnboarding = localStorage.getItem('haccp-onboarding')
+      
+      // Controlla se l'onboarding è già completato
       if (savedOnboarding) {
         try {
-          const onboarding = JSON.parse(savedOnboarding)
-          if (onboarding.completed) {
-            setOnboardingCompleted(true)
-            return
+          // Se è già un oggetto, usalo direttamente
+          if (typeof savedOnboarding === 'object') {
+            if (savedOnboarding && savedOnboarding.completed) {
+              setOnboardingCompleted(true)
+              return
+            }
+          } else if (typeof savedOnboarding === 'string') {
+            // Altrimenti prova a parsare come JSON solo se è una stringa
+            const onboarding = JSON.parse(savedOnboarding)
+            if (onboarding && typeof onboarding === 'object' && onboarding.completed) {
+              setOnboardingCompleted(true)
+              return
+            }
           }
         } catch (error) {
           console.warn('Errore nel parsing onboarding:', error)
+          // Pulisce il valore corrotto
+          localStorage.removeItem('haccp-onboarding')
         }
       }
       
@@ -674,6 +687,67 @@ function App() {
     }
     localStorage.setItem('haccp-onboarding', JSON.stringify(onboarding))
     
+    // Migra i dati dell'onboarding alle sezioni principali
+    if (onboardingData.business) {
+      // Salva informazioni business
+      localStorage.setItem('haccp-business-info', JSON.stringify(onboardingData.business))
+    }
+    
+    if (onboardingData.departments?.list) {
+      // Migra dipartimenti
+      const departments = onboardingData.departments.list.map(dept => ({
+        id: Date.now() + Math.random(),
+        name: dept,
+        createdAt: new Date().toISOString()
+      }))
+      setDepartments(departments)
+      localStorage.setItem('haccp-departments', JSON.stringify(departments))
+    }
+    
+    if (onboardingData.staff?.staffMembers) {
+      // Migra staff
+      const staffMembers = onboardingData.staff.staffMembers.map(member => ({
+        ...member,
+        id: member.id || Date.now() + Math.random(),
+        createdAt: new Date().toISOString()
+      }))
+      setStaff(staffMembers)
+      localStorage.setItem('haccp-staff', JSON.stringify(staffMembers))
+    }
+    
+    if (onboardingData.conservation?.points) {
+      // Migra punti di conservazione
+      const conservationPoints = onboardingData.conservation.points.map(point => ({
+        ...point,
+        id: point.id || Date.now() + Math.random(),
+        createdAt: new Date().toISOString()
+      }))
+      setRefrigerators(conservationPoints)
+      localStorage.setItem('haccp-refrigerators', JSON.stringify(conservationPoints))
+    }
+    
+    if (onboardingData.tasks?.list) {
+      // Migra attività e mansioni
+      const tasks = onboardingData.tasks.list.map(task => ({
+        ...task,
+        id: task.id || Date.now() + Math.random(),
+        createdAt: new Date().toISOString()
+      }))
+      setCleaning(tasks)
+      localStorage.setItem('haccp-cleaning', JSON.stringify(tasks))
+    }
+    
+    if (onboardingData.inventory?.products) {
+      // Migra inventario prodotti
+      const products = onboardingData.inventory.products.map(product => ({
+        ...product,
+        id: product.id || Date.now() + Math.random(),
+        createdAt: new Date().toISOString()
+      }))
+      setProducts(products)
+      localStorage.setItem('haccp-products', JSON.stringify(products))
+    }
+    
     // Applica i dati dell'onboarding se necessario
     if (onboardingData.preset) {
       localStorage.setItem('haccp-presets', JSON.stringify({
@@ -686,6 +760,25 @@ function App() {
     // Ricarica i dati dell'app per aggiornare la validazione
     loadAppData()
   }
+
+  // Pulisce localStorage corrotto (solo in sviluppo)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        // Pulisce valori corrotti
+        const keys = ['dev-mode', 'haccp-onboarding'];
+        keys.forEach(key => {
+          const value = localStorage.getItem(key);
+          if (value && typeof value === 'object') {
+            console.warn(`🧹 Pulizia localStorage corrotto per: ${key}`);
+            localStorage.removeItem(key);
+          }
+        });
+      } catch (error) {
+        console.warn('Errore nella pulizia localStorage:', error);
+      }
+    }
+  }, []);
 
   // Gestisce i prerequisiti mancanti
   const handleMissingRequirements = (section) => {

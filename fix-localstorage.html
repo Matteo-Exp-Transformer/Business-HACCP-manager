@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix LocalStorage - HACCP Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .fix-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: #22c55e; }
+        .error { color: #ef4444; }
+        .warning { color: #f59e0b; }
+        .info { color: #3b82f6; }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #2563eb; }
+        button.danger {
+            background: #ef4444;
+        }
+        button.danger:hover {
+            background: #dc2626;
+        }
+        .storage-item {
+            background: #f8fafc;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+        }
+        .storage-item.corrupted {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        .storage-item.valid {
+            border-left-color: #22c55e;
+            background: #f0fdf4;
+        }
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 10px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fix LocalStorage - HACCP Manager</h1>
+    
+    <div class="fix-section">
+        <h2>📊 Stato Attuale LocalStorage</h2>
+        <p>Questo strumento diagnostica e risolve i problemi di parsing JSON nel localStorage.</p>
+        
+        <div id="storage-status">
+            <h3>Chiavi LocalStorage:</h3>
+            <div id="storage-items"></div>
+        </div>
+        
+        <div id="actions">
+            <button onclick="diagnoseStorage()">🔍 Diagnostica</button>
+            <button onclick="fixCorruptedData()" class="danger">🛠️ Fix Dati Corrotti</button>
+            <button onclick="clearAllStorage()" class="danger">🗑️ Pulisci Tutto</button>
+            <button onclick="resetToDefaults()">🔄 Reset Default</button>
+        </div>
+        
+        <div id="fix-results">
+            <h3>Risultati Fix:</h3>
+            <div id="results-list"></div>
+        </div>
+    </div>
+
+    <script>
+        function addResult(type, message) {
+            const resultsContainer = document.getElementById('results-list');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = type;
+            resultDiv.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultsContainer.appendChild(resultDiv);
+            
+            // Mantieni solo gli ultimi 15 risultati
+            while (resultsContainer.children.length > 15) {
+                resultsContainer.removeChild(resultsContainer.firstChild);
+            }
+        }
+
+        function diagnoseStorage() {
+            addResult('info', '🔍 Iniziando diagnostica localStorage...');
+            
+            const storageItems = [];
+            const corruptedKeys = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                let status = 'valid';
+                let parsedValue = null;
+                let error = null;
+                
+                try {
+                    if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+                        parsedValue = JSON.parse(value);
+                    } else if (typeof value === 'object') {
+                        parsedValue = value;
+                    } else {
+                        parsedValue = value;
+                    }
+                } catch (e) {
+                    status = 'corrupted';
+                    error = e.message;
+                    corruptedKeys.push(key);
+                }
+                
+                storageItems.push({
+                    key,
+                    value,
+                    parsedValue,
+                    status,
+                    error,
+                    type: typeof value
+                });
+            }
+            
+            renderStorageItems(storageItems);
+            
+            if (corruptedKeys.length > 0) {
+                addResult('error', `❌ Trovati ${corruptedKeys.length} valori corrotti nel localStorage`);
+                addResult('warning', `Chiavi corrotte: ${corruptedKeys.join(', ')}`);
+            } else {
+                addResult('success', '✅ Nessun valore corrotto trovato nel localStorage');
+            }
+            
+            return storageItems;
+        }
+
+        function renderStorageItems(items) {
+            const container = document.getElementById('storage-items');
+            container.innerHTML = '';
+            
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = `storage-item ${item.status}`;
+                
+                const header = document.createElement('h4');
+                header.innerHTML = `${item.key} <span class="${item.status === 'corrupted' ? 'error' : 'success'}">(${item.status})</span>`;
+                
+                const typeInfo = document.createElement('p');
+                typeInfo.innerHTML = `<strong>Tipo:</strong> ${item.type}`;
+                
+                const valuePreview = document.createElement('div');
+                if (item.status === 'corrupted') {
+                    valuePreview.innerHTML = `
+                        <strong>Valore corrotto:</strong>
+                        <pre>${item.value}</pre>
+                        <strong>Errore:</strong> ${item.error}
+                    `;
+                } else {
+                    valuePreview.innerHTML = `
+                        <strong>Valore:</strong>
+                        <pre>${JSON.stringify(item.parsedValue, null, 2)}</pre>
+                    `;
+                }
+                
+                div.appendChild(header);
+                div.appendChild(typeInfo);
+                div.appendChild(valuePreview);
+                
+                container.appendChild(div);
+            });
+        }
+
+        function fixCorruptedData() {
+            addResult('info', '🛠️ Iniziando fix dati corrotti...');
+            
+            const corruptedKeys = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                
+                try {
+                    if (typeof value === 'string' && (value.startsWith('{') || value.startsWith('['))) {
+                        JSON.parse(value);
+                    }
+                } catch (e) {
+                    corruptedKeys.push(key);
+                    addResult('warning', `🔧 Rimuovendo chiave corrotta: ${key}`);
+                    localStorage.removeItem(key);
+                }
+            }
+            
+            if (corruptedKeys.length > 0) {
+                addResult('success', `✅ Rimosse ${corruptedKeys.length} chiavi corrotte`);
+            } else {
+                addResult('info', 'ℹ️ Nessuna chiave corrotta da rimuovere');
+            }
+            
+            // Riesegui la diagnostica
+            setTimeout(() => diagnoseStorage(), 500);
+        }
+
+        function clearAllStorage() {
+            if (confirm('⚠️ ATTENZIONE: Questo rimuoverà TUTTI i dati dal localStorage. Sei sicuro?')) {
+                addResult('warning', '🗑️ Pulendo tutto il localStorage...');
+                localStorage.clear();
+                addResult('success', '✅ LocalStorage completamente pulito');
+                setTimeout(() => diagnoseStorage(), 500);
+            }
+        }
+
+        function resetToDefaults() {
+            if (confirm('🔄 Vuoi reimpostare i valori di default per l\'onboarding?')) {
+                addResult('info', '🔄 Impostando valori di default...');
+                
+                // Valori di default per l'onboarding
+                const defaultOnboarding = {
+                    completed: false,
+                    currentStep: 0,
+                    confirmedSteps: []
+                };
+                
+                const defaultDevMode = {
+                    enabled: false,
+                    features: [],
+                    bypassOnboarding: false,
+                    showDebugInfo: false,
+                    lastToggled: null,
+                    reason: null
+                };
+                
+                try {
+                    localStorage.setItem('haccp-onboarding', JSON.stringify(defaultOnboarding));
+                    localStorage.setItem('haccp-dev-mode', JSON.stringify(defaultDevMode));
+                    
+                    addResult('success', '✅ Valori di default impostati');
+                    addResult('info', '🔄 Ricarica la pagina per applicare le modifiche');
+                } catch (e) {
+                    addResult('error', `❌ Errore nell'impostazione dei default: ${e.message}`);
+                }
+            }
+        }
+
+        // Diagnostica automatica all'avvio
+        window.addEventListener('load', () => {
+            addResult('info', '🚀 Strumento di fix localStorage caricato');
+            setTimeout(() => diagnoseStorage(), 1000);
+        });
+    </script>
+</body>
+</html>
