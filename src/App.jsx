@@ -715,39 +715,33 @@ function App() {
   // Controlla se mostrare l'onboarding
   useEffect(() => {
     if (currentUser && !onboardingCompleted) {
-      // TEMPORANEO: Bypassa sempre l'onboarding per permettere test
-      console.log('🚧 MODALITÀ TEST: Onboarding temporaneamente disabilitato per permettere test di tutte le sezioni')
-      setOnboardingCompleted(true)
-      return
-      
-      // CODICE ORIGINALE (commentato temporaneamente):
       // Se la modalità dev è attiva, bypassa l'onboarding
-      // if (shouldBypassOnboarding()) {
-      //   setOnboardingCompleted(true)
-      //   return
-      // }
+      if (shouldBypassOnboarding()) {
+        setOnboardingCompleted(true)
+        return
+      }
       
       // Ottieni i dati dell'onboarding dal localStorage
-      // const savedOnboarding = localStorage.getItem('haccp-onboarding')
+      const savedOnboarding = localStorage.getItem('haccp-onboarding')
       
       // Controlla se l'onboarding è già completato
-      // if (savedOnboarding && savedOnboarding !== 'undefined' && savedOnboarding !== 'null' && savedOnboarding !== '[object Object]') {
-      //   try {
-      //     // Prova a parsare come JSON
-      //     const onboarding = JSON.parse(savedOnboarding)
-      //     if (onboarding && typeof onboarding === 'object' && onboarding.completed) {
-      //       setOnboardingCompleted(true)
-      //       return
-      //     }
-      //   } catch (error) {
-      //     console.warn('Errore nel parsing onboarding:', error)
-      //     // Pulisce il valore corrotto
-      //     localStorage.removeItem('haccp-onboarding')
-      //   }
-      // }
+      if (savedOnboarding && savedOnboarding !== 'undefined' && savedOnboarding !== 'null' && savedOnboarding !== '[object Object]') {
+        try {
+          // Prova a parsare come JSON
+          const onboarding = JSON.parse(savedOnboarding)
+          if (onboarding && typeof onboarding === 'object' && onboarding.completed) {
+            setOnboardingCompleted(true)
+            return
+          }
+        } catch (error) {
+          console.warn('Errore nel parsing onboarding:', error)
+          // Pulisce il valore corrotto
+          localStorage.removeItem('haccp-onboarding')
+        }
+      }
       
       // Mostra l'onboarding se non è completato
-      // setShowOnboarding(true)
+      setShowOnboarding(true)
     }
   }, [currentUser, onboardingCompleted])
 
