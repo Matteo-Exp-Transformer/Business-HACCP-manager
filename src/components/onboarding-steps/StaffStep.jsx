@@ -22,8 +22,7 @@ const StaffStep = ({
   const [localFormData, setLocalFormData] = useState({
     name: '',
     surname: '',
-    role: '',
-    category: '',
+    roles: [''],
     haccpExpiry: ''
   });
 
@@ -64,37 +63,56 @@ const StaffStep = ({
     setLocalFormData({
       name: '',
       surname: '',
-      role: '',
-      category: '',
+      roles: [''],
       haccpExpiry: ''
     });
     setEditingMember(null);
   };
 
-  // Filtra le categorie in base al ruolo selezionato
-  const getFilteredCategories = (selectedRole) => {
-    if (selectedRole === 'Amministratore') {
-      return ['Amministratore'];
-    }
-    return CATEGORIES.filter(cat => cat !== 'Amministratore');
-  };
 
   // Controlla se mostrare il campo HACCP
-  const shouldShowHaccpField = (selectedCategory) => {
-    return selectedCategory !== 'Social & Media Manager' && selectedCategory !== 'Altro';
+  const shouldShowHaccpField = (selectedRoles) => {
+    return selectedRoles.some(role => role !== 'Social & Media Manager' && role !== 'Altro');
   };
 
+  // Funzioni per gestire ruoli multipli
+  const addRoleField = () => {
+    setLocalFormData(prev => ({
+      ...prev,
+      roles: [...prev.roles, '']
+    }))
+  }
+
+  const removeRoleField = (index) => {
+    if (localFormData.roles.length > 1) {
+      setLocalFormData(prev => ({
+        ...prev,
+        roles: prev.roles.filter((_, i) => i !== index)
+      }))
+    }
+  }
+
+  const updateRole = (index, value) => {
+    setLocalFormData(prev => ({
+      ...prev,
+      roles: prev.roles.map((role, i) => i === index ? value : role)
+    }))
+  }
+
   const handleAddMember = () => {
-    if (localFormData.name && localFormData.surname && localFormData.role && localFormData.category) {
+    // Filtra ruoli vuoti e duplicati
+    const validRoles = [...new Set(localFormData.roles.filter(role => role.trim()))];
+    
+    if (localFormData.name && localFormData.surname && validRoles.length > 0) {
       const newMember = {
         id: Date.now(),
         name: localFormData.name,
         surname: localFormData.surname,
-        role: localFormData.role,
-        category: localFormData.category,
+        roles: validRoles,
+        primaryRole: validRoles[0], // Ruolo principale (primo selezionato)
         fullName: `${localFormData.name} ${localFormData.surname}`,
-        // Includi haccpExpiry sempre, ma solo se la categoria lo richiede e il valore è presente
-        haccpExpiry: shouldShowHaccpField(localFormData.category) && localFormData.haccpExpiry ? localFormData.haccpExpiry : ''
+        // Includi haccpExpiry sempre, ma solo se i ruoli lo richiedono e il valore è presente
+        haccpExpiry: shouldShowHaccpField(validRoles) && localFormData.haccpExpiry ? localFormData.haccpExpiry : ''
       };
       const updatedMembers = [...staffMembers, newMember];
       setStaffMembers(updatedMembers);
@@ -123,8 +141,7 @@ const StaffStep = ({
     setLocalFormData({
       name: member.name,
       surname: member.surname,
-      role: member.role,
-      category: member.category,
+      roles: member.roles && member.roles.length > 0 ? member.roles : [member.role || ''],
       haccpExpiry: member.haccpExpiry
     });
     setEditingMember(member);
@@ -132,18 +149,21 @@ const StaffStep = ({
   };
 
   const handleUpdateMember = () => {
-    if (localFormData.name && localFormData.surname && localFormData.role && localFormData.category) {
+    // Filtra ruoli vuoti e duplicati
+    const validRoles = [...new Set(localFormData.roles.filter(role => role.trim()))];
+    
+    if (localFormData.name && localFormData.surname && validRoles.length > 0) {
       const updatedMembers = staffMembers.map(member => 
         member.id === editingMember.id 
           ? { 
               ...member, 
               name: localFormData.name,
               surname: localFormData.surname,
-              role: localFormData.role,
-              category: localFormData.category,
+              roles: validRoles,
+              primaryRole: validRoles[0], // Ruolo principale (primo selezionato)
               fullName: `${localFormData.name} ${localFormData.surname}`,
-              // Includi haccpExpiry sempre, ma solo se la categoria lo richiede e il valore è presente
-              haccpExpiry: shouldShowHaccpField(localFormData.category) && localFormData.haccpExpiry ? localFormData.haccpExpiry : ''
+              // Includi haccpExpiry sempre, ma solo se i ruoli lo richiedono e il valore è presente
+              haccpExpiry: shouldShowHaccpField(validRoles) && localFormData.haccpExpiry ? localFormData.haccpExpiry : ''
             }
           : member
       );
@@ -203,13 +223,7 @@ const StaffStep = ({
     return staffMembers.every(member => {
       const hasBasicFields = member.fullName && 
                             member.fullName.trim().length >= 3 &&
-                            member.role && 
-                            member.category;
-      
-      // RIMOSSO: Controllo HACCP - La scadenza attestato HACCP è FACOLTATIVA per tutte le categorie
-      // if (hasBasicFields && shouldShowHaccpField(member.category)) {
-      //   return member.haccpExpiry && member.haccpExpiry.trim() !== '';
-      // }
+                            ((member.roles && member.roles.length > 0) || member.role);
       
       // Tutti i membri devono avere solo i campi base (HACCP facoltativo)
       return hasBasicFields;
@@ -251,12 +265,13 @@ const StaffStep = ({
                     <div className="flex items-center gap-4">
                       <div>
                         <p className="font-medium">{member.fullName}</p>
-                        <p className="text-sm text-gray-600">{member.role}</p>
-                      </div>
-                      <div className="text-sm">
-                        <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
-                          {member.category}
-                        </span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {(member.roles && member.roles.length > 0 ? member.roles : [member.role || 'Non assegnato']).map((role, index) => (
+                            <span key={index} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                              {role}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                       {member.haccpExpiry && (
                         <div className="text-sm text-gray-600">
@@ -337,47 +352,50 @@ const StaffStep = ({
               />
             </div>
             
-            <div>
-              <Label htmlFor="role">Ruolo *</Label>
-              <select
-                id="role"
-                value={localFormData.role}
-                onChange={(e) => {
-                  const selectedRole = e.target.value;
-                  setLocalFormData(prev => {
-                    const newData = { ...prev, role: selectedRole };
-                    // Se il ruolo è "Amministratore", seleziona automaticamente la categoria "Amministratore"
-                    if (selectedRole === 'Amministratore') {
-                      newData.category = 'Amministratore';
-                    }
-                    return newData;
-                  });
-                }}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleziona ruolo</option>
-                {ROLES.map(role => (
-                  <option key={role} value={role}>{role}</option>
+            <div className="md:col-span-2">
+              <Label htmlFor="roles">Ruoli *</Label>
+              <div className="space-y-2">
+                {localFormData.roles.map((role, index) => (
+                  <div key={index} className="flex gap-2 items-center">
+                    <select
+                      value={role}
+                      onChange={(e) => updateRole(index, e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      required={index === 0}
+                    >
+                      <option value="">Seleziona un ruolo...</option>
+                      {CATEGORIES.map(category => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </select>
+                    {localFormData.roles.length > 1 && (
+                      <Button
+                        type="button"
+                        onClick={() => removeRoleField(index)}
+                        variant="outline"
+                        size="sm"
+                        className="h-10 w-10 p-0 text-red-600 hover:text-red-800"
+                      >
+                        ✕
+                      </Button>
+                    )}
+                  </div>
                 ))}
-              </select>
+                <Button
+                  type="button"
+                  onClick={addRoleField}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  + Aggiungi Ruolo
+                </Button>
+              </div>
             </div>
             
-            <div>
-              <Label htmlFor="category">Categoria *</Label>
-              <select
-                id="category"
-                value={localFormData.category}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, category: e.target.value }))}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleziona categoria</option>
-                {getFilteredCategories(localFormData.role).map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
-              </select>
-            </div>
-            
-            {shouldShowHaccpField(localFormData.category) && (
+            {shouldShowHaccpField(localFormData.roles) && (
               <div className="md:col-span-2">
                 <Label htmlFor="haccpExpiry">Scadenza Attestato HACCP</Label>
                 <Input
@@ -403,7 +421,7 @@ const StaffStep = ({
             </Button>
             <Button
               onClick={editingMember ? handleUpdateMember : handleAddMember}
-              disabled={!localFormData.name || !localFormData.surname || !localFormData.role || !localFormData.category}
+              disabled={!localFormData.name || !localFormData.surname || localFormData.roles.every(role => !role.trim())}
             >
               {editingMember ? 'Aggiorna' : 'Aggiungi'}
             </Button>
