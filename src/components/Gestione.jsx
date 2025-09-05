@@ -30,7 +30,7 @@ import Departments from './Departments'
 function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, departments, setDepartments }) {
   const [formData, setFormData] = useState({
     name: '',
-    role: '',
+    roles: [''],
     certification: '',
     notes: ''
   })
@@ -109,7 +109,13 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
     if (departments.length > 0 && staff && Array.isArray(staff) && staff.length >= 0) {
       const updatedDepartments = departments.map(dept => ({
         ...dept,
-        members: staff.filter(member => member && member.role === dept.name).map(member => member.id)
+        members: staff.filter(member => 
+          member && (
+            (member.roles && member.roles.includes(dept.name)) || 
+            member.role === dept.name ||
+            member.primaryRole === dept.name
+          )
+        ).map(member => member.id)
       }))
       
       // Only update if there's actually a change to avoid infinite loops
@@ -125,7 +131,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
 
   const addStaffMember = (e) => {
     e.preventDefault()
-    if (!formData.name.trim() || !formData.role.trim()) return
+    if (!formData.name.trim() || formData.roles.every(role => !role.trim())) return
 
     // Controllo per nomi duplicati
     const nameExists = staff && Array.isArray(staff) ? staff.some(member => 
@@ -137,10 +143,14 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
       return
     }
 
+    // Filtra ruoli vuoti e duplicati
+    const validRoles = [...new Set(formData.roles.filter(role => role.trim()))]
+
     const newStaff = {
       id: Date.now(),
       name: formData.name.trim(),
-      role: formData.role.trim(),
+      roles: validRoles,
+      primaryRole: validRoles[0], // Ruolo principale (primo selezionato)
       certification: formData.certification.trim(),
       notes: formData.notes.trim(),
       addedDate: new Date().toLocaleDateString('it-IT'),
@@ -148,13 +158,37 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
     }
 
     setStaff([...staff, newStaff])
-    setFormData({ name: '', role: '', certification: '', notes: '' })
+    setFormData({ name: '', roles: [''], certification: '', notes: '' })
   }
 
   const deleteStaffMember = (id) => {
     if (confirm('Sei sicuro di voler rimuovere questo membro del personale?')) {
       setStaff(staff && Array.isArray(staff) ? staff.filter(member => member && member.id !== id) : [])
     }
+  }
+
+  // Funzioni per gestire ruoli multipli
+  const addRoleField = () => {
+    setFormData(prev => ({
+      ...prev,
+      roles: [...prev.roles, '']
+    }))
+  }
+
+  const removeRoleField = (index) => {
+    if (formData.roles.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        roles: prev.roles.filter((_, i) => i !== index)
+      }))
+    }
+  }
+
+  const updateRole = (index, value) => {
+    setFormData(prev => ({
+      ...prev,
+      roles: prev.roles.map((role, i) => i === index ? value : role)
+    }))
   }
 
   // Get unique roles for statistics
@@ -311,7 +345,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
     setEditingMember(member)
     setFormData({
       name: member.name,
-      role: member.role,
+      roles: member.roles && member.roles.length > 0 ? member.roles : [member.role || ''],
       certification: member.certification || '',
       notes: member.notes || ''
     })
@@ -320,7 +354,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
 
   const updateStaffMember = (e) => {
     e.preventDefault()
-    if (!formData.name.trim() || !formData.role.trim()) return
+    if (!formData.name.trim() || formData.roles.every(role => !role.trim())) return
 
     // Controllo per nomi duplicati (escludendo l'utente che stiamo modificando)
     const nameExists = staff.some(member => 
@@ -333,12 +367,16 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
       return
     }
 
+    // Filtra ruoli vuoti e duplicati
+    const validRoles = [...new Set(formData.roles.filter(role => role.trim()))]
+
     const updatedStaff = staff.map(member =>
       member.id === editingMember.id
         ? {
             ...member,
             name: formData.name.trim(),
-            role: formData.role.trim(),
+            roles: validRoles,
+            primaryRole: validRoles[0], // Ruolo principale (primo selezionato)
             certification: formData.certification.trim(),
             notes: formData.notes.trim(),
             lastModified: new Date().toLocaleString('it-IT')
@@ -347,7 +385,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
     )
 
     setStaff(updatedStaff)
-    setFormData({ name: '', role: '', certification: '', notes: '' })
+    setFormData({ name: '', roles: [''], certification: '', notes: '' })
     setEditingMember(null)
     setShowEditForm(false)
   }
@@ -355,7 +393,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
   const cancelEdit = () => {
     setEditingMember(null)
     setShowEditForm(false)
-    setFormData({ name: '', role: '', certification: '', notes: '' })
+    setFormData({ name: '', roles: [''], certification: '', notes: '' })
   }
 
   // Role reassignment functions
@@ -530,7 +568,13 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                         <p className="text-sm text-gray-600 mb-2">{dept.description}</p>
                       )}
                       <div className="flex items-center gap-4 text-xs text-gray-500">
-                        <span>👥 {staff && Array.isArray(staff) ? staff.filter(member => member && member.category === dept.name).length : 0} membri</span>
+                        <span>👥 {staff && Array.isArray(staff) ? staff.filter(member => 
+                          member && (
+                            (member.roles && member.roles.includes(dept.name)) || 
+                            member.role === dept.name ||
+                            member.primaryRole === dept.name
+                          )
+                        ).length : 0} membri</span>
                         <span>📋 {dept.assignedTasks?.length || 0} compiti</span>
                       </div>
                     </div>
@@ -571,21 +615,46 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="role">Ruolo</Label>
-                <select
-                  id="role"
-                  value={formData.role}
-                  onChange={(e) => setFormData({...formData, role: e.target.value})}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  required
-                >
-                  <option value="">Seleziona un ruolo...</option>
-                  {departments.map(dept => (
-                    <option key={dept.id} value={dept.name}>
-                      {dept.name}
-                    </option>
+                <Label htmlFor="roles">Ruoli</Label>
+                <div className="space-y-2">
+                  {formData.roles.map((role, index) => (
+                    <div key={index} className="flex gap-2 items-center">
+                      <select
+                        value={role}
+                        onChange={(e) => updateRole(index, e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        required={index === 0}
+                      >
+                        <option value="">Seleziona un ruolo...</option>
+                        {departments.map(dept => (
+                          <option key={dept.id} value={dept.name}>
+                            {dept.name}
+                          </option>
+                        ))}
+                      </select>
+                      {formData.roles.length > 1 && (
+                        <Button
+                          type="button"
+                          onClick={() => removeRoleField(index)}
+                          variant="outline"
+                          size="sm"
+                          className="h-10 w-10 p-0 text-red-600 hover:text-red-800"
+                        >
+                          ✕
+                        </Button>
+                      )}
+                    </div>
                   ))}
-                </select>
+                  <Button
+                    type="button"
+                    onClick={addRoleField}
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                  >
+                    + Aggiungi Ruolo
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -647,7 +716,13 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
             .slice()
             .sort((a, b) => a.name.localeCompare(b.name))
             .map(department => {
-              const roleMembers = staff && Array.isArray(staff) ? staff.filter(member => member && member.category === department.name) : []
+              const roleMembers = staff && Array.isArray(staff) ? staff.filter(member => 
+                member && (
+                  (member.roles && member.roles.includes(department.name)) || 
+                  member.role === department.name ||
+                  member.primaryRole === department.name
+                )
+              ) : []
               const count = roleMembers.length
               const isExpanded = expandedRoles[department.name]
               
@@ -691,7 +766,13 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                                 <div className="flex-1">
                                   <div className="font-medium">{member.fullName || member.name}</div>
                                   <div className="text-xs text-gray-600">
-                                    {member.role} • {member.category}
+                                    <div className="flex flex-wrap gap-1">
+                                      {(member.roles && member.roles.length > 0 ? member.roles : [member.role || 'Non assegnato']).map((role, index) => (
+                                        <span key={index} className={`px-1 py-0.5 rounded text-xs ${getRoleColor(role)}`}>
+                                          {role}
+                                        </span>
+                                      ))}
+                                    </div>
                                   </div>
                                   {member.certification && (
                                     <div className="text-xs text-green-600 flex items-center gap-1">
@@ -780,16 +861,18 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                   </div>
                   
                   <div className="col-span-2 flex items-center">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(member.role)}`}>
-                      {member.role}
-                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {(member.roles && member.roles.length > 0 ? member.roles : [member.role || 'Non assegnato']).map((role, index) => (
+                        <span key={index} className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(role)}`}>
+                          {role}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                   
                   <div className="col-span-2 flex items-center">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      member.role === 'Non assegnato' ? 'bg-gray-100 text-gray-600' : 'bg-purple-100 text-purple-700'
-                    }`}>
-                      {member.role}
+                    <span className="text-xs text-gray-600">
+                      {member.roles && member.roles.length > 1 ? `${member.roles.length} ruoli` : '1 ruolo'}
                     </span>
                   </div>
                   
