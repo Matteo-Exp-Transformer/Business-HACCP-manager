@@ -118,7 +118,7 @@ const ConservationStep = ({
             isInRange = true;
             break;
           }
-          // Controlla se è nel range di tolleranza estesa (±1.5°C)
+          // Controlla se è nel range di tolleranza estesa (±0.5°C)
           const categoryMin = category.minTemp - tolerance;
           const categoryMax = category.maxTemp + tolerance;
           if (temp >= categoryMin && temp <= categoryMax) {
@@ -138,7 +138,7 @@ const ConservationStep = ({
       } else if (isInToleranceRange) {
         return { 
           compliant: false, 
-          message: '⚠️ Range di tolleranza estesa (±1.5°C)', 
+          message: `⚠️ Range di tolleranza estesa (±${tolerance}°C)`, 
           type: 'warning',
           color: 'yellow'
         };
