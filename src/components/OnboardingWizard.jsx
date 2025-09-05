@@ -249,18 +249,22 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                errors[`staff_${index}_role`] = "Ruolo non valido - seleziona un ruolo valido";
              }
            }
-           if (!member.category) {
+           // Controlla le categorie (ora array)
+           const memberCategories = member.categories && member.categories.length > 0 ? member.categories : (member.category ? [member.category] : []);
+           if (memberCategories.length === 0) {
              errors[`staff_${index}_category`] = "Categoria obbligatoria";
            } else {
-                         // Controlla che la categoria sia valida
-            const validCategories = ['Cuochi', 'Banconisti', 'Camerieri', 'Social & Media Manager', 'Amministratore', 'Altro'];
-            if (!validCategories.includes(member.category)) {
-              errors[`staff_${index}_category`] = "Categoria non valida - seleziona una categoria valida";
-            }
+             // Controlla che le categorie siano valide
+             const validCategories = ['Cuochi', 'Banconisti', 'Camerieri', 'Social & Media Manager', 'Amministratore', 'Altro'];
+             memberCategories.forEach(category => {
+               if (!validCategories.includes(category)) {
+                 errors[`staff_${index}_category`] = "Categoria non valida - seleziona una categoria valida";
+               }
+             });
            }
            
-           // Controlla che il ruolo e la categoria siano compatibili
-           if (member.role === 'Amministratore' && member.category !== 'Amministratore') {
+           // Controlla che il ruolo e le categorie siano compatibili
+           if (member.role === 'Amministratore' && !memberCategories.includes('Amministratore')) {
              errors[`staff_${index}_category`] = "Il ruolo 'Amministratore' deve essere associato alla categoria 'Amministratore'";
            }
            
