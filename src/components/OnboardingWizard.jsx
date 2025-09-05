@@ -263,10 +263,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              });
            }
            
-           // Controlla che il ruolo e le categorie siano compatibili
-           if (member.role === 'Amministratore' && !memberCategories.includes('Amministratore')) {
-             errors[`staff_${index}_category`] = "Il ruolo 'Amministratore' deve essere associato alla categoria 'Amministratore'";
-           }
+           // RIMOSSO: Controllo compatibilità ruolo-categoria - L'amministratore può scegliere qualsiasi categoria
            
            // RIMOSSO: Controllo HACCP - La scadenza attestato HACCP è FACOLTATIVA per tutte le categorie
            // console.log(`🔍 Validazione membro ${index}:`, {
