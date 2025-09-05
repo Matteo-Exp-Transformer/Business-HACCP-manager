@@ -290,7 +290,7 @@ const ConservationStep = ({
 
       {/* Lista Punti di Conservazione */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <h4 className="font-medium text-gray-900">Punti di Conservazione</h4>
           <Button
             onClick={() => {
@@ -305,9 +305,11 @@ const ConservationStep = ({
             }}
             variant="outline"
             size="sm"
+            className="flex items-center gap-2 px-3 py-2 text-sm font-medium whitespace-nowrap min-w-fit"
           >
-            <Plus className="h-4 w-4 mr-1" />
-            Aggiungi Nuovo Punto di Conservazione
+            <Plus className="h-4 w-4 flex-shrink-0" />
+            <span className="hidden sm:inline">Aggiungi Nuovo Punto di Conservazione</span>
+            <span className="sm:hidden">Aggiungi Punto</span>
           </Button>
         </div>
 
