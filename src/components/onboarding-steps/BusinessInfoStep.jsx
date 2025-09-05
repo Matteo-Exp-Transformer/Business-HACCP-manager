@@ -1,8 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
-import { MapPin, Info } from 'lucide-react';
+import { MapPin, Info, CheckCircle, XCircle } from 'lucide-react';
 
 const BusinessInfoStep = ({ 
   formData, 
@@ -14,23 +14,25 @@ const BusinessInfoStep = ({
   isStepConfirmed, 
   canConfirmStep 
 }) => {
-  const handleConfirmData = () => {
-    // Validazione email rinforzata
-    const email = formData.business?.email || '';
-    const emailIsValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    
-    if (!emailIsValid) {
-      // Se l'email non è valida, non procedere
-      return;
-    }
-    
-    const errors = validateStep(currentStep, formData);
-    if (Object.keys(errors).length === 0) {
-      confirmStep(currentStep);
-    }
+  const [emailValid, setEmailValid] = useState(null); // null = non validato, true = valido, false = non valido
+
+  // Validazione email rinforzata
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
-  const canProceed = formData.business?.name && formData.business?.address && formData.business?.email;
+  // Aggiorna lo stato di validazione email quando cambia
+  useEffect(() => {
+    const email = formData.business?.email || '';
+    if (email.length > 0) {
+      setEmailValid(validateEmail(email));
+    } else {
+      setEmailValid(null);
+    }
+  }, [formData.business?.email]);
+
+  const canProceed = formData.business?.name && formData.business?.address && formData.business?.email && emailValid === true;
 
   return (
     <div className="space-y-6">
@@ -206,17 +208,38 @@ const BusinessInfoStep = ({
         
         <div>
           <Label htmlFor="email">Email *</Label>
-          <Input
-            id="email"
-            type="email"
-            value={formData.business?.email || ''}
-            onChange={(e) => setFormData(prev => ({
-              ...prev,
-              business: { ...prev.business, email: e.target.value }
-            }))}
-            placeholder="info@pizzeria.it"
-            className="mt-1"
-          />
+          <div className="relative mt-1">
+            <Input
+              id="email"
+              type="email"
+              value={formData.business?.email || ''}
+              onChange={(e) => setFormData(prev => ({
+                ...prev,
+                business: { ...prev.business, email: e.target.value }
+              }))}
+              placeholder="info@pizzeria.it"
+              className={`pr-10 ${
+                emailValid === true ? 'border-green-500 focus:border-green-500 focus:ring-green-500' :
+                emailValid === false ? 'border-red-500 focus:border-red-500 focus:ring-red-500' :
+                'border-gray-300'
+              }`}
+            />
+            {emailValid === true && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+              </div>
+            )}
+            {emailValid === false && (
+              <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <XCircle className="h-5 w-5 text-red-500" />
+              </div>
+            )}
+          </div>
+          {emailValid === false && (
+            <p className="mt-1 text-sm text-red-600">
+              Inserisci un indirizzo email valido (es. info@pizzeria.it)
+            </p>
+          )}
         </div>
         
 
@@ -234,27 +257,7 @@ const BusinessInfoStep = ({
         </div>
       </div>
       
-      <div className="flex justify-end">
-        <Button
-          onClick={handleConfirmData}
-          disabled={!canConfirmStep(currentStep) || isStepConfirmed(currentStep)}
-          className={`${
-            isStepConfirmed(currentStep) 
-              ? 'bg-green-500 hover:bg-green-600 cursor-not-allowed' 
-              : canConfirmStep(currentStep) 
-                ? 'bg-green-600 hover:bg-green-700' 
-                : 'bg-gray-300 cursor-not-allowed'
-          }`}
-        >
-          {isStepConfirmed(currentStep) ? (
-            <>
-              ✅ Dati Confermati
-            </>
-          ) : (
-            'Conferma Dati Business'
-          )}
-        </Button>
-      </div>
+      {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
     </div>
   );
 };

@@ -236,8 +236,8 @@ export const CONSERVATION_POINT_RULES = {
     }
   ],
   
-  // Tolleranza standard per tutte le categorie (±2°C)
-  tolerance: 2,
+  // Tolleranza standard per tutte le categorie (±0.5°C)
+  tolerance: 0.5,
   
   // Validazione punto di conservazione
   validateConservationPoint: (point) => {

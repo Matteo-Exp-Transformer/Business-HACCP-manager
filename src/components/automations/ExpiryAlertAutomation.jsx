@@ -7,6 +7,7 @@ function ExpiryAlertAutomation({ products = [], onRecipeSuggestion }) {
   const [expiringProducts, setExpiringProducts] = useState([])
   const [showRecipes, setShowRecipes] = useState(false)
   const [suggestedRecipes, setSuggestedRecipes] = useState([])
+  const [isAlertHidden, setIsAlertHidden] = useState(false)
 
   // Controlla prodotti in scadenza ogni volta che cambiano i prodotti
   useEffect(() => {
@@ -19,6 +20,11 @@ function ExpiryAlertAutomation({ products = [], onRecipeSuggestion }) {
         return daysUntilExpiry <= 7 && daysUntilExpiry > 0
       })
       setExpiringProducts(expiring)
+      
+      // Reset dell'alert nascosto se ci sono nuovi prodotti in scadenza
+      if (expiring.length > 0) {
+        setIsAlertHidden(false)
+      }
     }
 
     checkExpiringProducts()
@@ -37,6 +43,11 @@ function ExpiryAlertAutomation({ products = [], onRecipeSuggestion }) {
 
     setSuggestedRecipes(recipes)
     setShowRecipes(true)
+  }
+
+  // Funzione per rimuovere l'alert
+  const handleRemoveAlert = () => {
+    setIsAlertHidden(true)
   }
 
   const generateRecipeForProduct = (product) => {
@@ -87,7 +98,7 @@ function ExpiryAlertAutomation({ products = [], onRecipeSuggestion }) {
     }
   }
 
-  if (expiringProducts.length === 0) {
+  if (expiringProducts.length === 0 || isAlertHidden) {
     return null
   }
 
@@ -131,6 +142,7 @@ function ExpiryAlertAutomation({ products = [], onRecipeSuggestion }) {
               variant="outline"
               size="sm"
               className="text-orange-600 border-orange-300"
+              onClick={handleRemoveAlert}
             >
               <Trash2 className="h-4 w-4 mr-1" />
               Rimuovi Alert

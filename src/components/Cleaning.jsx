@@ -30,6 +30,22 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   const safeCleaning = cleaning || []
   const safeTemperatures = temperatures || []
   
+  // Data migration: ensure all cleaning tasks have required fields
+  useEffect(() => {
+    const needsMigration = safeCleaning.some(task => !task.date || !task.frequency)
+    if (needsMigration) {
+      const migratedCleaning = safeCleaning.map(task => ({
+        ...task,
+        date: task.date || new Date().toLocaleDateString('it-IT'),
+        frequency: task.frequency || 'daily',
+        completed: task.completed || false,
+        completedAt: task.completedAt || null,
+        completedBy: task.completedBy || null
+      }))
+      setCleaning(migratedCleaning)
+    }
+  }, [])
+  
   const [formData, setFormData] = useState({
     task: '',
     assignee: '',
@@ -209,6 +225,11 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
     
     return safeCleaning.filter(task => {
       if (task.completed) return false // Escludi quelle completate
+      
+      // Safety check: se task.date non esiste, considera il task come non mancato
+      if (!task.date || typeof task.date !== 'string') {
+        return false
+      }
       
       // Calcola quando il task doveva essere completato in base alla frequenza
       const taskCreationDate = new Date(task.date.split('/').reverse().join('-'))

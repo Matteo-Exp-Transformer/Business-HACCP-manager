@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Thermometer, AlertTriangle, CheckCircle, User } from 'lucide-react'
+import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Info } from 'lucide-react'
 import TemperatureInput from './ui/TemperatureInput'
 
 function Temperature({ temperatures, setTemperatures, currentUser }) {
@@ -31,6 +31,7 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
     temperatureMin: '',
     temperatureMax: ''
   })
+  
 
   // Save temperatures to localStorage whenever they change
   useEffect(() => {
@@ -139,8 +140,8 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
 
   return (
     <div className="space-y-6">
-      {/* Form per nuova temperatura */}
-      <Card>
+          {/* Form per nuova temperatura */}
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Thermometer className="h-5 w-5" />
@@ -326,6 +327,77 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
           )}
         </CardContent>
       </Card>
+      {/* Riferimenti Normativi EU/ASL */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="h-5 w-5 text-blue-600" />
+            📋 Riferimenti Normativi EU/ASL
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-gray-700 space-y-3">
+            <p className="font-medium text-gray-800">Le temperature di conservazione suggerite sono basate sulle seguenti normative europee e italiane:</p>
+            
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 className="font-medium text-blue-800 mb-2">🇪🇺 Regolamento (CE) 853/2004</h4>
+                <p className="text-blue-700 text-xs mb-1">Allegato III - Requisiti specifici per alimenti di origine animale</p>
+                <p className="text-blue-700 text-xs mb-1">• Carni fresche: ≤7°C (frattaglie ≤3°C)</p>
+                <p className="text-blue-700 text-xs mb-1">• Pollame: ≤4°C</p>
+                <p className="text-blue-700 text-xs mb-1">• Carni macinate: ≤2°C</p>
+                <p className="text-blue-700 text-xs mb-1">• Pesce fresco: vicino al ghiaccio in fusione</p>
+                <p className="text-blue-700 text-xs mb-1">• Latte crudo: ≤6°C</p>
+                <p className="text-blue-700 text-xs mb-1">• Ovoprodotti: ≤4°C</p>
+                <a 
+                  href="https://eur-lex.europa.eu/legal-content/IT/TXT/PDF/?uri=CELEX:32004R0853" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline text-xs hover:text-blue-800"
+                >
+                  📖 Leggi il regolamento completo
+                </a>
+              </div>
+              
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <h4 className="font-medium text-green-800 mb-2">🇮🇹 DPR 327/80 (Italia)</h4>
+                <p className="text-green-700 text-xs mb-1">Prassi storiche richiamate da ASL</p>
+                <p className="text-green-700 text-xs mb-1">• Alimenti cotti da mantenere caldi: +60–65°C</p>
+                <p className="text-green-700 text-xs mb-1">• Alimenti facilmente deperibili: +4°C</p>
+                <p className="text-green-700 text-xs mb-1">• Uova in guscio: temperatura costante</p>
+                <p className="text-green-700 text-xs mb-1">• Evitare sbalzi termici</p>
+                <p className="text-green-700 text-xs mb-1">• Proteggere da sole e odori</p>
+                <p className="text-green-700 text-xs mb-1">• Rispettare etichette produttore</p>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <h4 className="font-medium text-purple-800 mb-2">❄️ Direttiva 89/108/CEE (Surgelati)</h4>
+              <p className="text-purple-700 text-xs mb-1">• Catena del freddo continua a -18°C</p>
+              <p className="text-purple-700 text-xs mb-1">• Non ricongelare dopo decongelamento</p>
+              <p className="text-purple-700 text-xs mb-1">• Brevi fluttuazioni ammesse nel trasporto</p>
+              <a 
+                href="https://eur-lex.europa.eu/legal-content/IT/ALL/?uri=celex:31989L0108" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-purple-600 underline text-xs hover:text-purple-800"
+              >
+                📖 Leggi la direttiva completa
+              </a>
+            </div>
+            
+            <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <h4 className="font-medium text-orange-800 mb-2">⚠️ Note Importanti</h4>
+              <p className="text-orange-700 text-xs mb-1">• Le temperature suggerite sono indicative e basate su normative EU/ASL</p>
+              <p className="text-orange-700 text-xs mb-1">• Rispettare sempre le indicazioni specifiche del produttore</p>
+              <p className="text-orange-700 text-xs mb-1">• In caso di dubbi, consultare le autorità sanitarie locali (ASL)</p>
+              <p className="text-orange-700 text-xs mb-1">• Mantenere aggiornate le procedure HACCP aziendali</p>
+              <p className="text-orange-700 text-xs mb-1">• Documentare eventuali deviazioni dalle temperature standard</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
     </div>
   )
 }

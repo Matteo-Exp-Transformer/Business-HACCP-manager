@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
-import { Plus, X, Thermometer, AlertTriangle } from 'lucide-react';
+import { Plus, X, Thermometer, AlertTriangle, Edit } from 'lucide-react';
 import { CONSERVATION_POINT_RULES } from '../../utils/haccpRules';
 
 const ConservationStep = ({ 
@@ -22,19 +22,16 @@ const ConservationStep = ({
   const [localFormData, setLocalFormData] = useState({
     name: '',
     location: '',
-    minTemp: '',
-    maxTemp: '',
-    assignedRole: '',
-    assignedTo: '',
+    targetTemp: '', // Sostituiamo minTemp e maxTemp con targetTemp
     selectedCategories: []
   });
 
-  // Dati mock per il test (in produzione verranno da formData.departments e formData.staff)
-  const mockDepartments = ['Cucina', 'Bancone', 'Sala', 'Magazzino'];
-  const mockStaff = [
-    { id: 1, name: 'Mario Rossi', role: 'Responsabile', category: 'Cuochi' },
-    { id: 2, name: 'Giulia Bianchi', role: 'Dipendente', category: 'Banconisti' }
-  ];
+  // Usa i dati reali da formData
+  const departments = formData.departments?.list || [];
+  const staffMembers = formData.staff?.staffMembers || [];
+  
+  // Se non ci sono dipartimenti, usa i mock per il test
+  const availableDepartments = departments.length > 0 ? departments.map(dept => dept.name || dept) : ['Cucina', 'Bancone', 'Sala', 'Magazzino'];
 
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
@@ -43,98 +40,8 @@ const ConservationStep = ({
     }
   }, [formData.conservation]);
 
-  const resetForm = () => {
-    setLocalFormData({
-      name: '',
-      location: '',
-      minTemp: '',
-      maxTemp: '',
-      assignedRole: '',
-      assignedTo: '',
-      selectedCategories: []
-    });
-    setEditingPoint(null);
-  };
-
-  const checkHACCPCompliance = (minTemp, maxTemp, selectedCategories = []) => {
-    const min = parseFloat(minTemp);
-    const max = parseFloat(maxTemp);
-    
-    if (isNaN(min) || isNaN(max)) return { compliant: false, message: 'Temperature non valide' };
-    
-    // Controllo base: temperatura minima non può essere superiore alla massima
-    if (min >= max) return { compliant: false, message: 'Temperatura minima deve essere inferiore alla massima', type: 'error' };
-    
-    // Se sono state selezionate categorie, usa le regole HACCP
-    if (selectedCategories.length > 0) {
-      const result = CONSERVATION_POINT_RULES.validateTemperatureCompatibility(min, max, selectedCategories);
-      
-      // Determina il tipo di compliance
-      if (result.compatible) {
-        return { compliant: true, message: 'Dati a norma HACCP', type: 'compliant' };
-      } else {
-        // Controlla se siamo nel range di tolleranza (±2°C)
-        const tolerance = CONSERVATION_POINT_RULES.tolerance;
-        let inToleranceRange = false;
-        
-        for (const categoryId of selectedCategories) {
-          const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
-          if (category) {
-            const categoryMin = category.minTemp - tolerance;
-            const categoryMax = category.maxTemp + tolerance;
-            if (min >= categoryMin && max <= categoryMax) {
-              inToleranceRange = true;
-              break;
-            }
-          }
-        }
-        
-        if (inToleranceRange) {
-          return { compliant: false, message: 'Range di tolleranza HACCP (±2°C)', type: 'warning' };
-        } else {
-          return { compliant: false, message: result.message, type: 'error' };
-        }
-      }
-    }
-    
-    // Validazione generica se non ci sono categorie selezionate
-    if (min < -30 || max > 80) return { compliant: false, message: 'Range temperatura fuori limiti operativi', type: 'error' };
-    
-    return { compliant: true, message: 'Range temperatura valido', type: 'compliant' };
-  };
-
-  const handleAddPoint = () => {
-    if (localFormData.name && localFormData.location && localFormData.minTemp && localFormData.maxTemp && localFormData.assignedRole && localFormData.selectedCategories.length > 0) {
-      const compliance = checkHACCPCompliance(localFormData.minTemp, localFormData.maxTemp, localFormData.selectedCategories);
-      
-      const newPoint = {
-        id: Date.now(),
-        ...localFormData,
-        compliance,
-        needsConfirmation: true
-      };
-      
-      setConservationPoints(prev => [...prev, newPoint]);
-      resetForm();
-      setShowAddForm(false);
-    }
-  };
-
-  const handleConfirmPoint = (id) => {
-    setConservationPoints(prev => prev.map(point => 
-      point.id === id ? { ...point, needsConfirmation: false } : point
-    ));
-  };
-
-  const handleDeletePoint = (id) => {
-    setConservationPoints(prev => prev.filter(point => point.id !== id));
-  };
-
-  const canProceed = conservationPoints.length > 0 && 
-    conservationPoints.every(point => point.name && point.location && point.minTemp && point.maxTemp && point.assignedRole && point.selectedCategories && point.selectedCategories.length > 0);
-
-  const handleConfirmData = () => {
-    // 1. Prepara i dati AGGIORNATI localmente
+  // Aggiorna automaticamente il formData quando i punti di conservazione cambiano
+  useEffect(() => {
     const updatedFormData = {
       ...formData,
       conservation: {
@@ -142,21 +49,237 @@ const ConservationStep = ({
         count: conservationPoints.length
       }
     };
+    setFormData(updatedFormData);
+  }, [conservationPoints]);
 
-    // 2. VALIDA usando i dati AGGIORNATI (updatedFormData), non quelli vecchi!
-    const errors = validateStep(currentStep, updatedFormData);
+  const resetForm = () => {
+    setLocalFormData({
+      name: '',
+      location: '',
+      targetTemp: '',
+      selectedCategories: []
+    });
+    setEditingPoint(null);
+  };
 
-    if (Object.keys(errors).length === 0) {
-      // 3. Solo se la validazione passa, SALVA i dati aggiornati nello stato globale
-      setFormData(updatedFormData);
-      // 4. Segna lo step come confermato
-      confirmStep(currentStep);
-      setValidationErrors({}); // Pulisci errori
-    } else {
-      // Mostra errori di validazione
-      setValidationErrors(errors);
+  const checkHACCPCompliance = (targetTemp, selectedCategories = []) => {
+    const temp = parseFloat(targetTemp);
+    
+    if (isNaN(temp)) return { compliant: false, message: 'Temperatura non valida', type: 'error' };
+    
+    // Se sono state selezionate categorie, usa le regole HACCP
+    if (selectedCategories.length > 0) {
+      // Prima controlla se le categorie sono compatibili tra loro
+      const tolerance = CONSERVATION_POINT_RULES.tolerance;
+      let hasIncompatibleCategories = false;
+      
+      // Controlla se ci sono categorie con range di temperatura che non si sovrappongono
+      for (let i = 0; i < selectedCategories.length; i++) {
+        for (let j = i + 1; j < selectedCategories.length; j++) {
+          const category1 = CONSERVATION_POINT_RULES.categories.find(c => c.id === selectedCategories[i]);
+          const category2 = CONSERVATION_POINT_RULES.categories.find(c => c.id === selectedCategories[j]);
+          
+          if (category1 && category2) {
+            // Calcola i range di tolleranza per entrambe le categorie
+            const range1Min = category1.minTemp - tolerance;
+            const range1Max = category1.maxTemp + tolerance;
+            const range2Min = category2.minTemp - tolerance;
+            const range2Max = category2.maxTemp + tolerance;
+            
+            // Se i range non si sovrappongono, le categorie sono incompatibili
+            if (range1Max < range2Min || range2Max < range1Min) {
+              hasIncompatibleCategories = true;
+              break;
+            }
+          }
+        }
+        if (hasIncompatibleCategories) break;
+      }
+      
+      if (hasIncompatibleCategories) {
+        return { 
+          compliant: false, 
+          message: '❌ Categorie incompatibili selezionate', 
+          type: 'error',
+          color: 'red'
+        };
+      }
+      
+      let isInRange = false;
+      let isInToleranceRange = false;
+      let categoryInfo = null;
+      
+      for (const categoryId of selectedCategories) {
+        const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
+        if (category) {
+          categoryInfo = category;
+          // Controlla se è nel range HACCP
+          if (temp >= category.minTemp && temp <= category.maxTemp) {
+            isInRange = true;
+            break;
+          }
+          // Controlla se è nel range di tolleranza estesa (±1.5°C)
+          const categoryMin = category.minTemp - tolerance;
+          const categoryMax = category.maxTemp + tolerance;
+          if (temp >= categoryMin && temp <= categoryMax) {
+            isInToleranceRange = true;
+            break;
+          }
+        }
+      }
+      
+      if (isInRange) {
+        return { 
+          compliant: true, 
+          message: '✅ Valore temperatura valido', 
+          type: 'compliant',
+          color: 'green'
+        };
+      } else if (isInToleranceRange) {
+        return { 
+          compliant: false, 
+          message: '⚠️ Range di tolleranza estesa (±1.5°C)', 
+          type: 'warning',
+          color: 'yellow'
+        };
+      } else {
+        return { 
+          compliant: false, 
+          message: `❌ Fuori range HACCP per ${categoryInfo?.name || 'categorie selezionate'}`, 
+          type: 'error',
+          color: 'red'
+        };
+      }
+    }
+    
+    // Validazione generica se non ci sono categorie selezionate
+    if (temp < -30 || temp > 80) return { 
+      compliant: false, 
+      message: 'Range temperatura fuori limiti operativi', 
+      type: 'error',
+      color: 'red'
+    };
+    
+    return { 
+      compliant: true, 
+      message: '✅ Valore temperatura valido', 
+      type: 'compliant',
+      color: 'green'
+    };
+  };
+
+  // Funzione per determinare la compatibilità delle categorie
+  const getCategoryCompatibility = (categoryId, selectedCategories, targetTemp) => {
+    if (selectedCategories.length === 0) return 'neutral';
+    
+    const temp = parseFloat(targetTemp);
+    if (isNaN(temp)) return 'neutral';
+    
+    const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
+    if (!category) return 'neutral';
+    
+    // Controlla se la categoria è già selezionata
+    if (selectedCategories.includes(categoryId)) return 'selected';
+    
+    // Controlla compatibilità con le categorie già selezionate
+    const tolerance = CONSERVATION_POINT_RULES.tolerance;
+    
+    // Calcola il range di tolleranza per la categoria corrente
+    const categoryMin = category.minTemp - tolerance;
+    const categoryMax = category.maxTemp + tolerance;
+    
+    // Controlla se la temperatura target è nel range di questa categoria
+    if (temp >= category.minTemp && temp <= category.maxTemp) {
+      // Temperatura nel range HACCP - controlla se è compatibile con le altre categorie
+      for (const selectedId of selectedCategories) {
+        const selectedCategory = CONSERVATION_POINT_RULES.categories.find(c => c.id === selectedId);
+        if (selectedCategory) {
+          const selectedMin = selectedCategory.minTemp - tolerance;
+          const selectedMax = selectedCategory.maxTemp + tolerance;
+          
+          // Se c'è sovrapposizione nei range di tolleranza, è compatibile
+          if (selectedMin <= categoryMax && selectedMax >= categoryMin) {
+            return 'compatible';
+          }
+        }
+      }
+      return 'incompatible';
+    } else if (temp >= categoryMin && temp <= categoryMax) {
+      // Temperatura nel range di tolleranza - controlla se è compatibile con le altre categorie
+      for (const selectedId of selectedCategories) {
+        const selectedCategory = CONSERVATION_POINT_RULES.categories.find(c => c.id === selectedId);
+        if (selectedCategory) {
+          const selectedMin = selectedCategory.minTemp - tolerance;
+          const selectedMax = selectedCategory.maxTemp + tolerance;
+          
+          // Se c'è sovrapposizione nei range di tolleranza, è in tolleranza
+          if (selectedMin <= categoryMax && selectedMax >= categoryMin) {
+            return 'tolerance';
+          }
+        }
+      }
+      return 'incompatible';
+    }
+    
+    return 'incompatible';
+  };
+
+  const handleAddPoint = () => {
+    if (localFormData.name && localFormData.location && localFormData.targetTemp && localFormData.selectedCategories.length > 0) {
+      const compliance = checkHACCPCompliance(localFormData.targetTemp, localFormData.selectedCategories);
+      
+      const pointData = {
+        ...localFormData,
+        compliance
+      };
+      
+      if (editingPoint) {
+        // Modifica punto esistente
+        setConservationPoints(prev => prev.map(point => 
+          point.id === editingPoint ? { ...point, ...pointData } : point
+        ));
+      } else {
+        // Aggiungi nuovo punto
+        const newPoint = {
+          id: Date.now(),
+          ...pointData
+        };
+        setConservationPoints(prev => [...prev, newPoint]);
+      }
+      
+      resetForm();
+      setShowAddForm(false);
     }
   };
+
+
+  const handleDeletePoint = (id) => {
+    setConservationPoints(prev => prev.filter(point => point.id !== id));
+  };
+
+  const handleEditPoint = (id) => {
+    const point = conservationPoints.find(p => p.id === id);
+    if (point) {
+      setLocalFormData({
+        name: point.name,
+        location: point.location,
+        targetTemp: point.targetTemp,
+        selectedCategories: point.selectedCategories || []
+      });
+      setEditingPoint(id);
+      setShowAddForm(true);
+    }
+  };
+
+  const canProceed = conservationPoints.length > 0 && 
+    conservationPoints.every(point => point.name && point.location && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0);
+
+  // Verifica se ci sono punti non HACCP compliant
+  const hasNonCompliantPoints = conservationPoints.some(point => 
+    point.compliance && point.compliance.type !== 'compliant'
+  );
+
+  // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
   return (
     <div className="space-y-6">
@@ -170,7 +293,16 @@ const ConservationStep = ({
         <div className="flex items-center justify-between">
           <h4 className="font-medium text-gray-900">Punti di Conservazione</h4>
           <Button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              console.log('🔄 Pulsante Aggiungi cliccato');
+              try {
+                resetForm();
+                setShowAddForm(true);
+                console.log('✅ Form resettato e showAddForm impostato a true');
+              } catch (error) {
+                console.error('❌ Errore nel pulsante Aggiungi:', error);
+              }
+            }}
             variant="outline"
             size="sm"
           >
@@ -201,18 +333,8 @@ const ConservationStep = ({
                                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                        <div>
                          <span className="text-gray-600">Temperatura:</span>
-                         <p className="font-medium">{point.minTemp}°C - {point.maxTemp}°C</p>
+                         <p className="font-medium">{point.targetTemp}°C</p>
                        </div>
-                       <div>
-                         <span className="text-gray-600">Categoria:</span>
-                         <p className="font-medium">{point.assignedRole}</p>
-                       </div>
-                       {point.assignedTo && (
-                         <div>
-                           <span className="text-gray-600">Dipendente:</span>
-                           <p className="font-medium">{point.assignedTo}</p>
-                         </div>
-                       )}
                        <div>
                          <span className="text-gray-600">HACCP:</span>
                          <div className={`flex items-center gap-1 ${
@@ -246,24 +368,22 @@ const ConservationStep = ({
                   </div>
                   
                   <div className="flex gap-2">
-                    {point.needsConfirmation ? (
-                      <Button
-                        onClick={() => handleConfirmPoint(point.id)}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Conferma
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => handleDeletePoint(point.id)}
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      onClick={() => handleEditPoint(point.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={() => handleDeletePoint(point.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -275,7 +395,9 @@ const ConservationStep = ({
       {/* Form Aggiungi Punto */}
       {showAddForm && (
         <div className="border rounded-lg p-4 bg-white">
-          <h4 className="font-medium text-gray-900 mb-4">Aggiungi Nuovo Punto di Conservazione</h4>
+          <h4 className="font-medium text-gray-900 mb-4">
+            {editingPoint ? 'Modifica Punto di Conservazione' : 'Aggiungi Nuovo Punto di Conservazione'}
+          </h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -298,122 +420,136 @@ const ConservationStep = ({
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Seleziona reparto</option>
-                {mockDepartments.map(dept => (
+                {availableDepartments.map(dept => (
                   <option key={dept} value={dept}>{dept}</option>
                 ))}
               </select>
             </div>
             
             <div>
-              <Label htmlFor="minTemp">Temperatura Minima (°C) *</Label>
+              <Label htmlFor="targetTemp">Temperatura Punto di Conservazione (°C) *</Label>
               <Input
-                id="minTemp"
+                id="targetTemp"
                 type="number"
                 min="-30"
                 max="80"
                 step="0.1"
-                value={localFormData.minTemp}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, minTemp: e.target.value }))}
-                placeholder="-18"
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="maxTemp">Temperatura Massima (°C) *</Label>
-              <Input
-                id="maxTemp"
-                type="number"
-                min="-30"
-                max="80"
-                step="0.1"
-                value={localFormData.maxTemp}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, maxTemp: e.target.value }))}
+                value={localFormData.targetTemp}
+                onChange={(e) => {
+                  console.log('🌡️ Temperatura cambiata:', e.target.value);
+                  setLocalFormData(prev => ({ ...prev, targetTemp: e.target.value }));
+                }}
                 placeholder="4"
-                className="mt-1"
+                className={`mt-1 ${
+                  localFormData.targetTemp && localFormData.selectedCategories.length > 0 ? 
+                    (() => {
+                      const compliance = checkHACCPCompliance(localFormData.targetTemp, localFormData.selectedCategories);
+                      return compliance.color === 'green' ? 'border-green-500 focus:border-green-500 focus:ring-green-500' :
+                             compliance.color === 'yellow' ? 'border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500' :
+                             compliance.color === 'red' ? 'border-red-500 focus:border-red-500 focus:ring-red-500' :
+                             'border-gray-300';
+                    })() : 'border-gray-300'
+                }`}
               />
+              {localFormData.targetTemp && localFormData.selectedCategories.length > 0 && (
+                <div className="mt-1">
+                  {(() => {
+                    const compliance = checkHACCPCompliance(localFormData.targetTemp, localFormData.selectedCategories);
+                    return (
+                      <p className={`text-xs ${
+                        compliance.color === 'green' ? 'text-green-600' :
+                        compliance.color === 'yellow' ? 'text-yellow-600' :
+                        compliance.color === 'red' ? 'text-red-600' :
+                        'text-gray-600'
+                      }`}>
+                        {compliance.message}
+                      </p>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
-            
-            {/* Validazione range temperature */}
-            {localFormData.minTemp && localFormData.maxTemp && parseFloat(localFormData.minTemp) >= parseFloat(localFormData.maxTemp) && (
-              <div className="md:col-span-2 p-2 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-xs text-red-800">
-                  ❌ La temperatura minima non può essere superiore o uguale alla massima
-                </p>
-              </div>
-            )}
-            
-                         <div>
-               <Label htmlFor="assignedRole">Assegna rilevamento temperature a: *</Label>
-               <select
-                 id="assignedRole"
-                 value={localFormData.assignedRole}
-                 onChange={(e) => setLocalFormData(prev => ({ ...prev, assignedRole: e.target.value }))}
-                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-               >
-                 <option value="">Seleziona categoria</option>
-                 <option value="Cuochi">Cuochi</option>
-                 <option value="Banconisti">Banconisti</option>
-                 <option value="Camerieri">Camerieri</option>
-                 <option value="Responsabile">Responsabile</option>
-                 <option value="Dipendente">Dipendente</option>
-               </select>
-               {!localFormData.assignedRole && (
-                 <p className="text-xs text-red-500 mt-1">
-                   ⚠️ Seleziona una categoria per procedere
-                 </p>
-               )}
-             </div>
-            
-            {localFormData.assignedRole && (
-              <div>
-                <Label htmlFor="assignedTo">Dipendente Specifico</Label>
-                <select
-                  id="assignedTo"
-                  value={localFormData.assignedTo}
-                  onChange={(e) => setLocalFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
-                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">Generico (solo categoria)</option>
-                  {mockStaff.filter(staff => staff.category === localFormData.assignedRole).map(staff => (
-                    <option key={staff.id} value={staff.name}>{staff.name} ({staff.role})</option>
-                  ))}
-                </select>
-              </div>
-            )}
 
              <div className="md:col-span-2">
                <Label htmlFor="categories">Categorie Prodotti Conservati *</Label>
                <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
-                 {CONSERVATION_POINT_RULES.categories.map(category => (
-                   <label key={category.id} className="flex items-center gap-2 cursor-pointer">
-                     <input
-                       type="checkbox"
-                       checked={localFormData.selectedCategories.includes(category.id)}
-                       onChange={(e) => {
-                         if (e.target.checked) {
-                           setLocalFormData(prev => ({
-                             ...prev,
-                             selectedCategories: [...prev.selectedCategories, category.id]
-                           }));
-                         } else {
-                           setLocalFormData(prev => ({
-                             ...prev,
-                             selectedCategories: prev.selectedCategories.filter(id => id !== category.id)
-                           }));
-                         }
-                       }}
-                       className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                     />
-                     <span className="text-sm">
-                       {category.name}
-                     </span>
-                   </label>
-                 ))}
+                 {CONSERVATION_POINT_RULES.categories.map(category => {
+                   const compatibility = getCategoryCompatibility(category.id, localFormData.selectedCategories, localFormData.targetTemp);
+                   console.log(`🎨 Category ${category.name}: compatibility=${compatibility}, selected=${localFormData.selectedCategories}, temp=${localFormData.targetTemp}`);
+                   const getCompatibilityStyle = () => {
+                     switch (compatibility) {
+                       case 'selected':
+                         return 'bg-blue-200 border-blue-400 text-blue-900 shadow-sm';
+                       case 'compatible':
+                         return 'bg-green-200 border-green-400 text-green-900 shadow-sm';
+                       case 'tolerance':
+                         return 'bg-yellow-200 border-yellow-400 text-yellow-900 shadow-sm';
+                       case 'incompatible':
+                         return 'bg-red-200 border-red-400 text-red-900 shadow-sm';
+                       default:
+                         return 'bg-gray-100 border-gray-300 text-gray-700';
+                     }
+                   };
+                   
+                   return (
+                     <label key={category.id} className={`flex items-center gap-2 cursor-pointer p-2 rounded border ${getCompatibilityStyle()}`}>
+                       <input
+                         type="checkbox"
+                         checked={localFormData.selectedCategories.includes(category.id)}
+                         onChange={(e) => {
+                           console.log('📦 Categoria cambiata:', category.id, 'checked:', e.target.checked);
+                           if (e.target.checked) {
+                             setLocalFormData(prev => {
+                               const newCategories = [...prev.selectedCategories, category.id];
+                               console.log('✅ Categorie aggiornate:', newCategories);
+                               return {
+                                 ...prev,
+                                 selectedCategories: newCategories
+                               };
+                             });
+                           } else {
+                             setLocalFormData(prev => {
+                               const newCategories = prev.selectedCategories.filter(id => id !== category.id);
+                               console.log('❌ Categorie aggiornate:', newCategories);
+                               return {
+                                 ...prev,
+                                 selectedCategories: newCategories
+                               };
+                             });
+                           }
+                         }}
+                         className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                       />
+                       <span className="text-sm font-medium">
+                         {category.name}
+                       </span>
+                       {compatibility === 'compatible' && <span className="text-xs">✅</span>}
+                       {compatibility === 'incompatible' && <span className="text-xs">❌</span>}
+                       {compatibility === 'tolerance' && <span className="text-xs">⚠️</span>}
+                     </label>
+                   );
+                 })}
                </div>
                <p className="text-xs text-gray-500 mt-1">
                  Seleziona le categorie di prodotti che verranno conservate in questo punto
                </p>
+               <div className="mt-2 p-3 bg-gray-50 rounded text-xs border">
+                 <p className="font-medium mb-2">Legenda compatibilità:</p>
+                 <div className="flex flex-wrap gap-3">
+                   <span className="flex items-center gap-2">
+                     <span className="w-4 h-4 bg-green-200 border-2 border-green-400 rounded shadow-sm"></span>
+                     <span className="font-medium text-green-900">Verde: Compatibile con temperatura</span>
+                   </span>
+                   <span className="flex items-center gap-2">
+                     <span className="w-4 h-4 bg-yellow-200 border-2 border-yellow-400 rounded shadow-sm"></span>
+                     <span className="font-medium text-yellow-900">Giallo: Tolleranza estesa</span>
+                   </span>
+                   <span className="flex items-center gap-2">
+                     <span className="w-4 h-4 bg-red-200 border-2 border-red-400 rounded shadow-sm"></span>
+                     <span className="font-medium text-red-900">Rosso: Incompatibile</span>
+                   </span>
+                 </div>
+               </div>
                {localFormData.selectedCategories.length === 0 && (
                  <p className="text-xs text-red-500 mt-1">
                    ⚠️ Seleziona almeno una categoria per procedere
@@ -423,18 +559,18 @@ const ConservationStep = ({
            </div>
           
                      {/* Validazione HACCP in tempo reale */}
-           {localFormData.minTemp && localFormData.maxTemp && (
+           {localFormData.targetTemp && localFormData.selectedCategories.length > 0 && (
              <div className="mt-4 p-3 rounded-lg bg-gray-50">
                <div className="flex items-center gap-2">
                  <Thermometer className="h-4 w-4" />
                  <span className="font-medium">Validazione HACCP:</span>
                </div>
                {(() => {
-                 const compliance = checkHACCPCompliance(localFormData.minTemp, localFormData.maxTemp, localFormData.selectedCategories);
+                 const compliance = checkHACCPCompliance(localFormData.targetTemp, localFormData.selectedCategories);
                  return (
                    <div className={`mt-2 flex items-center gap-2 ${
-                     compliance.type === 'compliant' ? 'text-green-600' :
-                     compliance.type === 'warning' ? 'text-yellow-600' :
+                     compliance.color === 'green' ? 'text-green-600' :
+                     compliance.color === 'yellow' ? 'text-yellow-600' :
                      'text-red-600'
                    }`}>
                      {compliance.type === 'compliant' ? '✅' : 
@@ -475,9 +611,9 @@ const ConservationStep = ({
             </Button>
                          <Button
                onClick={handleAddPoint}
-               disabled={!localFormData.name || !localFormData.location || !localFormData.minTemp || !localFormData.maxTemp || !localFormData.assignedRole || localFormData.selectedCategories.length === 0}
+               disabled={!localFormData.name || !localFormData.location || !localFormData.targetTemp || localFormData.selectedCategories.length === 0}
              >
-               Aggiungi Punto
+               {editingPoint ? 'Salva Modifiche' : 'Aggiungi Punto'}
              </Button>
           </div>
         </div>
@@ -485,25 +621,27 @@ const ConservationStep = ({
 
       {/* Validazione */}
       <div className={`p-4 rounded-lg ${
-        canProceed ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
+        canProceed && !hasNonCompliantPoints ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
       }`}>
         <div className="flex items-center gap-3">
           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-            canProceed ? 'bg-green-500' : 'bg-yellow-500'
+            canProceed && !hasNonCompliantPoints ? 'bg-green-500' : 'bg-yellow-500'
           } text-white text-sm font-bold`}>
             {conservationPoints.length}
           </div>
           <div>
             <p className={`font-medium ${
-              canProceed ? 'text-green-900' : 'text-yellow-900'
+              canProceed && !hasNonCompliantPoints ? 'text-green-900' : 'text-yellow-900'
             }`}>
               Punti configurati: {conservationPoints.length}
             </p>
             <p className={`text-sm ${
-              canProceed ? 'text-green-800' : 'text-yellow-800'
+              canProceed && !hasNonCompliantPoints ? 'text-green-800' : 'text-yellow-800'
             }`}>
               {canProceed 
-                ? '✅ Tutti i punti hanno i campi obbligatori compilati!'
+                ? (hasNonCompliantPoints 
+                    ? '⚠️ Alcuni punti di conservazione non sono in linea con le norme HACCP. Controlla le temperature e le categorie selezionate.'
+                    : '✅ Tutti i punti hanno i campi obbligatori compilati!')
                 : '⚠️ Devi configurare almeno un punto di conservazione con tutti i campi obbligatori.'
               }
             </p>
@@ -523,28 +661,7 @@ const ConservationStep = ({
          </div>
        )}
 
-       {/* Pulsante Conferma */}
-       <div className="flex justify-end">
-         <Button
-           onClick={handleConfirmData}
-           disabled={!canProceed || isStepConfirmed(currentStep)}
-           className={`${
-             isStepConfirmed(currentStep) 
-               ? 'bg-green-500 hover:bg-green-600 cursor-not-allowed' 
-               : canProceed 
-                 ? 'bg-green-600 hover:bg-green-700'
-                 : 'bg-gray-300 cursor-not-allowed'
-           }`}
-         >
-           {isStepConfirmed(currentStep) ? (
-             <>
-               ✅ Dati Confermati
-             </>
-           ) : (
-             'Conferma Dati Conservazione'
-           )}
-         </Button>
-       </div>
+       {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
     </div>
   );
 };

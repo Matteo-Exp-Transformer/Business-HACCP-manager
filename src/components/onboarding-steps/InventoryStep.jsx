@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
-import { Plus, X, Package, AlertTriangle } from 'lucide-react';
+import { Plus, X, Package, AlertTriangle, Edit } from 'lucide-react';
 
 const InventoryStep = ({ 
   formData, 
@@ -45,6 +45,18 @@ const InventoryStep = ({
       setProducts(formData.inventory.products);
     }
   }, [formData.inventory]);
+
+  // Aggiorna automaticamente il formData quando i prodotti cambiano
+  useEffect(() => {
+    const updatedFormData = {
+      ...formData,
+      inventory: {
+        products,
+        count: products.length
+      }
+    };
+    setFormData(updatedFormData);
+  }, [products]);
 
   const PRODUCT_TYPES = [
     'Latticini e Formaggi',
@@ -107,27 +119,44 @@ const InventoryStep = ({
     if (localFormData.name && localFormData.type && localFormData.expiryDate && localFormData.position) {
       const compliance = checkHACCPCompliance(localFormData.type, localFormData.position);
       
-      const newProduct = {
-        id: Date.now(),
-        ...localFormData,
-        compliance,
-        needsConfirmation: true
-      };
+      if (editingProduct) {
+        // Modifica prodotto esistente
+        setProducts(prev => prev.map(product => 
+          product.id === editingProduct ? { ...product, ...localFormData, compliance } : product
+        ));
+      } else {
+        // Aggiungi nuovo prodotto
+        const newProduct = {
+          id: Date.now(),
+          ...localFormData,
+          compliance
+        };
+        setProducts(prev => [...prev, newProduct]);
+      }
       
-      setProducts(prev => [...prev, newProduct]);
       resetForm();
       setShowAddForm(false);
     }
   };
 
-  const handleConfirmProduct = (id) => {
-    setProducts(prev => prev.map(product => 
-      product.id === id ? { ...product, needsConfirmation: false } : product
-    ));
-  };
 
   const handleDeleteProduct = (id) => {
     setProducts(prev => prev.filter(product => product.id !== id));
+  };
+
+  const handleEditProduct = (id) => {
+    const product = products.find(p => p.id === id);
+    if (product) {
+      setLocalFormData({
+        name: product.name,
+        type: product.type,
+        expiryDate: product.expiryDate,
+        position: product.position,
+        allergens: product.allergens || []
+      });
+      setEditingProduct(id);
+      setShowAddForm(true);
+    }
   };
 
   const toggleAllergen = (allergenId) => {
@@ -142,30 +171,7 @@ const InventoryStep = ({
   const canProceed = products.length > 0 && 
     products.every(product => product.name && product.type && product.expiryDate && product.position);
 
-  const handleConfirmData = () => {
-    // 1. Prepara i dati AGGIORNATI localmente
-    const updatedFormData = {
-      ...formData,
-      inventory: {
-        products,
-        count: products.length
-      }
-    };
-
-    // 2. VALIDA usando i dati AGGIORNATI (updatedFormData), non quelli vecchi!
-    const errors = validateStep(currentStep, updatedFormData);
-
-    if (Object.keys(errors).length === 0) {
-      // 3. Solo se la validazione passa, SALVA i dati aggiornati nello stato globale
-      setFormData(updatedFormData);
-      // 4. Segna lo step come confermato
-      confirmStep(currentStep);
-      setValidationErrors({}); // Pulisci errori
-    } else {
-      // Mostra errori di validazione
-      setValidationErrors(errors);
-    }
-  };
+  // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
   return (
     <div className="space-y-6">
@@ -179,7 +185,10 @@ const InventoryStep = ({
         <div className="flex items-center justify-between">
           <h4 className="font-medium text-gray-900">Prodotti nell'Inventario</h4>
           <Button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              resetForm();
+              setShowAddForm(true);
+            }}
             variant="outline"
             size="sm"
           >
@@ -242,24 +251,24 @@ const InventoryStep = ({
                   </div>
                   
                   <div className="flex gap-2">
-                    {product.needsConfirmation ? (
-                      <Button
-                        onClick={() => handleConfirmProduct(product.id)}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Conferma
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => handleDeleteProduct(product.id)}
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      onClick={() => handleEditProduct(product.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-blue-600 hover:text-blue-700"
+                      title="Modifica prodotto"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={() => handleDeleteProduct(product.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                      title="Elimina prodotto"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -271,7 +280,9 @@ const InventoryStep = ({
       {/* Form Aggiungi Prodotto */}
       {showAddForm && (
         <div className="border rounded-lg p-4 bg-white">
-          <h4 className="font-medium text-gray-900 mb-4">Aggiungi Nuovo Prodotto</h4>
+          <h4 className="font-medium text-gray-900 mb-4">
+            {editingProduct ? 'Modifica Prodotto' : 'Aggiungi Nuovo Prodotto'}
+          </h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -384,7 +395,7 @@ const InventoryStep = ({
                onClick={handleAddProduct}
                disabled={!localFormData.name || !localFormData.type || !localFormData.expiryDate || !localFormData.position}
              >
-               Aggiungi Prodotto
+               {editingProduct ? 'Salva Modifiche' : 'Aggiungi Prodotto'}
              </Button>
           </div>
         </div>
@@ -430,16 +441,7 @@ const InventoryStep = ({
          </div>
        )}
 
-       {/* Pulsante Conferma Finale */}
-       <div className="flex justify-end">
-         <Button
-           onClick={handleConfirmData}
-           disabled={!canProceed}
-           className={`${canProceed ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 cursor-not-allowed'}`}
-         >
-           Conferma Dati Inventario
-         </Button>
-       </div>
+       {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
     </div>
   );
 };

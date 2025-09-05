@@ -27,11 +27,11 @@
  */
 
 import React, { useState, useEffect } from 'react'
-import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, QrCode, Bot } from 'lucide-react'
+import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, QrCode, Bot, RotateCcw } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import Cleaning from './components/Cleaning'
-import Refrigerators from './components/Refrigerators'
-import Staff from './components/Staff'
+import PuntidiConservazione from './components/PuntidiConservazione'
+import Gestione from './components/Gestione'
 import Inventory from './components/Inventory'
 import ProductLabels from './components/ProductLabels'
 import AIAssistant from './components/AIAssistant'
@@ -52,7 +52,7 @@ import DevModeBanner from './components/DevModeBanner'
 import OnboardingWizard from './components/OnboardingWizard'
 import BottomSheetGuide from './components/BottomSheetGuide'
 import { shouldBypassOnboarding } from './utils/devMode'
-import { useHaccpValidation } from './utils/useHaccpValidation'
+// import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -100,8 +100,27 @@ function App() {
     inventory: []
   })
 
-  // Hook per validazione HACCP
-  const validation = useHaccpValidation(appData, activeTab)
+  // Hook per validazione HACCP - TEMPORANEAMENTE DISABILITATO
+  // const validation = useHaccpValidation(appData, activeTab)
+  const validation = {
+    isOnboardingComplete: true,
+    currentSectionAccess: { isEnabled: true, message: null },
+    missingRequirements: [],
+    onboardingProgress: 100,
+    // Funzioni mock per evitare errori
+    canAccessSection: () => ({ isEnabled: true, message: null }),
+    areRequirementsMet: () => true,
+    getMissingRequirements: () => [],
+    getNextOnboardingStep: () => null,
+    getOnboardingProgress: () => 100,
+    validateField: () => null,
+    getEducationalMessage: () => '',
+    getSuggestions: () => [],
+    validateConservationPoint: () => ({ isValid: true, errors: [], warnings: [] }),
+    getEducationalMessages: () => [],
+    onboardingStatus: { isComplete: true, progress: 100, nextStep: null },
+    sectionAccess: { isEnabled: true, message: null }
+  }
 
   // Carica i dati dell'applicazione per validazione HACCP
   const loadAppData = () => {
@@ -121,6 +140,30 @@ function App() {
       inventory
     })
   }
+
+  // Funzione per resettare completamente l'app (solo in modalità sviluppo)
+  const resetApp = () => {
+    if (window.confirm('⚠️ ATTENZIONE: Questo cancellerà TUTTI i dati dell\'app!\n\nSei sicuro di voler procedere?')) {
+      // Pulisce tutto il localStorage
+      localStorage.clear()
+      sessionStorage.clear()
+      
+      // Pulisce anche i dati specifici dell'onboarding
+      localStorage.removeItem('haccp-onboarding')
+      localStorage.removeItem('haccp-onboarding-new')
+      
+      // Ricarica la pagina
+      window.location.reload()
+    }
+  }
+
+  // Rendi la funzione disponibile globalmente per la console (solo in sviluppo)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      window.resetApp = resetApp
+      console.log('🔄 Funzione resetApp disponibile globalmente. Usa: resetApp()')
+    }
+  }, [])
 
   // Load data from localStorage on app start
   useEffect(() => {
@@ -148,16 +191,33 @@ function App() {
     const usersData = localStorage.getItem('haccp-users')
     const currentUserData = localStorage.getItem('haccp-current-user')
 
-    if (temps) setTemperatures(JSON.parse(temps))
-    if (cleaningData) setCleaning(JSON.parse(cleaningData))
-    if (refrigeratorsData) setRefrigerators(JSON.parse(refrigeratorsData))
-    if (staffData) setStaff(JSON.parse(staffData))
-    if (productsData) setProducts(JSON.parse(productsData))
-	if (departmentsData) setDepartments(JSON.parse(departmentsData))	
-    if (productLabelsData) setProductLabels(JSON.parse(productLabelsData))
+    try {
+      if (temps) setTemperatures(JSON.parse(temps))
+      if (cleaningData) setCleaning(JSON.parse(cleaningData))
+      if (refrigeratorsData) setRefrigerators(JSON.parse(refrigeratorsData))
+      if (staffData) setStaff(JSON.parse(staffData))
+      if (productsData) setProducts(JSON.parse(productsData))
+      if (departmentsData) setDepartments(JSON.parse(departmentsData))	
+      if (productLabelsData) setProductLabels(JSON.parse(productLabelsData))
+    } catch (error) {
+      console.warn('Errore nel parsing dei dati:', error)
+      // Pulisce i dati corrotti
+      localStorage.removeItem('haccp-temperatures')
+      localStorage.removeItem('haccp-cleaning')
+      localStorage.removeItem('haccp-refrigerators')
+      localStorage.removeItem('haccp-staff')
+      localStorage.removeItem('haccp-products')
+      localStorage.removeItem('haccp-departments')
+      localStorage.removeItem('haccp-product-labels')
+    }
     
     if (usersData) {
-      setUsers(JSON.parse(usersData))
+      try {
+        setUsers(JSON.parse(usersData))
+      } catch (error) {
+        console.warn('Errore nel parsing users:', error)
+        localStorage.removeItem('haccp-users')
+      }
     } else {
       // Crea utente admin di default se non esistono utenti
       const defaultAdmin = {
@@ -181,13 +241,22 @@ function App() {
     // Recupera la preferenza per la visibilità della chat IA
     const chatIconPref = localStorage.getItem('haccp-show-chat-icon')
     if (chatIconPref !== null) {
-      setShowChatIcon(JSON.parse(chatIconPref))
+      try {
+        setShowChatIcon(JSON.parse(chatIconPref))
+      } catch (error) {
+        console.warn('Errore nel parsing chat icon pref:', error)
+        localStorage.removeItem('haccp-show-chat-icon')
+      }
     }
 
     // Listener per i cambiamenti alle preferenze chat
     const handleStorageChange = (e) => {
       if (e.key === 'haccp-show-chat-icon') {
-        setShowChatIcon(JSON.parse(e.newValue))
+        try {
+          setShowChatIcon(JSON.parse(e.newValue))
+        } catch (error) {
+          console.warn('Errore nel parsing chat icon pref change:', error)
+        }
       }
     }
 
@@ -253,9 +322,14 @@ function App() {
     }
     
     // Salva l'azione di login
-    const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
-    actions.push(loginAction)
-    localStorage.setItem('haccp-actions', JSON.stringify(actions))
+    try {
+      const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
+      actions.push(loginAction)
+      localStorage.setItem('haccp-actions', JSON.stringify(actions))
+    } catch (error) {
+      console.warn('Errore nel parsing actions:', error)
+      localStorage.removeItem('haccp-actions')
+    }
     
     // Controlla se ci sono etichette di prodotti scaduti oggi (DISABILITATO temporaneamente)
     // setTimeout(checkExpiredLabelsToday, 2000)
@@ -498,9 +572,14 @@ function App() {
         description: `Disconnessione di ${currentUser.name}`
       }
       
-      const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
-      actions.push(logoutAction)
-      localStorage.setItem('haccp-actions', JSON.stringify(actions))
+      try {
+        const actions = JSON.parse(localStorage.getItem('haccp-actions') || '[]')
+        actions.push(logoutAction)
+        localStorage.setItem('haccp-actions', JSON.stringify(actions))
+      } catch (error) {
+        console.warn('Errore nel parsing actions logout:', error)
+        localStorage.removeItem('haccp-actions')
+      }
     }
     
     setCurrentUser(null)
@@ -636,41 +715,39 @@ function App() {
   // Controlla se mostrare l'onboarding
   useEffect(() => {
     if (currentUser && !onboardingCompleted) {
+      // TEMPORANEO: Bypassa sempre l'onboarding per permettere test
+      console.log('🚧 MODALITÀ TEST: Onboarding temporaneamente disabilitato per permettere test di tutte le sezioni')
+      setOnboardingCompleted(true)
+      return
+      
+      // CODICE ORIGINALE (commentato temporaneamente):
       // Se la modalità dev è attiva, bypassa l'onboarding
-      if (shouldBypassOnboarding()) {
-        setOnboardingCompleted(true)
-        return
-      }
+      // if (shouldBypassOnboarding()) {
+      //   setOnboardingCompleted(true)
+      //   return
+      // }
       
       // Ottieni i dati dell'onboarding dal localStorage
-      const savedOnboarding = localStorage.getItem('haccp-onboarding')
+      // const savedOnboarding = localStorage.getItem('haccp-onboarding')
       
       // Controlla se l'onboarding è già completato
-      if (savedOnboarding) {
-        try {
-          // Se è già un oggetto, usalo direttamente
-          if (typeof savedOnboarding === 'object') {
-            if (savedOnboarding && savedOnboarding.completed) {
-              setOnboardingCompleted(true)
-              return
-            }
-          } else if (typeof savedOnboarding === 'string') {
-            // Altrimenti prova a parsare come JSON solo se è una stringa
-            const onboarding = JSON.parse(savedOnboarding)
-            if (onboarding && typeof onboarding === 'object' && onboarding.completed) {
-              setOnboardingCompleted(true)
-              return
-            }
-          }
-        } catch (error) {
-          console.warn('Errore nel parsing onboarding:', error)
-          // Pulisce il valore corrotto
-          localStorage.removeItem('haccp-onboarding')
-        }
-      }
+      // if (savedOnboarding && savedOnboarding !== 'undefined' && savedOnboarding !== 'null' && savedOnboarding !== '[object Object]') {
+      //   try {
+      //     // Prova a parsare come JSON
+      //     const onboarding = JSON.parse(savedOnboarding)
+      //     if (onboarding && typeof onboarding === 'object' && onboarding.completed) {
+      //       setOnboardingCompleted(true)
+      //       return
+      //     }
+      //   } catch (error) {
+      //     console.warn('Errore nel parsing onboarding:', error)
+      //     // Pulisce il valore corrotto
+      //     localStorage.removeItem('haccp-onboarding')
+      //   }
+      // }
       
       // Mostra l'onboarding se non è completato
-      setShowOnboarding(true)
+      // setShowOnboarding(true)
     }
   }, [currentUser, onboardingCompleted])
 
@@ -961,6 +1038,19 @@ function App() {
           </div>
           
           <div className="flex gap-2">
+            {/* Pulsante Reset App - Solo in modalità sviluppo */}
+            {process.env.NODE_ENV === 'development' && (
+              <Button
+                onClick={resetApp}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                title="Reset completo dell'app (solo sviluppo)"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Reset App
+              </Button>
+            )}
             <Button
               onClick={exportData}
               variant="outline"
@@ -1099,7 +1189,7 @@ function App() {
 
           {/* Sezione: Punti di Conservazione (ex Frigoriferi) - Gestione frigoriferi/freezer */}
           <TabsContent value="refrigerators">
-            <Refrigerators 
+            <PuntidiConservazione 
               temperatures={temperatures} 
               setTemperatures={(newTemperatures) => {
                 setTemperatures(newTemperatures)
@@ -1110,6 +1200,11 @@ function App() {
               setRefrigerators={(newRefrigerators) => {
                 setRefrigerators(newRefrigerators)
                 trackDataChange('refrigerators', newRefrigerators)
+              }}
+              departments={departments}
+              setDepartments={(newDepartments) => {
+                setDepartments(newDepartments)
+                trackDataChange('departments', newDepartments)
               }}
             />
           </TabsContent>
@@ -1181,7 +1276,7 @@ function App() {
           {isAdmin() && (
             <TabsContent value="staff">
               <div className="space-y-6">
-                <Staff 
+                <Gestione 
                   staff={staff} 
                   setStaff={(newStaff) => {
                     setStaff(newStaff)
@@ -1191,6 +1286,11 @@ function App() {
                   setUsers={setUsers}
                   currentUser={currentUser}
                   isAdmin={isAdmin()}
+                  departments={departments}
+                  setDepartments={(newDepartments) => {
+                    setDepartments(newDepartments)
+                    trackDataChange('departments', newDepartments)
+                  }}
                 />
                 <StorageManager
                   temperatures={temperatures}

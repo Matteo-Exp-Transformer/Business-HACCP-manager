@@ -35,6 +35,15 @@ const StaffStep = ({
     }
   }, [formData.staff]);
 
+  // Aggiorna automaticamente il formData quando lo staff cambia
+  useEffect(() => {
+    const updatedFormData = {
+      ...formData,
+      staff: { staffMembers }
+    };
+    setFormData(updatedFormData);
+  }, [staffMembers]);
+
   const ROLES = [
     'Amministratore',
     'Responsabile', 
@@ -47,7 +56,8 @@ const StaffStep = ({
     'Banconisti',
     'Camerieri',
     'Social & Media Manager',
-    'Amministratore'
+    'Amministratore',
+    'Altro'
   ];
 
   const resetForm = () => {
@@ -71,15 +81,20 @@ const StaffStep = ({
 
   // Controlla se mostrare il campo HACCP
   const shouldShowHaccpField = (selectedCategory) => {
-    return selectedCategory !== 'Social & Media Manager';
+    return selectedCategory !== 'Social & Media Manager' && selectedCategory !== 'Altro';
   };
 
   const handleAddMember = () => {
     if (localFormData.name && localFormData.surname && localFormData.role && localFormData.category) {
       const newMember = {
         id: Date.now(),
-        ...localFormData,
-        fullName: `${localFormData.name} ${localFormData.surname}`
+        name: localFormData.name,
+        surname: localFormData.surname,
+        role: localFormData.role,
+        category: localFormData.category,
+        fullName: `${localFormData.name} ${localFormData.surname}`,
+        // Includi haccpExpiry sempre, ma solo se la categoria lo richiede e il valore è presente
+        haccpExpiry: shouldShowHaccpField(localFormData.category) && localFormData.haccpExpiry ? localFormData.haccpExpiry : ''
       };
       const updatedMembers = [...staffMembers, newMember];
       setStaffMembers(updatedMembers);
@@ -120,7 +135,16 @@ const StaffStep = ({
     if (localFormData.name && localFormData.surname && localFormData.role && localFormData.category) {
       const updatedMembers = staffMembers.map(member => 
         member.id === editingMember.id 
-          ? { ...member, ...localFormData, fullName: `${localFormData.name} ${localFormData.surname}` }
+          ? { 
+              ...member, 
+              name: localFormData.name,
+              surname: localFormData.surname,
+              role: localFormData.role,
+              category: localFormData.category,
+              fullName: `${localFormData.name} ${localFormData.surname}`,
+              // Includi haccpExpiry sempre, ma solo se la categoria lo richiede e il valore è presente
+              haccpExpiry: shouldShowHaccpField(localFormData.category) && localFormData.haccpExpiry ? localFormData.haccpExpiry : ''
+            }
           : member
       );
       setStaffMembers(updatedMembers);
@@ -166,24 +190,7 @@ const StaffStep = ({
     setErrors({}); // Pulisci gli errori
   };
 
-  // Funzione per confermare i dati dello step
-  const handleConfirmData = () => {
-    const stepErrors = validateStep(currentStep, {
-      ...formData,
-      staff: { staffMembers }
-    });
-    
-    if (Object.keys(stepErrors).length === 0) {
-      // Step valido, conferma
-      if (confirmStep(currentStep)) {
-        setErrors({});
-        // I dati sono già nel formData globale, non serve fare altro
-      }
-    } else {
-      // Mostra errori
-      setErrors(stepErrors);
-    }
-  };
+  // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
   // Controlla se lo step è valido per conferma
   const isStepValid = () => {
@@ -192,12 +199,20 @@ const StaffStep = ({
       return false;
     }
     
-    // Verifica che ogni membro abbia i campi obbligatori
+    // Verifica che ogni membro abbia i campi obbligatori (HACCP è FACOLTATIVO)
     return staffMembers.every(member => {
-      return member.fullName && 
-             member.fullName.trim().length >= 3 &&
-             member.role && 
-             member.category;
+      const hasBasicFields = member.fullName && 
+                            member.fullName.trim().length >= 3 &&
+                            member.role && 
+                            member.category;
+      
+      // RIMOSSO: Controllo HACCP - La scadenza attestato HACCP è FACOLTATIVA per tutte le categorie
+      // if (hasBasicFields && shouldShowHaccpField(member.category)) {
+      //   return member.haccpExpiry && member.haccpExpiry.trim() !== '';
+      // }
+      
+      // Tutti i membri devono avere solo i campi base (HACCP facoltativo)
+      return hasBasicFields;
     });
   };
 
@@ -327,7 +342,17 @@ const StaffStep = ({
               <select
                 id="role"
                 value={localFormData.role}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, role: e.target.value }))}
+                onChange={(e) => {
+                  const selectedRole = e.target.value;
+                  setLocalFormData(prev => {
+                    const newData = { ...prev, role: selectedRole };
+                    // Se il ruolo è "Amministratore", seleziona automaticamente la categoria "Amministratore"
+                    if (selectedRole === 'Amministratore') {
+                      newData.category = 'Amministratore';
+                    }
+                    return newData;
+                  });
+                }}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Seleziona ruolo</option>
@@ -442,28 +467,7 @@ const StaffStep = ({
         </div>
       )}
 
-      {/* Pulsante Conferma */}
-      <div className="flex justify-end">
-        <Button
-          onClick={handleConfirmData}
-          disabled={!isStepValid() || isStepConfirmed(currentStep)}
-          className={`${
-            isStepConfirmed(currentStep) 
-              ? 'bg-green-500 hover:bg-green-600 cursor-not-allowed' 
-              : isStepValid() 
-                ? 'bg-blue-600 hover:bg-blue-700'
-                : 'bg-gray-300 cursor-not-allowed'
-          }`}
-        >
-          {isStepConfirmed(currentStep) ? (
-            <>
-              ✅ Dati Confermati
-            </>
-          ) : (
-            'Conferma Dati Staff'
-          )}
-        </Button>
-      </div>
+      {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
     </div>
   );
 };

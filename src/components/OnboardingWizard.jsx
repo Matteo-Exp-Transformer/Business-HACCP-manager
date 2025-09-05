@@ -10,6 +10,83 @@ import {
   Package, 
   ClipboardList
 } from 'lucide-react';
+import { CONSERVATION_POINT_RULES } from '../utils/haccpRules';
+
+// Funzione per validare la conformità HACCP
+const validateHACCPCompliance = (targetTemp, selectedCategories) => {
+  const temp = parseFloat(targetTemp);
+  
+  if (isNaN(temp)) return { compliant: false, message: 'Temperatura non valida' };
+  
+  if (selectedCategories.length > 0) {
+    const tolerance = CONSERVATION_POINT_RULES.tolerance;
+    let hasIncompatibleCategories = false;
+    
+    // Controlla incompatibilità tra categorie
+    for (let i = 0; i < selectedCategories.length; i++) {
+      for (let j = i + 1; j < selectedCategories.length; j++) {
+        const category1 = CONSERVATION_POINT_RULES.categories.find(c => c.id === selectedCategories[i]);
+        const category2 = CONSERVATION_POINT_RULES.categories.find(c => c.id === selectedCategories[j]);
+        
+        if (category1 && category2) {
+          const range1Min = category1.minTemp - tolerance;
+          const range1Max = category1.maxTemp + tolerance;
+          const range2Min = category2.minTemp - tolerance;
+          const range2Max = category2.maxTemp + tolerance;
+          
+          if (range1Max < range2Min || range2Max < range1Min) {
+            hasIncompatibleCategories = true;
+            break;
+          }
+        }
+      }
+      if (hasIncompatibleCategories) break;
+    }
+    
+    if (hasIncompatibleCategories) {
+      return { 
+        compliant: false, 
+        message: 'Categorie incompatibili selezionate'
+      };
+    }
+    
+    // Controlla se la temperatura è nel range di almeno una categoria
+    let isInRange = false;
+    let isInToleranceRange = false;
+    
+    for (const categoryId of selectedCategories) {
+      const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
+      if (category) {
+        if (temp >= category.minTemp && temp <= category.maxTemp) {
+          isInRange = true;
+          break;
+        }
+        const categoryMin = category.minTemp - tolerance;
+        const categoryMax = category.maxTemp + tolerance;
+        if (temp >= categoryMin && temp <= categoryMax) {
+          isInToleranceRange = true;
+          break;
+        }
+      }
+    }
+    
+    if (isInRange) {
+      return { compliant: true, message: 'Conforme HACCP' };
+    } else if (isInToleranceRange) {
+      return { 
+        compliant: false, 
+        message: `Range di tolleranza estesa (±${tolerance}°C)`
+      };
+    } else {
+      return { 
+        compliant: false, 
+        message: 'Fuori range HACCP per le categorie selezionate'
+      };
+    }
+  }
+  
+  return { compliant: true, message: 'Conforme HACCP' };
+};
 
 // Import degli step (da creare)
 import BusinessInfoStep from './onboarding-steps/BusinessInfoStep';
@@ -175,17 +252,30 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
            if (!member.category) {
              errors[`staff_${index}_category`] = "Categoria obbligatoria";
            } else {
-             // Controlla che la categoria sia valida
-             const validCategories = ['Cuochi', 'Banconisti', 'Camerieri', 'Social & Media Manager', 'Amministratore'];
-             if (!validCategories.includes(member.category)) {
-               errors[`staff_${index}_category`] = "Categoria non valida - seleziona una categoria valida";
-             }
+                         // Controlla che la categoria sia valida
+            const validCategories = ['Cuochi', 'Banconisti', 'Camerieri', 'Social & Media Manager', 'Amministratore', 'Altro'];
+            if (!validCategories.includes(member.category)) {
+              errors[`staff_${index}_category`] = "Categoria non valida - seleziona una categoria valida";
+            }
            }
            
            // Controlla che il ruolo e la categoria siano compatibili
            if (member.role === 'Amministratore' && member.category !== 'Amministratore') {
              errors[`staff_${index}_category`] = "Il ruolo 'Amministratore' deve essere associato alla categoria 'Amministratore'";
            }
+           
+           // RIMOSSO: Controllo HACCP - La scadenza attestato HACCP è FACOLTATIVA per tutte le categorie
+           // console.log(`🔍 Validazione membro ${index}:`, {
+           //   category: member.category,
+           //   requiresHaccp,
+           //   haccpExpiry: member.haccpExpiry,
+           //   hasHaccpExpiry: member.haccpExpiry && member.haccpExpiry.trim() !== ''
+           // });
+           
+           // RIMOSSO: Controllo HACCP - Non più obbligatorio per nessuna categoria
+           // if (requiresHaccp && (!member.haccpExpiry || member.haccpExpiry.trim() === '')) {
+           //   errors[`staff_${index}_haccp`] = "Scadenza attestato HACCP obbligatoria per questa categoria";
+           // }
          });
          
          // Controlla che i nomi dei membri siano unici
@@ -219,24 +309,12 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                    errors[`conservation_${index}_location`] = "Posizione non valida - seleziona un reparto attivo";
                  }
                }
-               if (!point.minTemp || !point.maxTemp) {
-                 errors[`conservation_${index}_temperature`] = "Range temperature obbligatorio";
+               if (!point.targetTemp) {
+                 errors[`conservation_${index}_temperature`] = "Temperatura target obbligatoria";
                } else {
-                 const min = parseFloat(point.minTemp);
-                 const max = parseFloat(point.maxTemp);
-                 if (isNaN(min) || isNaN(max)) {
-                   errors[`conservation_${index}_temperature`] = "Temperature non valide";
-                 } else if (min >= max) {
-                   errors[`conservation_${index}_temperature`] = "Temperatura minima deve essere inferiore alla massima";
-                 }
-               }
-               if (!point.assignedRole) {
-                 errors[`conservation_${index}_assigned`] = "Assegnazione obbligatoria";
-               } else {
-                 // Controlla che il ruolo assegnato sia valido
-                 const validRoles = ['Cuochi', 'Banconisti', 'Camerieri', 'Responsabile', 'Dipendente'];
-                 if (!validRoles.includes(point.assignedRole)) {
-                   errors[`conservation_${index}_assigned`] = "Ruolo non valido - seleziona una categoria valida";
+                 const temp = parseFloat(point.targetTemp);
+                 if (isNaN(temp)) {
+                   errors[`conservation_${index}_temperature`] = "Temperatura non valida";
                  }
                }
                if (!point.selectedCategories || point.selectedCategories.length === 0) {
@@ -249,6 +327,14 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                      errors[`conservation_${index}_categories`] = "Categoria non valida - seleziona categorie valide";
                    }
                  });
+                 
+                 // Validazione HACCP: controlla conformità temperatura e categorie
+                 if (point.targetTemp && point.selectedCategories.length > 0) {
+                   const haccpValidation = validateHACCPCompliance(point.targetTemp, point.selectedCategories);
+                   if (!haccpValidation.compliant) {
+                     errors[`conservation_${index}_haccp`] = `Non conforme HACCP: ${haccpValidation.message}`;
+                   }
+                 }
                }
              });
              
@@ -259,18 +345,9 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                errors.conservationNames = "I nomi dei punti di conservazione devono essere unici";
              }
              
-             // Controlla che i punti abbiano posizioni diverse (non tutti nello stesso reparto)
-             const locations = conservationPoints.map(point => point.location);
-             const uniqueLocations = new Set(locations);
-             if (uniqueLocations.size < 2) {
-               errors.conservationLocations = "I punti di conservazione devono essere distribuiti in almeno 2 reparti diversi";
-             }
+             // Requisito distribuzione in reparti diversi rimosso - non più obbligatorio
              
-             // Controlla che i punti abbiano note o descrizioni
-             const hasNotes = conservationPoints.some(point => point.notes || point.description);
-             if (!hasNotes) {
-               errors.conservationNotes = "Almeno un punto di conservazione deve avere note o descrizioni";
-             }
+             // Requisito delle note rimosso - non più obbligatorio
            }
          }
     
@@ -286,7 +363,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                } else if (task.name.trim().length < 5) {
                  errors[`task_${index}_name`] = "Nome attività deve essere di almeno 5 caratteri";
                }
-               if (!task.assignedTo) {
+               if (!task.assignedRole) {
                  errors[`task_${index}_assigned`] = "Assegnazione obbligatoria";
                }
                if (!task.frequency) {
@@ -302,27 +379,20 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              
              // Controlla che ci siano abbastanza attività di monitoraggio temperature
              const conservationPoints = data.conservation?.points || [];
-             const temperatureTasks = tasksList.filter(task => 
-               task.name.toLowerCase().includes('rilevamento temperature')
-             );
+             const temperatureTasks = tasksList.filter(task => {
+               const taskName = task.name.toLowerCase();
+               return taskName.includes('rilevamento temperature') || 
+                      taskName.includes('rilevamento temperatura') ||
+                      taskName.includes('temperature') ||
+                      taskName.includes('temperatura') ||
+                      taskName.includes('monitoraggio');
+             });
              
              if (temperatureTasks.length < conservationPoints.length) {
                errors.temperatureTasks = `Devi creare almeno ${conservationPoints.length} attività di monitoraggio temperature (una per ogni punto di conservazione)`;
              }
              
-             // Controlla che le attività siano assegnate a membri dello staff validi
-             const staffMembers = data.staff?.staffMembers || [];
-             if (staffMembers.length === 0) {
-               errors.staffRequired = "Devi prima configurare lo staff per assegnare le attività";
-             } else {
-               // Controlla che ogni attività sia assegnata a un membro dello staff valido
-               tasksList.forEach((task, index) => {
-                 const assignedMember = staffMembers.find(member => member.fullName === task.assignedTo);
-                 if (!assignedMember) {
-                   errors[`task_${index}_assigned`] = "Assegnazione non valida - seleziona un membro dello staff esistente";
-                 }
-               });
-             }
+             // Controllo assegnazione a membri dello staff rimosso - non più obbligatorio
              
              // Controlla che i nomi delle attività siano unici
              const names = tasksList.map(task => task.name.toLowerCase().trim());
@@ -331,18 +401,9 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                errors.taskNames = "I nomi delle attività devono essere unici";
              }
              
-             // Controlla che le attività abbiano frequenze diverse (non tutte giornaliere)
-             const frequencies = tasksList.map(task => task.frequency);
-             const uniqueFrequencies = new Set(frequencies);
-             if (uniqueFrequencies.size < 2) {
-               errors.taskFrequencies = "Le attività devono avere frequenze diverse per una gestione efficace";
-             }
+             // Controllo frequenze diverse rimosso - non più obbligatorio
              
-             // Controlla che le attività abbiano priorità o note
-             const hasPriorities = tasksList.some(task => task.priority || task.notes);
-             if (!hasPriorities) {
-               errors.taskPriorities = "Almeno un'attività deve avere una priorità o note";
-             }
+             // Controllo priorità o note rimosso - non più obbligatorio
            }
          }
     
@@ -404,18 +465,9 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                errors.productNames = "I nomi dei prodotti devono essere unici";
              }
              
-             // Controlla che i prodotti abbiano tipi diversi (non tutti dello stesso tipo)
-             const types = productsList.map(product => product.type);
-             const uniqueTypes = new Set(types);
-             if (uniqueTypes.size < 2) {
-               errors.productTypes = "I prodotti devono avere tipi diversi per una gestione efficace";
-             }
+             // Controllo tipi diversi rimosso - non più obbligatorio
              
-             // Controlla che i prodotti abbiano note o descrizioni
-             const hasNotes = productsList.some(product => product.notes || product.description);
-             if (!hasNotes) {
-               errors.productNotes = "Almeno un prodotto deve avere note o descrizioni";
-             }
+             // Controllo note o descrizioni rimosso - non più obbligatorio
            }
          }
     
@@ -477,22 +529,28 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
     localStorage.setItem('haccp-onboarding-new', JSON.stringify(progress));
   };
 
-  // Avanza al prossimo step
+  // Avanza al prossimo step con validazione al click
   const nextStep = () => {
     console.log(`🔍 nextStep chiamato`);
-    console.log(`🔍 Stato: currentStep=${currentStep}, isStepConfirmed=${isStepConfirmed(currentStep)}`);
+    console.log(`🔍 Stato: currentStep=${currentStep}`);
     
     if (currentStep < ONBOARDING_STEPS.length - 1) {
-      // Controlla che lo step corrente sia confermato
-      if (isStepConfirmed(currentStep)) {
-        console.log(`✅ Step ${currentStep} confermato, navigando al prossimo`);
+      // Valida lo step corrente
+      const errors = validateStep(currentStep, formData);
+      
+      if (Object.keys(errors).length === 0) {
+        console.log(`✅ Step ${currentStep} valido, navigando al prossimo`);
         // Aggiungi lo step corrente a completedSteps quando si naviga
         setCompletedSteps(prev => new Set([...prev, ONBOARDING_STEPS[currentStep].id]));
         setCurrentStepWithLogging(currentStep + 1);
         saveProgress();
         console.log(`✅ Navigazione completata a step ${currentStep + 1}`);
       } else {
-        console.log(`❌ Step ${currentStep} non confermato, navigazione bloccata`);
+        console.log(`❌ Step ${currentStep} non valido:`, errors);
+        console.log(`❌ Errori dettagliati:`, Object.entries(errors).map(([key, value]) => `${key}: ${value}`));
+        console.log(`❌ Errori completi:`, errors);
+        // Mostra errori all'utente
+        alert(`Ci sono errori di validazione:\n${Object.values(errors).join('\n')}`);
       }
     } else {
       console.log(`❌ Ultimo step raggiunto, navigazione non possibile`);
@@ -507,11 +565,21 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
     }
   };
 
-  // Completa l'onboarding
+  // Completa l'onboarding con validazione
   const completeOnboarding = () => {
-    setCompletedSteps(prev => new Set([...prev, ONBOARDING_STEPS[currentStep].id]));
-    saveProgress();
-    onComplete && onComplete(formData);
+    // Valida l'ultimo step
+    const errors = validateStep(currentStep, formData);
+    
+    if (Object.keys(errors).length === 0) {
+      console.log(`✅ Ultimo step valido, completando onboarding`);
+      setCompletedSteps(prev => new Set([...prev, ONBOARDING_STEPS[currentStep].id]));
+      saveProgress();
+      onComplete && onComplete(formData);
+    } else {
+      console.log(`❌ Ultimo step non valido:`, errors);
+      // Mostra errori all'utente
+      alert(`Ci sono errori di validazione:\n${Object.values(errors).join('\n')}`);
+    }
   };
 
   // Controlla se l'onboarding è bypassato in modalità dev
@@ -611,8 +679,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
             {!isLastStep ? (
               <Button 
                 onClick={nextStep}
-                disabled={!isStepConfirmed(currentStep)}
-                className={isStepConfirmed(currentStep) ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'}
+                className="bg-blue-600 hover:bg-blue-700"
               >
                 Avanti
                 <ArrowRight className="h-4 w-4 ml-2" />
@@ -620,8 +687,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
             ) : (
               <Button 
                 onClick={completeOnboarding} 
-                disabled={!isStepConfirmed(currentStep)}
-                className={isStepConfirmed(currentStep) ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 cursor-not-allowed'}
+                className="bg-green-600 hover:bg-green-700"
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
                 Completa Configurazione

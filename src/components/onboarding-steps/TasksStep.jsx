@@ -20,15 +20,10 @@ const TasksStep = ({
   const [validationErrors, setValidationErrors] = useState({});
   const [localFormData, setLocalFormData] = useState({
     name: '',
-    assignedTo: '',
+    assignedRole: '',
+    assignedEmployee: '',
     frequency: ''
   });
-
-  // Dati mock per il test (in produzione verranno da formData.staff e formData.conservation)
-  const mockStaff = [
-    { id: 1, name: 'Mario Rossi', role: 'Responsabile', category: 'Cuochi' },
-    { id: 2, name: 'Giulia Bianchi', role: 'Dipendente', category: 'Banconisti' }
-  ];
 
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
@@ -36,6 +31,36 @@ const TasksStep = ({
       setTasks(formData.tasks.list);
     }
   }, [formData.tasks]);
+
+  // Calcola i contatori per la validazione
+  const conservationPointsCount = formData.conservation?.count || 0;
+  const temperatureTasksCount = tasks.filter(task => {
+    const taskName = task.name.toLowerCase();
+    const isTemperatureTask = taskName.includes('rilevamento temperature') || 
+                             taskName.includes('rilevamento temperatura') ||
+                             taskName.includes('temperature') ||
+                             taskName.includes('temperatura') ||
+                             taskName.includes('monitoraggio');
+    console.log(`🌡️ Task "${task.name}": isTemperatureTask=${isTemperatureTask}`);
+    return isTemperatureTask;
+  }).length;
+  
+  console.log(`📊 Temperature tasks count: ${temperatureTasksCount}, Total tasks: ${tasks.length}`);
+  console.log('📋 All tasks:', tasks);
+
+  // Aggiorna automaticamente il formData quando le attività cambiano
+  useEffect(() => {
+    const updatedFormData = {
+      ...formData,
+      tasks: {
+        list: tasks,
+        count: tasks.length,
+        temperatureTasksCount,
+        conservationPointsCount
+      }
+    };
+    setFormData(updatedFormData);
+  }, [tasks, temperatureTasksCount, conservationPointsCount]);
 
   const FREQUENCIES = [
     'Giornalmente',
@@ -47,7 +72,8 @@ const TasksStep = ({
   const resetForm = () => {
     setLocalFormData({
       name: '',
-      assignedTo: '',
+      assignedRole: '',
+      assignedEmployee: '',
       frequency: ''
     });
     setEditingTask(null);
@@ -62,28 +88,37 @@ const TasksStep = ({
 
   // Ottieni i punti di conservazione effettivamente aggiunti
   const getConservationPoints = () => {
-    return formData.conservation?.points || [];
+    const points = formData.conservation?.points || [];
+    console.log('🏢 Conservation points:', points);
+    return points;
   };
 
   // Controlla se esiste già una mansione per un punto di conservazione
-  const hasTaskForConservationPoint = (pointId) => {
-    return tasks.some(task => 
-      task.name.toLowerCase().includes('rilevamento temperatura') &&
-      task.name.toLowerCase().includes(pointId.toString())
-    );
+  const hasTaskForConservationPoint = (point) => {
+    return tasks.some(task => {
+      const taskName = task.name.toLowerCase();
+      const isTemperatureTask = taskName.includes('rilevamento temperature') || 
+                               taskName.includes('rilevamento temperatura') ||
+                               taskName.includes('temperature') ||
+                               taskName.includes('temperatura') ||
+                               taskName.includes('monitoraggio');
+      
+      // Cerca sia l'ID che il nome del punto
+      const containsPointId = taskName.includes(point.id.toString());
+      const containsPointName = taskName.includes(point.name.toLowerCase());
+      
+      console.log(`🔍 Checking point ${point.id} (${point.name}): task="${task.name}", isTemperatureTask=${isTemperatureTask}, containsPointId=${containsPointId}, containsPointName=${containsPointName}`);
+      return isTemperatureTask && (containsPointId || containsPointName);
+    });
   };
 
   // Validazione: X temperature tasks per X conservation points
-  const conservationPointsCount = formData.conservation?.count || 0; // In produzione verrà da formData.conservation.count
-  const temperatureTasksCount = tasks.filter(task => 
-    task.name.toLowerCase().includes('rilevamento temperature')
-  ).length;
 
   // Crea automaticamente le mansioni per i punti di conservazione quando si apre il form
   useEffect(() => {
     if (showAddForm) {
       const conservationPoints = getConservationPoints();
-      const missingTasks = conservationPoints.filter(point => !hasTaskForConservationPoint(point.id));
+      const missingTasks = conservationPoints.filter(point => !hasTaskForConservationPoint(point));
       
       if (missingTasks.length > 0) {
         // Pre-compila con la prima mansione mancante
@@ -97,59 +132,36 @@ const TasksStep = ({
   }, [showAddForm]);
 
   const handleAddTask = () => {
-    if (localFormData.name && localFormData.assignedTo && localFormData.frequency) {
+    if (localFormData.name && localFormData.assignedRole && localFormData.frequency) {
       const newTask = {
         id: Date.now(),
-        ...localFormData,
-        needsConfirmation: true
+        name: localFormData.name,
+        assignedRole: localFormData.assignedRole,
+        assignedEmployee: localFormData.assignedEmployee || null,
+        frequency: localFormData.frequency
       };
       
-      setTasks(prev => [...prev, newTask]);
+      console.log('➕ Aggiungendo nuova attività:', newTask);
+      setTasks(prev => {
+        const updatedTasks = [...prev, newTask];
+        console.log('📋 Lista attività aggiornata:', updatedTasks);
+        return updatedTasks;
+      });
       resetForm();
       setShowAddForm(false);
     }
   };
 
-  const handleConfirmTask = (id) => {
-    setTasks(prev => prev.map(task => 
-      task.id === id ? { ...task, needsConfirmation: false } : task
-    ));
-  };
 
   const handleDeleteTask = (id) => {
     setTasks(prev => prev.filter(task => task.id !== id));
   };
   
   const canProceed = tasks.length > 0 && 
-    tasks.every(task => task.name && task.assignedTo && task.frequency) &&
+    tasks.every(task => task.name && task.assignedRole && task.frequency) &&
     temperatureTasksCount >= conservationPointsCount;
 
-  const handleConfirmData = () => {
-    // 1. Prepara i dati AGGIORNATI localmente
-    const updatedFormData = {
-      ...formData,
-      tasks: {
-        list: tasks,
-        count: tasks.length,
-        temperatureTasksCount,
-        conservationPointsCount
-      }
-    };
-
-    // 2. VALIDA usando i dati AGGIORNATI (updatedFormData), non quelli vecchi!
-    const errors = validateStep(currentStep, updatedFormData);
-
-    if (Object.keys(errors).length === 0) {
-      // 3. Solo se la validazione passa, SALVA i dati aggiornati nello stato globale
-      setFormData(updatedFormData);
-      // 4. Segna lo step come confermato
-      confirmStep(currentStep);
-      setValidationErrors({}); // Pulisci errori
-    } else {
-      // Mostra errori di validazione
-      setValidationErrors(errors);
-    }
-  };
+  // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
   return (
     <div className="space-y-6">
@@ -161,7 +173,13 @@ const TasksStep = ({
       {/* Punti di Conservazione che necessitano mansioni */}
       {(() => {
         const conservationPoints = getConservationPoints();
-        const missingTasks = conservationPoints.filter(point => !hasTaskForConservationPoint(point.id));
+        const missingTasks = conservationPoints.filter(point => !hasTaskForConservationPoint(point));
+        
+        console.log('🔍 Missing tasks check:', {
+          conservationPoints: conservationPoints.map(p => ({ id: p.id, name: p.name })),
+          missingTasks: missingTasks.map(p => ({ id: p.id, name: p.name })),
+          allTasks: tasks.map(t => ({ name: t.name, assignedRole: t.assignedRole }))
+        });
         
         if (missingTasks.length > 0) {
           return (
@@ -233,8 +251,12 @@ const TasksStep = ({
                     </div>
                     
                     <div className="text-sm text-gray-600">
-                      <span className="font-medium">Assegnato a:</span> {task.assignedTo}
+                      <span className="font-medium">Assegnato a:</span> {task.assignedRole}
+                      {task.assignedEmployee && (
+                        <span className="ml-2 text-blue-600">({task.assignedEmployee})</span>
+                      )}
                     </div>
+                    
                     
                     {task.name.toLowerCase().includes('rilevamento temperature') && (
                       <div className="mt-2 text-sm text-blue-600">
@@ -244,24 +266,14 @@ const TasksStep = ({
                   </div>
                   
                   <div className="flex gap-2">
-                    {task.needsConfirmation ? (
-                      <Button
-                        onClick={() => handleConfirmTask(task.id)}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Conferma
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => handleDeleteTask(task.id)}
-                        variant="outline"
-                        size="sm"
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button
+                      onClick={() => handleDeleteTask(task.id)}
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -291,17 +303,48 @@ const TasksStep = ({
             </div>
             
             <div>
-              <Label htmlFor="assignedTo">Assegnato a *</Label>
+              <Label htmlFor="assignedRole">Assegna rilevamento temperature a: *</Label>
               <select
-                id="assignedTo"
-                value={localFormData.assignedTo}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, assignedTo: e.target.value }))}
+                id="assignedRole"
+                value={localFormData.assignedRole}
+                onChange={(e) => setLocalFormData(prev => ({ ...prev, assignedRole: e.target.value, assignedEmployee: '' }))}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">Seleziona membro staff</option>
-                {mockStaff.map(staff => (
-                  <option key={staff.id} value={staff.name}>
-                    {staff.name} ({staff.role} - {staff.category})
+                <option value="">Seleziona categoria</option>
+                <option value="Amministratore">Amministratore</option>
+                <option value="Cuochi">Cuochi</option>
+                <option value="Banconisti">Banconisti</option>
+                <option value="Camerieri">Camerieri</option>
+                <option value="Responsabile">Responsabile</option>
+                <option value="Dipendente">Dipendente</option>
+              </select>
+              {!localFormData.assignedRole && (
+                <p className="text-xs text-red-500 mt-1">
+                  ⚠️ Seleziona una categoria per procedere
+                </p>
+              )}
+            </div>
+
+            <div>
+              <Label htmlFor="assignedEmployee">Dipendente Specifico (Opzionale)</Label>
+              <select
+                id="assignedEmployee"
+                value={localFormData.assignedEmployee}
+                onChange={(e) => setLocalFormData(prev => ({ ...prev, assignedEmployee: e.target.value }))}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                disabled={!localFormData.assignedRole}
+              >
+                <option value="">Seleziona dipendente specifico</option>
+                {formData.staff?.staffMembers?.filter(member => {
+                  // Se è un ruolo (Responsabile, Dipendente, Amministratore), filtra per ruolo
+                  if (['Responsabile', 'Dipendente', 'Amministratore'].includes(localFormData.assignedRole)) {
+                    return member.role === localFormData.assignedRole;
+                  }
+                  // Altrimenti filtra per categoria (Cuochi, Banconisti, Camerieri)
+                  return member.category === localFormData.assignedRole;
+                }).map(member => (
+                  <option key={member.id} value={member.name}>
+                    {member.name} - {member.role} ({member.category})
                   </option>
                 ))}
               </select>
@@ -335,7 +378,7 @@ const TasksStep = ({
             </Button>
             <Button
               onClick={handleAddTask}
-              disabled={!localFormData.name || !localFormData.assignedTo || !localFormData.frequency}
+              disabled={!localFormData.name || !localFormData.assignedRole || !localFormData.frequency}
             >
               Aggiungi Attività
             </Button>
@@ -405,28 +448,7 @@ const TasksStep = ({
          </div>
        )}
 
-       {/* Pulsante Conferma */}
-       <div className="flex justify-end">
-         <Button
-           onClick={handleConfirmData}
-           disabled={!canProceed || isStepConfirmed(currentStep)}
-           className={`${
-             isStepConfirmed(currentStep) 
-               ? 'bg-green-500 hover:bg-green-600 cursor-not-allowed' 
-               : canProceed 
-                 ? 'bg-green-600 hover:bg-green-700'
-                 : 'bg-gray-300 cursor-not-allowed'
-           }`}
-         >
-           {isStepConfirmed(currentStep) ? (
-             <>
-               ✅ Dati Confermati
-             </>
-           ) : (
-             'Conferma Dati Attività'
-           )}
-         </Button>
-       </div>
+       {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
     </div>
   );
 };

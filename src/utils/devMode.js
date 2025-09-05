@@ -19,13 +19,8 @@ export const isDevMode = () => {
   // Controlla localStorage
   try {
     const devMode = localStorage.getItem(DEV_MODE_KEY)
-    if (devMode && devMode !== 'undefined' && devMode !== 'null') {
-      // Se è già un oggetto, usalo direttamente
-      if (typeof devMode === 'object') {
-        return devMode && typeof devMode === 'object' && devMode.enabled === true
-      }
-      
-      // Altrimenti prova a parsare come JSON
+    if (devMode && devMode !== 'undefined' && devMode !== 'null' && devMode !== '[object Object]') {
+      // Prova a parsare come JSON
       const parsed = JSON.parse(devMode)
       return parsed && typeof parsed === 'object' && parsed.enabled === true
     }
@@ -33,6 +28,8 @@ export const isDevMode = () => {
     console.warn('Errore nel parsing dev mode:', error)
     // Pulisce il valore corrotto
     localStorage.removeItem(DEV_MODE_KEY)
+    localStorage.removeItem('haccp-dev-mode')
+    localStorage.removeItem('haccp-dev-mode-version')
   }
   
   return false

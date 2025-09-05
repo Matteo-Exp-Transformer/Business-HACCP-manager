@@ -1,376 +1,408 @@
+/**
+ * 🚨 ATTENZIONE CRITICA - LEGGERE PRIMA DI MODIFICARE 🚨
+ * 
+ * Questo componente gestisce i REPARTI - FUNZIONALITÀ CRITICA HACCP
+ * 
+ * PRIMA di qualsiasi modifica, leggi OBBLIGATORIAMENTE:
+ * - AGENT_DIRECTIVES.md (nella root del progetto)
+ * - HACCP_APP_DOCUMENTATION.md
+ * 
+ * ⚠️ MODIFICHE NON AUTORIZZATE POSSONO COMPROMETTERE LA SICUREZZA ALIMENTARE
+ * ⚠️ Questo componente gestisce l'organizzazione dei reparti HACCP
+ * ⚠️ Coordina la struttura organizzativa per la sicurezza alimentare
+ * 
+ * @fileoverview Componente Reparti HACCP - Sistema Critico di Gestione Reparti
+ * @requires AGENT_DIRECTIVES.md
+ * @critical Sicurezza alimentare - Organizzazione Reparti
+ * @version 1.0
+ */
+
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Building2, Plus, Edit2, Trash2, Users, Save, X } from 'lucide-react'
+import { Plus, Edit, Trash2, Building2, Users, MapPin, AlertCircle } from 'lucide-react'
 
-function Departments({ departments, setDepartments }) {
+function Departments({ currentUser, departments, setDepartments }) {
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [editingDepartment, setEditingDepartment] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
-    description: ''
-  })
-  const [editingId, setEditingId] = useState(null)
-  const [editFormData, setEditFormData] = useState({
-    name: '',
-    description: ''
+    description: '',
+    location: '',
+    manager: '',
+    notes: ''
   })
 
-  // Inizializza reparti default se non esistono
+  // Carica i reparti dall'onboarding se non sono già presenti
   useEffect(() => {
-    if (!departments || departments.length === 0) {
-      const defaultDepartments = [
-        {
-          id: "banconisti",
-          name: "Banconisti",
-          description: "Gestione bancone e servizio clienti"
-        },
-        {
-          id: "cuochi",
-          name: "Cuochi",
-          description: "Preparazione e cucina"
-        },
-        {
-          id: "amministrazione",
-          name: "Amministrazione",
-          description: "Gestione e supervisione"
+    if (departments.length === 0) {
+      const savedOnboarding = localStorage.getItem('onboardingData')
+      if (savedOnboarding) {
+        try {
+          const onboardingData = JSON.parse(savedOnboarding)
+          if (onboardingData.departments && onboardingData.departments.length > 0) {
+            // Converte i reparti dall'onboarding nel formato del componente
+            const convertedDepartments = onboardingData.departments.map((dept, index) => ({
+              id: `dept_${index}`,
+              name: dept,
+              description: `Reparto ${dept}`,
+              location: '',
+              manager: '',
+              notes: '',
+              createdAt: new Date().toISOString(),
+              createdBy: currentUser?.name || 'Unknown'
+            }))
+            setDepartments(convertedDepartments)
+          }
+        } catch (error) {
+          console.error('Errore nel caricamento reparti dall\'onboarding:', error)
         }
-      ]
-      setDepartments(defaultDepartments)
+      }
     }
-  }, [departments, setDepartments])
+  }, [departments.length, setDepartments, currentUser])
 
-  // Persist to localStorage whenever departments data changes
+  // Salva i reparti nel localStorage
   useEffect(() => {
-    if (departments && departments.length > 0) {
-      localStorage.setItem('haccp-departments', JSON.stringify(departments))
-    }
+    localStorage.setItem('haccp-departments', JSON.stringify(departments))
   }, [departments])
 
-  const addDepartment = (e) => {
-    e.preventDefault()
-    if (!formData.name.trim()) return
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      location: '',
+      manager: '',
+      notes: ''
+    })
+    setEditingDepartment(null)
+  }
 
-    // Verifica che il nome sia unico
-    const nameExists = departments.some(dept => 
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    
+    if (!formData.name.trim()) {
+      alert('Il nome del reparto è obbligatorio')
+      return
+    }
+
+    // Controlla se esiste già un reparto con lo stesso nome
+    const existingDept = departments.find(dept => 
       dept.name.toLowerCase() === formData.name.trim().toLowerCase()
     )
     
-    if (nameExists) {
-      alert('Esiste già un reparto con questo nome. Scegli un nome diverso.')
+    if (existingDept && (!editingDepartment || existingDept.id !== editingDepartment.id)) {
+      alert('Un reparto con questo nome esiste già')
       return
     }
 
-    const newDepartment = {
-      id: `dept_${Date.now()}`,
-      name: formData.name.trim(),
-      description: formData.description.trim(),
-      createdAt: new Date().toLocaleString('it-IT'),
-      isCustom: true
-    }
-
-    setDepartments([...departments, newDepartment])
-    setFormData({ name: '', description: '' })
-  }
-
-  const startEdit = (department) => {
-    setEditingId(department.id)
-    setEditFormData({
-      name: department.name,
-      description: department.description
-    })
-  }
-
-  const cancelEdit = () => {
-    setEditingId(null)
-    setEditFormData({ name: '', description: '' })
-  }
-
-  const saveEdit = (id) => {
-    if (!editFormData.name.trim()) return
-
-    // Verifica che il nome sia unico (escludendo il reparto corrente)
-    const nameExists = departments.some(dept => 
-      dept.id !== id && dept.name.toLowerCase() === editFormData.name.trim().toLowerCase()
-    )
-    
-    if (nameExists) {
-      alert('Esiste già un reparto con questo nome. Scegli un nome diverso.')
-      return
-    }
-
-    setDepartments(departments.map(dept =>
-      dept.id === id
-        ? {
-            ...dept,
-            name: editFormData.name.trim(),
-            description: editFormData.description.trim(),
-            updatedAt: new Date().toLocaleString('it-IT')
-          }
-        : dept
-    ))
-    setEditingId(null)
-    setEditFormData({ name: '', description: '' })
-  }
-
-  const deleteDepartment = (id) => {
-    const department = departments.find(dept => dept.id === id)
-    
-    // Non permettere eliminazione dei reparti default
-    if (!department.isCustom) {
-      alert('Non puoi eliminare i reparti predefiniti del sistema.')
-      return
-    }
-
-    if (confirm(`Sei sicuro di voler eliminare il reparto "${department.name}"? Questa azione non può essere annullata.`)) {
-      setDepartments(departments.filter(dept => dept.id !== id))
-      
-      // Se ci sono task di pulizia assegnati a questo reparto, potrebbero rimanere orfani
-      // Dovremmo gestire questa casistica (opzionale: riassegnare o eliminare)
-      const cleaningTasks = JSON.parse(localStorage.getItem('haccp-cleaning') || '[]')
-      const orphanedTasks = cleaningTasks.filter(task => task.departmentId === id)
-      
-      if (orphanedTasks.length > 0) {
-        alert(`Attenzione: ci sono ${orphanedTasks.length} attività di pulizia assegnate a questo reparto. Verifica le assegnazioni nel modulo Pulizia.`)
+    if (editingDepartment) {
+      // Aggiorna reparto esistente
+      const updatedDepartments = departments.map(dept => 
+        dept.id === editingDepartment.id 
+          ? {
+              ...dept,
+              name: formData.name.trim(),
+              description: formData.description.trim(),
+              location: formData.location.trim(),
+              manager: formData.manager.trim(),
+              notes: formData.notes.trim(),
+              updatedAt: new Date().toISOString(),
+              updatedBy: currentUser?.name || 'Unknown'
+            }
+          : dept
+      )
+      setDepartments(updatedDepartments)
+    } else {
+      // Aggiungi nuovo reparto
+      const newDepartment = {
+        id: `dept_${Date.now()}`,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
+        location: formData.location.trim(),
+        manager: formData.manager.trim(),
+        notes: formData.notes.trim(),
+        createdAt: new Date().toISOString(),
+        createdBy: currentUser?.name || 'Unknown'
       }
+      setDepartments([...departments, newDepartment])
     }
+
+    resetForm()
+    setShowAddForm(false)
   }
 
-  // Calcola statistiche
-  const totalDepartments = departments.length
-  const customDepartments = departments.filter(dept => dept.isCustom).length
-  const defaultDepartments = departments.filter(dept => !dept.isCustom).length
+  const handleEdit = (department) => {
+    setEditingDepartment(department)
+    setFormData({
+      name: department.name,
+      description: department.description || '',
+      location: department.location || '',
+      manager: department.manager || '',
+      notes: department.notes || ''
+    })
+    setShowAddForm(true)
+  }
+
+  const handleDelete = (departmentId) => {
+    if (confirm('Sei sicuro di voler eliminare questo reparto? Questa azione non può essere annullata.')) {
+      setDepartments(departments.filter(dept => dept.id !== departmentId))
+    }
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Building2 className="h-8 w-8 text-blue-600" />
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <Building2 className="h-6 w-6 text-blue-600" />
             Gestione Reparti
           </h1>
-          <p className="text-gray-600 mt-1">
-            Business HACCP Manager - Configura e gestisci i reparti aziendali
+          <p className="text-gray-600">
+            Organizza e gestisci i reparti della tua attività per la compliance HACCP
           </p>
         </div>
+        <Button 
+          onClick={() => {
+            resetForm()
+            setShowAddForm(true)
+          }}
+          className="flex items-center gap-2"
+        >
+          <Plus className="h-4 w-4" />
+          Nuovo Reparto
+        </Button>
       </div>
 
-      {/* Statistiche */}
+      {/* Statistiche rapide */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Building2 className="h-5 w-5 text-blue-600" />
-              </div>
+            <div className="flex items-center gap-2">
+              <Building2 className="h-5 w-5 text-blue-600" />
               <div>
-                <p className="text-sm text-gray-600">Totale Reparti</p>
-                <p className="text-2xl font-bold text-gray-900">{totalDepartments}</p>
+                <p className="text-sm text-gray-600">Reparti Totali</p>
+                <p className="text-2xl font-bold text-gray-900">{departments.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-5 w-5 text-green-600" />
-              </div>
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-green-600" />
               <div>
-                <p className="text-sm text-gray-600">Reparti Predefiniti</p>
-                <p className="text-2xl font-bold text-gray-900">{defaultDepartments}</p>
+                <p className="text-sm text-gray-600">Con Manager</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {departments.filter(dept => dept.manager.trim()).length}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
-
+        
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Plus className="h-5 w-5 text-purple-600" />
-              </div>
+            <div className="flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-purple-600" />
               <div>
-                <p className="text-sm text-gray-600">Reparti Personalizzati</p>
-                <p className="text-2xl font-bold text-gray-900">{customDepartments}</p>
+                <p className="text-sm text-gray-600">Con Posizione</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {departments.filter(dept => dept.location.trim()).length}
+                </p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Form per aggiungere nuovo reparto */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Plus className="h-5 w-5" />
-            Aggiungi Nuovo Reparto
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={addDepartment} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome Reparto *</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="es. Pasticceria"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+      {/* Form per aggiungere/modificare reparto */}
+      {showAddForm && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building2 className="h-5 w-5" />
+              {editingDepartment ? 'Modifica Reparto' : 'Nuovo Reparto'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="name">Nome Reparto *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    placeholder="es. Cucina, Sala, Magazzino..."
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="manager">Manager/Responsabile</Label>
+                  <Input
+                    id="manager"
+                    value={formData.manager}
+                    onChange={(e) => setFormData({...formData, manager: e.target.value})}
+                    placeholder="Nome del responsabile"
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
+              
+              <div>
                 <Label htmlFor="description">Descrizione</Label>
                 <Input
                   id="description"
-                  type="text"
-                  placeholder="es. Preparazione dolci e dessert"
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  placeholder="Descrizione del reparto e delle sue funzioni"
                 />
               </div>
-            </div>
-            <Button type="submit" className="w-full">
-              <Plus className="h-4 w-4 mr-2" />
-              Aggiungi Reparto
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              
+              <div>
+                <Label htmlFor="location">Posizione/Localizzazione</Label>
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  placeholder="es. Piano terra, Primo piano, Esterno..."
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="notes">Note Aggiuntive</Label>
+                <Input
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  placeholder="Note specifiche per il reparto"
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1">
+                  {editingDepartment ? 'Aggiorna Reparto' : 'Aggiungi Reparto'}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowAddForm(false)
+                    resetForm()
+                  }}
+                  className="flex-1"
+                >
+                  Annulla
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Lista reparti esistenti */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5" />
-            Reparti Configurati ({departments.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {departments.map((department) => (
-              <div
-                key={department.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+      {/* Lista reparti */}
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-gray-900">Reparti Configurati ({departments.length})</h2>
+        
+        {departments.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Nessun reparto configurato</h3>
+              <p className="text-gray-600 mb-4">
+                Inizia aggiungendo i reparti della tua attività per organizzare meglio il lavoro HACCP.
+              </p>
+              <Button 
+                onClick={() => {
+                  resetForm()
+                  setShowAddForm(true)
+                }}
+                className="flex items-center gap-2"
               >
-                {editingId === department.id ? (
-                  // Modalità editing
-                  <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 mr-4">
-                    <Input
-                      type="text"
-                      value={editFormData.name}
-                      onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                      placeholder="Nome reparto"
-                    />
-                    <Input
-                      type="text"
-                      value={editFormData.description}
-                      onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                      placeholder="Descrizione"
-                    />
-                  </div>
-                ) : (
-                  // Modalità visualizzazione
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-gray-900">{department.name}</h3>
-                        {!department.isCustom && (
-                          <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                            Predefinito
-                          </span>
-                        )}
-                      </div>
+                <Plus className="h-4 w-4" />
+                Aggiungi Primo Reparto
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {departments.map((department) => (
+              <Card key={department.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-blue-600" />
+                      <CardTitle className="text-lg">{department.name}</CardTitle>
                     </div>
-                    {department.description && (
-                      <p className="text-sm text-gray-600 mt-1">{department.description}</p>
-                    )}
-                    <p className="text-xs text-gray-400 mt-1">
-                      ID: {department.id}
-                      {department.createdAt && ` • Creato: ${department.createdAt}`}
-                      {department.updatedAt && ` • Aggiornato: ${department.updatedAt}`}
-                    </p>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(department)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(department.id)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  {editingId === department.id ? (
-                    // Pulsanti salva/annulla
-                    <>
-                      <Button
-                        size="sm"
-                        onClick={() => saveEdit(department.id)}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        <Save className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={cancelEdit}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    // Pulsanti modifica/elimina
-                    <>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => startEdit(department)}
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      {department.isCustom && (
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => deleteDepartment(department.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {department.description && (
+                    <p className="text-sm text-gray-600 mb-3">{department.description}</p>
                   )}
-                </div>
-              </div>
+                  
+                  <div className="space-y-2 text-sm">
+                    {department.manager && (
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">Manager:</span>
+                        <span className="font-medium">{department.manager}</span>
+                      </div>
+                    )}
+                    
+                    {department.location && (
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <span className="text-gray-600">Posizione:</span>
+                        <span className="font-medium">{department.location}</span>
+                      </div>
+                    )}
+                    
+                    {department.notes && (
+                      <div className="flex items-start gap-2">
+                        <StickyNote className="h-4 w-4 text-gray-500 mt-0.5" />
+                        <div>
+                          <span className="text-gray-600">Note:</span>
+                          <p className="text-gray-700 mt-1">{department.notes}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>Creato: {new Date(department.createdAt).toLocaleDateString('it-IT')}</span>
+                      <span>da {department.createdBy}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
-
-            {departments.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                <Building2 className="h-12 w-12 mx-auto text-gray-300 mb-3" />
-                <p>Nessun reparto configurato</p>
-                <p className="text-sm">Aggiungi il primo reparto utilizzando il form sopra</p>
-              </div>
-            )}
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Informazioni sistema */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Building2 className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <h4 className="font-semibold text-blue-900 mb-2">Informazioni sui Reparti</h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• I reparti predefiniti (Banconisti, Cuochi, Amministrazione) non possono essere eliminati</li>
-                <li>• Ogni reparto deve avere un nome unico nel sistema</li>
-                <li>• I task di pulizia vengono assegnati ai reparti, non ai singoli utenti</li>
-                <li>• L'eliminazione di un reparto potrebbe lasciare attività orfane da riassegnare</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        )}
+      </div>
     </div>
   )
 }

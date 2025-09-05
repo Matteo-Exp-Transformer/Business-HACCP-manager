@@ -22,10 +22,10 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Plus, Edit, Trash2, Thermometer, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Plus, Edit, Trash2, Thermometer, AlertTriangle, CheckCircle, Package } from 'lucide-react'
 import TemperatureInput from './ui/TemperatureInput'
 
-function CustomCategoryManager({ customCategories = [], setCustomCategories, currentUser }) {
+function CustomCategoryManager({ customCategories = [], setCustomCategories, currentUser, showCustomCategoryManager, setShowCustomCategoryManager }) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingCategory, setEditingCategory] = useState(null)
   const [formData, setFormData] = useState({
@@ -34,7 +34,8 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
     temperatureMin: '',
     temperatureMax: '',
     storageLocation: '',
-    color: 'bg-blue-100 text-blue-800'
+    color: 'bg-blue-100 text-blue-800',
+    isAmbiente: false
   })
 
   // Colori disponibili per le categorie
@@ -63,7 +64,8 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
       temperatureMin: '',
       temperatureMax: '',
       storageLocation: '',
-      color: 'bg-blue-100 text-blue-800'
+      color: 'bg-blue-100 text-blue-800',
+      isAmbiente: false
     })
     setEditingCategory(null)
   }
@@ -71,23 +73,35 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
   const handleSubmit = (e) => {
     e.preventDefault()
     
-    if (!formData.name.trim() || !formData.temperatureMin.trim() || !formData.temperatureMax.trim()) {
-      alert('Compila tutti i campi obbligatori')
+    if (!formData.name.trim()) {
+      alert('Compila il nome della categoria')
       return
     }
 
-    const tempMin = parseFloat(formData.temperatureMin)
-    const tempMax = parseFloat(formData.temperatureMax)
-    
-    if (isNaN(tempMin) || isNaN(tempMax)) {
-      alert('Inserisci temperature valide')
-      return
-    }
+    // Se non è temperatura ambiente, valida i campi temperatura
+    let tempMin, tempMax;
+    if (formData.isAmbiente) {
+      tempMin = 15;
+      tempMax = 25;
+    } else {
+      if (!formData.temperatureMin.trim() || !formData.temperatureMax.trim()) {
+        alert('Compila i campi temperatura o seleziona "Temperatura ambiente"')
+        return
+      }
 
-    // Validazione: temperatura minima deve essere inferiore alla massima
-    if (tempMin >= tempMax) {
-      alert('La temperatura minima deve essere inferiore alla temperatura massima')
-      return
+      tempMin = parseFloat(formData.temperatureMin)
+      tempMax = parseFloat(formData.temperatureMax)
+      
+      if (isNaN(tempMin) || isNaN(tempMax)) {
+        alert('Inserisci temperature valide')
+        return
+      }
+
+      // Validazione: temperatura minima deve essere inferiore alla massima
+      if (tempMin >= tempMax) {
+        alert('La temperatura minima deve essere inferiore alla temperatura massima')
+        return
+      }
     }
 
     if (editingCategory) {
@@ -100,9 +114,10 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
               description: formData.description.trim(),
               temperatureMin: tempMin,
               temperatureMax: tempMax,
-              temperature: `${tempMin}-${tempMax}°C`,
+              temperature: formData.isAmbiente ? '15-25°C (Ambiente)' : `${tempMin}-${tempMax}°C`,
               storageLocation: formData.storageLocation.trim(),
               color: formData.color,
+              isAmbiente: formData.isAmbiente,
               updatedAt: new Date().toISOString(),
               updatedBy: currentUser?.id,
               updatedByName: currentUser?.name
@@ -118,9 +133,10 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
         description: formData.description.trim(),
         temperatureMin: tempMin,
         temperatureMax: tempMax,
-        temperature: `${tempMin}-${tempMax}°C`,
+        temperature: formData.isAmbiente ? '15-25°C (Ambiente)' : `${tempMin}-${tempMax}°C`,
         storageLocation: formData.storageLocation.trim(),
         color: formData.color,
+        isAmbiente: formData.isAmbiente,
         createdAt: new Date().toISOString(),
         createdBy: currentUser?.id,
         createdByName: currentUser?.name,
@@ -143,7 +159,8 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
       temperatureMin: category.temperatureMin.toString(),
       temperatureMax: category.temperatureMax.toString(),
       storageLocation: category.storageLocation || '',
-      color: category.color
+      color: category.color,
+      isAmbiente: category.isAmbiente || false
     })
     setShowAddForm(true)
   }
@@ -171,24 +188,29 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header con pulsante aggiungi */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Categorie Personalizzate</h2>
-          <p className="text-gray-600">Gestisci categorie di prodotti con temperature specifiche</p>
-        </div>
-        <Button 
-          onClick={() => {
-            resetForm()
-            setShowAddForm(true)
-          }}
-          className="bg-blue-600 hover:bg-blue-700"
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Nuova Categoria
-        </Button>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Package className="h-5 w-5" />
+          Categorie Personalizzate
+        </CardTitle>
+        <p className="text-sm text-gray-600">Crea nuove categorie di prodotti specifiche per la tua attività</p>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {/* Pulsante aggiungi */}
+          <div className="flex justify-end">
+            <Button 
+              onClick={() => {
+                resetForm()
+                setShowAddForm(true)
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Nuova Categoria
+            </Button>
+          </div>
 
       {/* Form per aggiungere/modificare categoria */}
       {showAddForm && (
@@ -246,18 +268,47 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
               </div>
 
                             <div>
-                <TemperatureInput
-                  label="Range Temperatura (°C) *"
-                  minValue={formData.temperatureMin}
-                  maxValue={formData.temperatureMax}
-                  onMinChange={(e) => setFormData({...formData, temperatureMin: e.target.value})}
-                  onMaxChange={(e) => setFormData({...formData, temperatureMax: e.target.value})}
-                  required={true}
-                  showValidation={true}
-                  showSuggestions={true}
-                  className="w-full"
-                  id="temperature-range"
-                />
+                <div className="flex items-center space-x-2 mb-4">
+                  <input
+                    type="checkbox"
+                    id="isAmbiente"
+                    checked={formData.isAmbiente}
+                    onChange={(e) => setFormData({...formData, isAmbiente: e.target.checked})}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                  <Label htmlFor="isAmbiente" className="text-sm font-medium text-gray-700">
+                    Temperatura ambiente (15-25°C)
+                  </Label>
+                </div>
+                
+                {!formData.isAmbiente && (
+                  <TemperatureInput
+                    label="Range Temperatura (°C) *"
+                    minValue={formData.temperatureMin}
+                    maxValue={formData.temperatureMax}
+                    onMinChange={(e) => setFormData({...formData, temperatureMin: e.target.value})}
+                    onMaxChange={(e) => setFormData({...formData, temperatureMax: e.target.value})}
+                    required={true}
+                    showValidation={true}
+                    showSuggestions={true}
+                    className="w-full"
+                    id="temperature-range"
+                  />
+                )}
+                
+                {formData.isAmbiente && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <Thermometer className="h-4 w-4 text-blue-600" />
+                      <span className="text-sm text-blue-800 font-medium">
+                        Temperatura ambiente: 15-25°C
+                      </span>
+                    </div>
+                    <p className="text-xs text-blue-600 mt-1">
+                      Questa categoria utilizzerà automaticamente il range di temperatura ambiente per il monitoraggio HACCP.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -331,6 +382,11 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
                     <Thermometer className="h-4 w-4 text-gray-500" />
                     <span className="text-gray-600">Temperatura:</span>
                     <span className="font-medium">{category.temperature}</span>
+                    {category.isAmbiente && (
+                      <span className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                        Ambiente
+                      </span>
+                    )}
                   </div>
                   
                   <div className="flex items-center gap-2">
@@ -367,7 +423,9 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
           </CardContent>
         </Card>
       )}
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
 

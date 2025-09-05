@@ -91,6 +91,69 @@ function Dashboard({ temperatures = [], cleaning = [], staff = [], products = []
             Ruolo: {currentUser?.role === 'admin' ? 'Amministratore' : 'Dipendente'} • 
             Reparto: {currentUser?.department}
           </p>
+          
+          {/* Informazioni Business dall'Onboarding */}
+          {(() => {
+            const savedOnboarding = localStorage.getItem('haccp-onboarding');
+            if (!savedOnboarding || savedOnboarding === '[object Object]') {
+              return null;
+            }
+            
+            let businessInfo = {};
+            try {
+              businessInfo = JSON.parse(savedOnboarding);
+            } catch (error) {
+              console.error('Errore parsing onboarding data:', error);
+              return null;
+            }
+            
+            if (businessInfo.businessInfo) {
+              return (
+                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium text-blue-800 mb-2">Informazioni Azienda</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    {businessInfo.businessInfo.businessName && (
+                      <div>
+                        <span className="text-blue-700 font-medium">Nome Azienda:</span>
+                        <span className="ml-2 text-blue-600">{businessInfo.businessInfo.businessName}</span>
+                      </div>
+                    )}
+                    {businessInfo.businessInfo.businessType && (
+                      <div>
+                        <span className="text-blue-700 font-medium">Tipo Attività:</span>
+                        <span className="ml-2 text-blue-600">{businessInfo.businessInfo.businessType}</span>
+                      </div>
+                    )}
+                    {businessInfo.businessInfo.address && (
+                      <div>
+                        <span className="text-blue-700 font-medium">Indirizzo:</span>
+                        <span className="ml-2 text-blue-600">{businessInfo.businessInfo.address}</span>
+                      </div>
+                    )}
+                    {businessInfo.businessInfo.phone && (
+                      <div>
+                        <span className="text-blue-700 font-medium">Telefono:</span>
+                        <span className="ml-2 text-blue-600">{businessInfo.businessInfo.phone}</span>
+                      </div>
+                    )}
+                    {businessInfo.businessInfo.email && (
+                      <div>
+                        <span className="text-blue-700 font-medium">Email:</span>
+                        <span className="ml-2 text-blue-600">{businessInfo.businessInfo.email}</span>
+                      </div>
+                    )}
+                    {businessInfo.businessInfo.vatNumber && (
+                      <div>
+                        <span className="text-blue-700 font-medium">P.IVA:</span>
+                        <span className="ml-2 text-blue-600">{businessInfo.businessInfo.vatNumber}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
         </CardContent>
       </Card>
       
