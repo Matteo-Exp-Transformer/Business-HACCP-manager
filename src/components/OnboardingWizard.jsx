@@ -559,6 +559,8 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
         console.log(`✅ Step ${currentStep} valido, navigando al prossimo`);
         // Aggiungi lo step corrente a completedSteps quando si naviga
         setCompletedSteps(prev => new Set([...prev, ONBOARDING_STEPS[currentStep].id]));
+        // Marca lo step come confermato quando si naviga
+        setConfirmedSteps(prev => new Set([...prev, currentStep]));
         setCurrentStepWithLogging(currentStep + 1);
         saveProgress();
         console.log(`✅ Navigazione completata a step ${currentStep + 1}`);
@@ -688,7 +690,8 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
             {!isLastStep ? (
               <Button 
                 onClick={nextStep}
-                className="bg-blue-600 hover:bg-blue-700"
+                disabled={!isStepValid(currentStep)}
+                className={`${isStepValid(currentStep) ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400 cursor-not-allowed'}`}
               >
                 Avanti
                 <ArrowRight className="h-4 w-4 ml-2" />
