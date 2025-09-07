@@ -217,7 +217,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       } else if (isInToleranceRange) {
         return { 
           compliant: false, 
-          message: 'La temperatura impostata è in tolleranza (fino a 0,5 C° di differenza)', 
+          message: `La temperatura impostata è in tolleranza (fino a ${tolerance}°C di differenza)`, 
           type: 'warning',
           color: 'yellow'
         };

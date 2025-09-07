@@ -211,6 +211,11 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
   }
 
   const getRoleColor = (role) => {
+    // Validate role parameter
+    if (!role || typeof role !== 'string') {
+      return 'bg-gray-100 text-gray-800' // Default color for invalid roles
+    }
+    
     if (roleColors[role]) {
       return roleColors[role]
     }
@@ -536,7 +541,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {departments.map(dept => (
+                  {departments.filter(dept => dept && dept.id && dept.name).map(dept => (
                     <div key={dept.id} className={`p-4 border rounded-lg ${getCategoryCardColor(dept.name)}`}>
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
@@ -626,7 +631,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                         required={index === 0}
                       >
                         <option value="">Seleziona un ruolo...</option>
-                        {departments.map(dept => (
+                        {departments.filter(dept => dept && dept.id && dept.name).map(dept => (
                           <option key={dept.id} value={dept.name}>
                             {dept.name}
                           </option>
@@ -714,7 +719,11 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {departments
             .slice()
-            .sort((a, b) => a.name.localeCompare(b.name))
+            .sort((a, b) => {
+              const nameA = a.name || ''
+              const nameB = b.name || ''
+              return nameA.localeCompare(nameB)
+            })
             .map(department => {
               const roleMembers = staff && Array.isArray(staff) ? staff.filter(member => 
                 member && (

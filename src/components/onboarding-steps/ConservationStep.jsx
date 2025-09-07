@@ -137,8 +137,8 @@ const ConservationStep = ({
         };
       } else if (isInToleranceRange) {
         return { 
-          compliant: false, 
-          message: `⚠️ Range di tolleranza estesa (±${tolerance}°C)`, 
+          compliant: true, 
+          message: `Temperatura impostata entro i limiti accettabili (0,5°C di differenza)`, 
           type: 'warning',
           color: 'yellow'
         };
@@ -222,6 +222,50 @@ const ConservationStep = ({
     }
     
     return 'incompatible';
+  };
+
+  // Funzione per generare suggerimento di temperatura
+  const getTemperatureSuggestion = (point) => {
+    if (!point.selectedCategories || point.selectedCategories.length === 0) {
+      return null;
+    }
+
+    const temp = parseFloat(point.targetTemp);
+    if (isNaN(temp)) return null;
+
+    // Trova la categoria principale (la prima selezionata)
+    const mainCategory = CONSERVATION_POINT_RULES.categories.find(c => c.id === point.selectedCategories[0]);
+    if (!mainCategory) return null;
+
+    const tolerance = CONSERVATION_POINT_RULES.tolerance;
+    const optimalMin = mainCategory.minTemp;
+    const optimalMax = mainCategory.maxTemp;
+    const toleranceMin = optimalMin - tolerance;
+    const toleranceMax = optimalMax + tolerance;
+
+    // Se è nel range ottimale, non serve suggerimento
+    if (temp >= optimalMin && temp <= optimalMax) {
+      return null;
+    }
+
+    // Se è nel range di tolleranza, suggerisci di avvicinarsi all'ottimale
+    if (temp >= toleranceMin && temp <= toleranceMax) {
+      const optimalCenter = (optimalMin + optimalMax) / 2;
+      if (temp < optimalCenter) {
+        return `Aumenta la temperatura verso ${optimalCenter.toFixed(1)}°C per ottimizzare la conservazione`;
+      } else {
+        return `Diminuisci la temperatura verso ${optimalCenter.toFixed(1)}°C per ottimizzare la conservazione`;
+      }
+    }
+
+    // Se è fuori dal range di tolleranza, suggerisci il range ottimale
+    if (temp < toleranceMin) {
+      return `Aumenta la temperatura al range ottimale ${optimalMin}-${optimalMax}°C`;
+    } else if (temp > toleranceMax) {
+      return `Diminuisci la temperatura al range ottimale ${optimalMin}-${optimalMax}°C`;
+    }
+
+    return null;
   };
 
   const handleAddPoint = () => {
@@ -367,6 +411,19 @@ const ConservationStep = ({
                          </div>
                        </div>
                      )}
+
+                     {/* Suggerimenti */}
+                     {(() => {
+                       const suggestion = getTemperatureSuggestion(point);
+                       return suggestion ? (
+                         <div className="mt-2">
+                           <span className="text-gray-600 text-sm">Suggerimenti:</span>
+                           <div className="mt-1 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                             {suggestion}
+                           </div>
+                         </div>
+                       ) : null;
+                     })()}
                   </div>
                   
                   <div className="flex gap-2">
@@ -544,7 +601,7 @@ const ConservationStep = ({
                    </span>
                    <span className="flex items-center gap-2">
                      <span className="w-4 h-4 bg-yellow-200 border-2 border-yellow-400 rounded shadow-sm"></span>
-                     <span className="font-medium text-yellow-900">Giallo: Tolleranza estesa</span>
+                     <span className="font-medium text-yellow-900">Giallo: Entro i limiti accettabili (0,5°C)</span>
                    </span>
                    <span className="flex items-center gap-2">
                      <span className="w-4 h-4 bg-red-200 border-2 border-red-400 rounded shadow-sm"></span>

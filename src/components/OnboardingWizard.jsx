@@ -74,8 +74,8 @@ const validateHACCPCompliance = (targetTemp, selectedCategories) => {
       return { compliant: true, message: 'Conforme HACCP' };
     } else if (isInToleranceRange) {
       return { 
-        compliant: false, 
-        message: `Range di tolleranza estesa (±${tolerance}°C)`
+        compliant: true, 
+        message: `Temperatura impostata entro i limiti accettabili (0,5°C di differenza)`
       };
     } else {
       return { 

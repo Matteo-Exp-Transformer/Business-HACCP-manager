@@ -99,6 +99,9 @@ const Inventory = () => {
   const [filterCategory, setFilterCategory] = useState('')
   const [filterExpiry, setFilterExpiry] = useState('')
   const [filterAllergen, setFilterAllergen] = useState('')
+  const [filterLot, setFilterLot] = useState('')
+  const [filterSupplier, setFilterSupplier] = useState('')
+  const [filterOrderId, setFilterOrderId] = useState('')
   const [refrigerators, setRefrigerators] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [orders, setOrders] = useState([])
@@ -107,6 +110,16 @@ const Inventory = () => {
   const [showBulkDelete, setShowBulkDelete] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [bulkSelectedProducts, setBulkSelectedProducts] = useState([])
+  
+  // Stati per sezione Ordini e Spesa
+  const [shoppingItems, setShoppingItems] = useState([])
+  const [showShoppingList, setShowShoppingList] = useState(false)
+  const [orderItems, setOrderItems] = useState([])
+  const [showOrderForm, setShowOrderForm] = useState(false)
+  
+  // Stati per ingredienti già utilizzati
+  const [usedIngredients, setUsedIngredients] = useState([])
+  const [showUsedIngredients, setShowUsedIngredients] = useState(false)
   const [bulkSearchTerm, setBulkSearchTerm] = useState('')
   const [bulkFilterCategory, setBulkFilterCategory] = useState('')
   const [bulkFilterExpiry, setBulkFilterExpiry] = useState('')
@@ -124,6 +137,14 @@ const Inventory = () => {
     batchDeliveryDate: '',
     supplierName: '',
     associatedOrderId: ''
+  })
+
+  // Stato per form ordini
+  const [orderFormData, setOrderFormData] = useState({
+    orderId: '',
+    supplierName: '',
+    orderDate: new Date().toISOString().split('T')[0],
+    notes: ''
   })
 
   // Carica dati dal localStorage
@@ -164,12 +185,27 @@ const Inventory = () => {
         console.error('Errore nel caricamento ordini:', error)
       }
     }
+    
+    // Carica ingredienti utilizzati
+    const savedUsedIngredients = localStorage.getItem('haccp-used-ingredients')
+    if (savedUsedIngredients) {
+      try {
+        setUsedIngredients(JSON.parse(savedUsedIngredients))
+      } catch (error) {
+        console.error('Errore nel caricamento ingredienti utilizzati:', error)
+      }
+    }
   }, [])
 
   // Salva prodotti nel localStorage
   useEffect(() => {
     localStorage.setItem('haccp-inventory', JSON.stringify(products))
   }, [products])
+
+  // Salva ingredienti utilizzati nel localStorage
+  useEffect(() => {
+    localStorage.setItem('haccp-used-ingredients', JSON.stringify(usedIngredients))
+  }, [usedIngredients])
 
   // Funzioni di utilità
   const getExpiryStatus = (expiryDate) => {
@@ -196,6 +232,149 @@ const Inventory = () => {
     return appropriateRefrigerator ? appropriateRefrigerator.name : 'Nessun frigorifero appropriato'
   }
 
+  // Funzione per calcolare data di scadenza predefinita
+  const getDefaultExpiryDate = (category) => {
+    const today = new Date()
+    let daysToAdd = 7
+    
+    // Categorie predefinite
+    if (category === 'latticini') daysToAdd = 7
+    else if (category === 'carne') daysToAdd = 3
+    else if (category === 'pesce') daysToAdd = 2
+    else if (category === 'verdure') daysToAdd = 7
+    else if (category === 'frutta') daysToAdd = 7
+    else if (category === 'dispensa') daysToAdd = 365
+    else if (category === 'condimenti') daysToAdd = 730
+    else if (category === 'surgelati') daysToAdd = 180
+    
+    const expiryDate = new Date(today)
+    expiryDate.setDate(today.getDate() + daysToAdd)
+    return expiryDate.toISOString().split('T')[0]
+  }
+
+  // Funzione per reinserire un ingrediente già utilizzato
+  const reinsertUsedIngredient = (usedIngredient) => {
+    // Rimuovi l'ingrediente dalla lista degli utilizzati
+    setUsedIngredients(prev => prev.filter(item => item.id !== usedIngredient.id))
+    
+    // Pre-compila il form con i dati dell'ingrediente
+    setFormData({
+      name: usedIngredient.name,
+      category: usedIngredient.category,
+      expiryDate: getDefaultExpiryDate(usedIngredient.category),
+      location: usedIngredient.location || '',
+      allergens: usedIngredient.allergens || [],
+      notes: usedIngredient.notes || '',
+      lotNumber: usedIngredient.lotNumber || '',
+      batchDeliveryDate: usedIngredient.batchDeliveryDate || '',
+      associatedOrderId: usedIngredient.associatedOrderId || '',
+      supplierName: usedIngredient.supplierName || ''
+    })
+    
+    setShowAddForm(true)
+    setShowUsedIngredients(false)
+  }
+
+  // Funzioni per gestione Ordini
+  const toggleOrderItem = (productId) => {
+    setOrderItems(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    )
+  }
+
+  const handleOrderSubmit = (e) => {
+    e.preventDefault()
+    
+    const selectedProducts = products.filter(product => orderItems.includes(product.id))
+    
+    // Aggiorna i prodotti con le informazioni dell'ordine
+    const updatedProducts = products.map(product => {
+      if (orderItems.includes(product.id)) {
+        return {
+          ...product,
+          associatedOrderId: orderFormData.orderId,
+          supplierName: orderFormData.supplierName,
+          batchDeliveryDate: orderFormData.orderDate,
+          lotNumber: `L${new Date().toISOString().slice(2, 10).replace(/-/g, '')}${Math.random().toString(36).substr(2, 3).toUpperCase()}`
+        }
+      }
+      return product
+    })
+    
+    setProducts(updatedProducts)
+    setOrderItems([])
+    setShowOrderForm(false)
+    
+    // Reset form
+    setOrderFormData({
+      orderId: '',
+      supplierName: '',
+      orderDate: new Date().toISOString().split('T')[0],
+      notes: ''
+    })
+  }
+
+  // Funzioni per gestione Lista della Spesa
+  const toggleShoppingItem = (productId) => {
+    setShoppingItems(prev => 
+      prev.includes(productId) 
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    )
+  }
+
+  const generateShoppingListPDF = () => {
+    const doc = new jsPDF()
+    
+    // Titolo
+    doc.setFontSize(20)
+    doc.text('Lista della Spesa', 20, 30)
+    
+    // Data
+    doc.setFontSize(12)
+    doc.text(`Data: ${new Date().toLocaleDateString('it-IT')}`, 20, 45)
+    
+    // Prodotti selezionati
+    let yPosition = 60
+    doc.setFontSize(14)
+    doc.text('Prodotti da acquistare:', 20, yPosition)
+    yPosition += 10
+    
+    const selectedProducts = products.filter(product => shoppingItems.includes(product.id))
+    
+    if (selectedProducts.length === 0) {
+      doc.setFontSize(12)
+      doc.text('Nessun prodotto selezionato', 20, yPosition)
+    } else {
+      doc.setFontSize(10)
+      selectedProducts.forEach((product, index) => {
+        if (yPosition > 280) {
+          doc.addPage()
+          yPosition = 20
+        }
+        
+        const categoryInfo = CATEGORIES.find(c => c.id === product.category)
+        doc.text(`${index + 1}. ${product.name}`, 20, yPosition)
+        if (categoryInfo) {
+          doc.text(`   Categoria: ${categoryInfo.name}`, 25, yPosition + 5)
+        }
+        if (product.location) {
+          doc.text(`   Posizione: ${product.location}`, 25, yPosition + 10)
+        }
+        yPosition += 20
+      })
+    }
+    
+    // Salva il PDF
+    doc.save(`lista-spesa-${new Date().toISOString().split('T')[0]}.pdf`)
+    
+    // Chiudi il modal e resetta la lista
+    setShowShoppingList(false)
+    setShoppingItems([])
+  }
+
   // Filtri prodotti
   const filteredProducts = products.filter(product => {
     const matchesSearch = !searchTerm || 
@@ -214,7 +393,16 @@ const Inventory = () => {
     const matchesAllergen = !filterAllergen || 
       (product.allergens && product.allergens.includes(filterAllergen))
     
-    return matchesSearch && matchesCategory && matchesExpiry && matchesAllergen
+    const matchesLot = !filterLot || 
+      (product.lotNumber && product.lotNumber.toLowerCase().includes(filterLot.toLowerCase()))
+    
+    const matchesSupplier = !filterSupplier || 
+      (product.supplierName && product.supplierName.toLowerCase().includes(filterSupplier.toLowerCase()))
+    
+    const matchesOrderId = !filterOrderId || 
+      (product.associatedOrderId && product.associatedOrderId.toLowerCase().includes(filterOrderId.toLowerCase()))
+    
+    return matchesSearch && matchesCategory && matchesExpiry && matchesAllergen && matchesLot && matchesSupplier && matchesOrderId
   })
 
   // Gestione form
@@ -292,6 +480,18 @@ const Inventory = () => {
   }
 
   const deleteProduct = (id) => {
+    const productToDelete = products.find(p => p.id === id)
+    if (productToDelete) {
+      // Aggiungi il prodotto alla lista degli ingredienti utilizzati
+      const usedIngredient = {
+        ...productToDelete,
+        usedDate: new Date().toISOString(),
+        id: `used_${Date.now()}_${productToDelete.id}`
+      }
+      setUsedIngredients(prev => [...prev, usedIngredient])
+    }
+    
+    // Rimuovi il prodotto dall'inventario
     setProducts(prev => prev.filter(p => p.id !== id))
   }
 
@@ -402,6 +602,14 @@ const Inventory = () => {
             <Plus className="h-4 w-4 mr-2" />
             Aggiungi Prodotto
               </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowUsedIngredients(!showUsedIngredients)}
+                className="flex items-center gap-2"
+              >
+                <Package className="h-4 w-4" />
+                Ingredienti Utilizzati ({usedIngredients.length})
+              </Button>
             </div>
           </div>
 
@@ -473,6 +681,54 @@ const Inventory = () => {
                   <option key={allergen.id} value={allergen.id}>{allergen.name}</option>
                 ))}
               </select>
+            </div>
+            
+            <div>
+              <Label htmlFor="lot">Numero Lotto</Label>
+              <Input
+                id="lot"
+                value={filterLot}
+                onChange={(e) => setFilterLot(e.target.value)}
+                placeholder="Filtra per numero lotto..."
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="supplier">Fornitore</Label>
+              <Input
+                id="supplier"
+                value={filterSupplier}
+                onChange={(e) => setFilterSupplier(e.target.value)}
+                placeholder="Filtra per fornitore..."
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="orderId">ID Ordine</Label>
+              <Input
+                id="orderId"
+                value={filterOrderId}
+                onChange={(e) => setFilterOrderId(e.target.value)}
+                placeholder="Filtra per ID ordine..."
+              />
+            </div>
+            
+            <div className="col-span-full">
+              <Button 
+                onClick={() => {
+                  setSearchTerm('')
+                  setFilterCategory('')
+                  setFilterExpiry('')
+                  setFilterAllergen('')
+                  setFilterLot('')
+                  setFilterSupplier('')
+                  setFilterOrderId('')
+                }}
+                variant="outline"
+                className="w-full"
+              >
+                🔄 Reset Filtri
+              </Button>
             </div>
           </div>
         </CardContent>
@@ -745,7 +1001,172 @@ const Inventory = () => {
         </Card>
       )}
 
-      {/* 4. Categorie Personalizzate */}
+      {/* 3. Ordini e Spesa */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Ordini e Spesa
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Lista della Spesa */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">🛒 Lista della Spesa</h3>
+                <Button 
+                  onClick={() => setShowShoppingList(true)}
+                  disabled={shoppingItems.length === 0}
+                  size="sm"
+                  variant="outline"
+                >
+                  📄 Genera PDF
+                </Button>
+              </div>
+              
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {filteredProducts.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">
+                    <p className="text-sm">Nessun prodotto disponibile per la lista della spesa</p>
+                    <p className="text-xs">Aggiungi prodotti all'inventario per iniziare</p>
+                  </div>
+                ) : (
+                  filteredProducts.map(product => {
+                    const isSelected = shoppingItems.includes(product.id)
+                    return (
+                      <div key={product.id} className="flex items-center p-2 border rounded hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleShoppingItem(product.id)}
+                          className="mr-3 w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{product.name}</div>
+                          <div className="text-xs text-gray-500">{product.location}</div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+              
+              <div className="text-sm text-gray-600">
+                Selezionati: {shoppingItems.length} prodotti
+              </div>
+            </div>
+
+            {/* Gestione Ordini */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold">📦 Gestione Ordini</h3>
+                <Button 
+                  onClick={() => setShowOrderForm(true)}
+                  disabled={orderItems.length === 0}
+                  size="sm"
+                  variant="outline"
+                >
+                  📋 Crea Ordine
+                </Button>
+              </div>
+              
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {filteredProducts.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">
+                    <p className="text-sm">Nessun prodotto disponibile per gli ordini</p>
+                    <p className="text-xs">Aggiungi prodotti all'inventario per iniziare</p>
+                  </div>
+                ) : (
+                  filteredProducts.map(product => {
+                    const isSelected = orderItems.includes(product.id)
+                    return (
+                      <div key={product.id} className="flex items-center p-2 border rounded hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleOrderItem(product.id)}
+                          className="mr-3 w-4 h-4"
+                        />
+                        <div className="flex-1">
+                          <div className="font-medium text-sm">{product.name}</div>
+                          <div className="text-xs text-gray-500">{product.location}</div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+              
+              <div className="text-sm text-gray-600">
+                Prodotti selezionati: {orderItems.length}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 4. Ingredienti già utilizzati */}
+      {showUsedIngredients && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-gray-600" />
+              Ingredienti già Utilizzati ({usedIngredients.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {usedIngredients.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium">Nessun ingrediente utilizzato</p>
+                <p className="text-sm">I prodotti eliminati dall'inventario appariranno qui</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {usedIngredients.map(ingredient => (
+                  <div 
+                    key={ingredient.id} 
+                    className="flex items-center justify-between p-4 bg-gray-50 border rounded-lg opacity-75"
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{ingredient.name}</div>
+                      <div className="text-sm text-gray-600">
+                        {CATEGORIES.find(c => c.id === ingredient.category)?.name} • 
+                        {ingredient.location} • 
+                        Utilizzato: {new Date(ingredient.usedDate).toLocaleDateString('it-IT')}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => reinsertUsedIngredient(ingredient)}
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        ✅ Reinserisci
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (confirm('Sei sicuro di voler eliminare definitivamente questo ingrediente?')) {
+                            setUsedIngredients(prev => prev.filter(ing => ing.id !== ingredient.id))
+                          }
+                        }}
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        🗑️ Elimina
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 5. Categorie Personalizzate */}
       <CustomCategoryManager />
 
       {/* Form per aggiungere/modificare prodotto */}
@@ -971,6 +1392,143 @@ const Inventory = () => {
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Lista della Spesa */}
+      {showShoppingList && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">🛒 Lista della Spesa</h2>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-4">
+                Prodotti selezionati per la lista della spesa ({shoppingItems.length}):
+              </p>
+              
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {shoppingItems.length === 0 ? (
+                  <div className="text-center py-4 text-gray-500">
+                    <p className="text-sm">Nessun prodotto selezionato</p>
+                    <p className="text-xs">Torna alla sezione inventario per selezionare i prodotti</p>
+                  </div>
+                ) : (
+                  products
+                    .filter(product => shoppingItems.includes(product.id))
+                    .map(product => {
+                      const categoryInfo = CATEGORIES.find(c => c.id === product.category)
+                      return (
+                        <div key={product.id} className="flex items-center p-3 border rounded bg-gray-50">
+                          <div className="flex-1">
+                            <div className="font-medium">{product.name}</div>
+                            <div className="text-sm text-gray-600">
+                              {categoryInfo?.name} • {product.location}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button onClick={generateShoppingListPDF} className="flex-1">
+                📄 Genera PDF
+              </Button>
+              <Button 
+                onClick={() => {
+                  setShowShoppingList(false)
+                  setShoppingItems([])
+                }} 
+                variant="outline"
+              >
+                Annulla
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Gestione Ordini */}
+      {showOrderForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">📋 Crea Nuovo Ordine</h2>
+            
+            <form onSubmit={handleOrderSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Numero Ordine *</Label>
+                  <Input
+                    value={orderFormData.orderId}
+                    onChange={(e) => setOrderFormData({...orderFormData, orderId: e.target.value})}
+                    placeholder="es. ORD-2024-001"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label>Fornitore *</Label>
+                  <Input
+                    value={orderFormData.supplierName}
+                    onChange={(e) => setOrderFormData({...orderFormData, supplierName: e.target.value})}
+                    placeholder="Nome fornitore"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label>Data Ordine *</Label>
+                  <Input
+                    type="date"
+                    value={orderFormData.orderDate}
+                    onChange={(e) => setOrderFormData({...orderFormData, orderDate: e.target.value})}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <Label>Note</Label>
+                  <Input
+                    value={orderFormData.notes}
+                    onChange={(e) => setOrderFormData({...orderFormData, notes: e.target.value})}
+                    placeholder="Note aggiuntive..."
+                  />
+                </div>
+              </div>
+              
+              <div className="border-t pt-4">
+                <h3 className="font-medium mb-3">Prodotti selezionati ({orderItems.length}):</h3>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {products.filter(product => orderItems.includes(product.id)).map(product => {
+                    const category = CATEGORIES.find(c => c.id === product.category)
+                    return (
+                      <div key={product.id} className="p-2 border rounded">
+                        <div className="font-medium text-sm">{product.name}</div>
+                        <div className="text-xs text-gray-600">
+                          {category?.name} • {product.location}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <Button type="submit" className="flex-1">
+                  📦 Crea Ordine
+                </Button>
+                <Button 
+                  type="button"
+                  onClick={() => setShowOrderForm(false)} 
+                  variant="outline"
+                >
+                  Annulla
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}

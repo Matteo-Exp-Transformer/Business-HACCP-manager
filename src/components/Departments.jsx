@@ -24,6 +24,56 @@ import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Plus, Edit, Trash2, Building2, Users, MapPin, AlertCircle } from 'lucide-react'
 
+// Funzione per creare i reparti standard
+const createStandardDepartments = () => {
+  return [
+    {
+      id: 'cucina',
+      name: 'Cucina',
+      description: 'Area di preparazione e cottura',
+      location: '',
+      manager: '',
+      notes: '',
+      enabled: true,
+      createdAt: new Date().toISOString(),
+      createdBy: 'Sistema'
+    },
+    {
+      id: 'bancone',
+      name: 'Bancone',
+      description: 'Area di servizio e preparazione',
+      location: '',
+      manager: '',
+      notes: '',
+      enabled: true,
+      createdAt: new Date().toISOString(),
+      createdBy: 'Sistema'
+    },
+    {
+      id: 'sala',
+      name: 'Sala',
+      description: 'Area di servizio clienti',
+      location: '',
+      manager: '',
+      notes: '',
+      enabled: true,
+      createdAt: new Date().toISOString(),
+      createdBy: 'Sistema'
+    },
+    {
+      id: 'magazzino',
+      name: 'Magazzino',
+      description: 'Area di stoccaggio e conservazione',
+      location: '',
+      manager: '',
+      notes: '',
+      enabled: true,
+      createdAt: new Date().toISOString(),
+      createdBy: 'Sistema'
+    }
+  ]
+}
+
 function Departments({ currentUser, departments, setDepartments }) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingDepartment, setEditingDepartment] = useState(null)
@@ -35,33 +85,28 @@ function Departments({ currentUser, departments, setDepartments }) {
     notes: ''
   })
 
-  // Carica i reparti dall'onboarding se non sono già presenti
+  // Carica i reparti esistenti dal localStorage
   useEffect(() => {
-    if (departments.length === 0) {
-      const savedOnboarding = localStorage.getItem('onboardingData')
-      if (savedOnboarding) {
-        try {
-          const onboardingData = JSON.parse(savedOnboarding)
-          if (onboardingData.departments && onboardingData.departments.length > 0) {
-            // Converte i reparti dall'onboarding nel formato del componente
-            const convertedDepartments = onboardingData.departments.map((dept, index) => ({
-              id: `dept_${index}`,
-              name: dept,
-              description: `Reparto ${dept}`,
-              location: '',
-              manager: '',
-              notes: '',
-              createdAt: new Date().toISOString(),
-              createdBy: currentUser?.name || 'Unknown'
-            }))
-            setDepartments(convertedDepartments)
-          }
-        } catch (error) {
-          console.error('Errore nel caricamento reparti dall\'onboarding:', error)
+    const savedDepartments = localStorage.getItem('haccp-departments')
+    if (savedDepartments) {
+      try {
+        const existingDepartments = JSON.parse(savedDepartments)
+        if (existingDepartments.length > 0) {
+          setDepartments(existingDepartments)
+        } else {
+          // Se non ci sono reparti, crea quelli standard
+          setDepartments(createStandardDepartments())
         }
+      } catch (error) {
+        console.error('Errore nel caricamento reparti:', error)
+        setDepartments(createStandardDepartments())
       }
+    } else {
+      // Se non ci sono dati salvati, crea quelli standard
+      setDepartments(createStandardDepartments())
     }
-  }, [departments.length, setDepartments, currentUser])
+  }, []) // Array vuoto per eseguire solo al mount
+
 
   // Salva i reparti nel localStorage
   useEffect(() => {
@@ -104,10 +149,6 @@ function Departments({ currentUser, departments, setDepartments }) {
           ? {
               ...dept,
               name: formData.name.trim(),
-              description: formData.description.trim(),
-              location: formData.location.trim(),
-              manager: formData.manager.trim(),
-              notes: formData.notes.trim(),
               updatedAt: new Date().toISOString(),
               updatedBy: currentUser?.name || 'Unknown'
             }
@@ -119,10 +160,12 @@ function Departments({ currentUser, departments, setDepartments }) {
       const newDepartment = {
         id: `dept_${Date.now()}`,
         name: formData.name.trim(),
-        description: formData.description.trim(),
-        location: formData.location.trim(),
-        manager: formData.manager.trim(),
-        notes: formData.notes.trim(),
+        description: '',
+        location: '',
+        manager: '',
+        notes: '',
+        enabled: true,
+        isCustom: true,
         createdAt: new Date().toISOString(),
         createdBy: currentUser?.name || 'Unknown'
       }
@@ -161,7 +204,7 @@ function Departments({ currentUser, departments, setDepartments }) {
             Gestione Reparti
           </h1>
           <p className="text-gray-600">
-            Organizza e gestisci i reparti della tua attività per la compliance HACCP
+            Visualizza e gestisci i reparti configurati durante l'onboarding
           </p>
         </div>
         <Button 
@@ -172,51 +215,65 @@ function Departments({ currentUser, departments, setDepartments }) {
           className="flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
-          Nuovo Reparto
+          Aggiungi Reparto
         </Button>
       </div>
 
-      {/* Statistiche rapide */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Building2 className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="text-sm text-gray-600">Reparti Totali</p>
-                <p className="text-2xl font-bold text-gray-900">{departments.length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Lista Reparti */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-lg font-semibold text-gray-900">
+            Reparti Attivi ({departments.length})
+          </h2>
+        </div>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="text-sm text-gray-600">Con Manager</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {departments.filter(dept => dept.manager.trim()).length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="text-sm text-gray-600">Con Posizione</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {departments.filter(dept => dept.location.trim()).length}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {departments.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Nessun reparto configurato</h3>
+              <p className="text-gray-600 mb-4">
+                I reparti vengono configurati durante l'onboarding dell'applicazione.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {departments.map((department) => (
+              <Card key={department.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <p className="text-sm text-gray-600">{department.name}</p>
+                        <p className="text-lg font-bold text-gray-900">Attivo</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(department)}
+                        className="h-8 w-8 p-0"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(department.id)}
+                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Form per aggiungere/modificare reparto */}
@@ -230,56 +287,14 @@ function Departments({ currentUser, departments, setDepartments }) {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Nome Reparto *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    placeholder="es. Cucina, Sala, Magazzino..."
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="manager">Manager/Responsabile</Label>
-                  <Input
-                    id="manager"
-                    value={formData.manager}
-                    onChange={(e) => setFormData({...formData, manager: e.target.value})}
-                    placeholder="Nome del responsabile"
-                  />
-                </div>
-              </div>
-              
               <div>
-                <Label htmlFor="description">Descrizione</Label>
+                <Label htmlFor="name">Nome Reparto *</Label>
                 <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  placeholder="Descrizione del reparto e delle sue funzioni"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="location">Posizione/Localizzazione</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData({...formData, location: e.target.value})}
-                  placeholder="es. Piano terra, Primo piano, Esterno..."
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="notes">Note Aggiuntive</Label>
-                <Input
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  placeholder="Note specifiche per il reparto"
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  placeholder="es. Cucina, Sala, Magazzino..."
+                  required
                 />
               </div>
               
@@ -304,105 +319,6 @@ function Departments({ currentUser, departments, setDepartments }) {
         </Card>
       )}
 
-      {/* Lista reparti */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Reparti Configurati ({departments.length})</h2>
-        
-        {departments.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nessun reparto configurato</h3>
-              <p className="text-gray-600 mb-4">
-                Inizia aggiungendo i reparti della tua attività per organizzare meglio il lavoro HACCP.
-              </p>
-              <Button 
-                onClick={() => {
-                  resetForm()
-                  setShowAddForm(true)
-                }}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Aggiungi Primo Reparto
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {departments.map((department) => (
-              <Card key={department.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-5 w-5 text-blue-600" />
-                      <CardTitle className="text-lg">{department.name}</CardTitle>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(department)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(department.id)}
-                        className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  {department.description && (
-                    <p className="text-sm text-gray-600 mb-3">{department.description}</p>
-                  )}
-                  
-                  <div className="space-y-2 text-sm">
-                    {department.manager && (
-                      <div className="flex items-center gap-2">
-                        <Users className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">Manager:</span>
-                        <span className="font-medium">{department.manager}</span>
-                      </div>
-                    )}
-                    
-                    {department.location && (
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-gray-500" />
-                        <span className="text-gray-600">Posizione:</span>
-                        <span className="font-medium">{department.location}</span>
-                      </div>
-                    )}
-                    
-                    {department.notes && (
-                      <div className="flex items-start gap-2">
-                        <StickyNote className="h-4 w-4 text-gray-500 mt-0.5" />
-                        <div>
-                          <span className="text-gray-600">Note:</span>
-                          <p className="text-gray-700 mt-1">{department.notes}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-3 pt-3 border-t border-gray-100">
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Creato: {new Date(department.createdAt).toLocaleDateString('it-IT')}</span>
-                      <span>da {department.createdBy}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   )
 }
