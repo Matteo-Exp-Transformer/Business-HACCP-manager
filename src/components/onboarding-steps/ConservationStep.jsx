@@ -66,6 +66,9 @@ const ConservationStep = ({
         return point;
       })
     );
+    
+    // Marca lo step come non confermato quando vengono modificati i dati
+    markStepAsUnconfirmed(currentStep);
   };
 
   const resetForm = () => {
@@ -330,6 +333,9 @@ const ConservationStep = ({
       
       resetForm();
       setShowAddForm(false);
+      
+      // Marca lo step come non confermato quando viene aggiunto un nuovo punto
+      markStepAsUnconfirmed(currentStep);
     }
   };
 
@@ -346,6 +352,9 @@ const ConservationStep = ({
         count: updatedPoints.length
       }
     }));
+    
+    // Marca lo step come non confermato quando viene eliminato un punto
+    markStepAsUnconfirmed(currentStep);
   };
 
   const handleEditPoint = (id) => {
@@ -520,7 +529,11 @@ const ConservationStep = ({
               <Input
                 id="name"
                 value={localFormData.name}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => {
+                  setLocalFormData(prev => ({ ...prev, name: e.target.value }));
+                  // Marca lo step come non confermato quando viene modificato il nome
+                  markStepAsUnconfirmed(currentStep);
+                }}
                 placeholder="Es. Frigo A, Freezer, Abbattitore"
                 className="mt-1"
               />
@@ -531,7 +544,11 @@ const ConservationStep = ({
               <select
                 id="location"
                 value={localFormData.location}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, location: e.target.value }))}
+                onChange={(e) => {
+                  setLocalFormData(prev => ({ ...prev, location: e.target.value }));
+                  // Marca lo step come non confermato quando viene modificata la posizione
+                  markStepAsUnconfirmed(currentStep);
+                }}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="">Seleziona reparto</option>
@@ -553,6 +570,8 @@ const ConservationStep = ({
                 onChange={(e) => {
                   console.log('🌡️ Temperatura cambiata:', e.target.value);
                   setLocalFormData(prev => ({ ...prev, targetTemp: e.target.value }));
+                  // Marca lo step come non confermato quando viene modificata la temperatura
+                  markStepAsUnconfirmed(currentStep);
                 }}
                 placeholder="4"
                 className={`mt-1 ${
@@ -611,28 +630,30 @@ const ConservationStep = ({
                        <input
                          type="checkbox"
                          checked={localFormData.selectedCategories.includes(category.id)}
-                         onChange={(e) => {
-                           console.log('📦 Categoria cambiata:', category.id, 'checked:', e.target.checked);
-                           if (e.target.checked) {
-                             setLocalFormData(prev => {
-                               const newCategories = [...prev.selectedCategories, category.id];
-                               console.log('✅ Categorie aggiornate:', newCategories);
-                               return {
-                                 ...prev,
-                                 selectedCategories: newCategories
-                               };
-                             });
-                           } else {
-                             setLocalFormData(prev => {
-                               const newCategories = prev.selectedCategories.filter(id => id !== category.id);
-                               console.log('❌ Categorie aggiornate:', newCategories);
-                               return {
-                                 ...prev,
-                                 selectedCategories: newCategories
-                               };
-                             });
-                           }
-                         }}
+                        onChange={(e) => {
+                          console.log('📦 Categoria cambiata:', category.id, 'checked:', e.target.checked);
+                          if (e.target.checked) {
+                            setLocalFormData(prev => {
+                              const newCategories = [...prev.selectedCategories, category.id];
+                              console.log('✅ Categorie aggiornate:', newCategories);
+                              return {
+                                ...prev,
+                                selectedCategories: newCategories
+                              };
+                            });
+                          } else {
+                            setLocalFormData(prev => {
+                              const newCategories = prev.selectedCategories.filter(id => id !== category.id);
+                              console.log('❌ Categorie aggiornate:', newCategories);
+                              return {
+                                ...prev,
+                                selectedCategories: newCategories
+                              };
+                            });
+                          }
+                          // Marca lo step come non confermato quando vengono modificate le categorie
+                          markStepAsUnconfirmed(currentStep);
+                        }}
                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
                        />
                        <span className="text-sm font-medium">
