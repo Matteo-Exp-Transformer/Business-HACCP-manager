@@ -206,6 +206,7 @@ function App() {
   }
 
 
+
   // Funzione per resettare completamente l'onboarding
   const resetOnboarding = () => {
     if (window.confirm('⚠️ ATTENZIONE: Questo cancellerà TUTTI i dati dell\'onboarding e dell\'app!\n\nSei sicuro di voler procedere?')) {
@@ -270,6 +271,7 @@ function App() {
       console.log('  - resetOnboarding() - Reset onboarding e app')
     }
   }, [])
+
 
   // Load data from localStorage on app start
   useEffect(() => {
