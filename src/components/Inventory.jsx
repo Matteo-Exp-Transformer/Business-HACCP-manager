@@ -102,9 +102,21 @@ const Inventory = () => {
   const [filterLot, setFilterLot] = useState('')
   const [filterSupplier, setFilterSupplier] = useState('')
   const [filterOrderId, setFilterOrderId] = useState('')
+  const [filterDepartment, setFilterDepartment] = useState('')
+  const [filterConservationPoint, setFilterConservationPoint] = useState('')
+  const [groupByDepartment, setGroupByDepartment] = useState(false)
+  const [groupByConservationPoint, setGroupByConservationPoint] = useState(false)
   const [refrigerators, setRefrigerators] = useState([])
   const [suppliers, setSuppliers] = useState([])
   const [orders, setOrders] = useState([])
+
+  // Dati per filtri e raggruppamenti
+  const [departments, setDepartments] = useState([])
+  const [conservationPoints, setConservationPoints] = useState([])
+  
+  // Stati per alert prodotti senza punto di conservazione
+  const [showMissingConservationAlert, setShowMissingConservationAlert] = useState(false)
+  const [productsWithoutConservation, setProductsWithoutConservation] = useState([])
 
   // Stati per modali
   const [showBulkDelete, setShowBulkDelete] = useState(false)
@@ -129,7 +141,8 @@ const Inventory = () => {
   const [formData, setFormData] = useState({
     name: '',
     category: '',
-    location: '',
+    department: '', // Reparto (es. "Cucina", "Sala")
+    conservationPoint: '', // Punto di conservazione (es. "Frigo A", "Freezer")
     expiryDate: '',
     allergens: [],
     notes: '',
@@ -153,6 +166,29 @@ const Inventory = () => {
     const savedRefrigerators = localStorage.getItem('haccp-refrigerators')
     const savedSuppliers = localStorage.getItem('haccp-suppliers')
     const savedOrders = localStorage.getItem('haccp-orders')
+    
+    // Carica dati reparti e punti di conservazione dall'onboarding
+    const savedOnboarding = localStorage.getItem('haccp-onboarding')
+    if (savedOnboarding) {
+      try {
+        const onboarding = JSON.parse(savedOnboarding)
+        
+        // Carica reparti attivi
+        if (onboarding.departments?.list) {
+          const activeDepartments = onboarding.departments.list
+            .filter(dept => dept.enabled)
+            .map(dept => ({ id: dept.id, name: dept.name }))
+          setDepartments(activeDepartments)
+        }
+        
+        // Carica punti di conservazione
+        if (onboarding.conservation?.points) {
+          setConservationPoints(onboarding.conservation.points)
+        }
+      } catch (error) {
+        console.error('Errore nel caricamento dati onboarding:', error)
+      }
+    }
     
     if (savedProducts) {
       try {
@@ -206,6 +242,83 @@ const Inventory = () => {
   useEffect(() => {
     localStorage.setItem('haccp-used-ingredients', JSON.stringify(usedIngredients))
   }, [usedIngredients])
+
+  // Rileva prodotti senza punto di conservazione
+  useEffect(() => {
+    const productsWithout = products.filter(product => 
+      !product.conservationPoint || product.conservationPoint === ''
+    )
+    setProductsWithoutConservation(productsWithout)
+    
+    if (productsWithout.length > 0) {
+      setShowMissingConservationAlert(true)
+    }
+  }, [products])
+
+  // Funzioni per gestione sostituzione reparti/punti
+  const handleDepartmentDeletion = (departmentToDelete) => {
+    const productsInDepartment = products.filter(product => product.department === departmentToDelete)
+    
+    if (productsInDepartment.length > 0) {
+      const confirmMessage = `Il reparto "${departmentToDelete}" contiene ${productsInDepartment.length} prodotti. Vuoi sostituirlo con un altro reparto?`
+      
+      if (confirm(confirmMessage)) {
+        // Mostra modal per selezione nuovo reparto
+        const newDepartment = prompt(`Seleziona il nuovo reparto per i ${productsInDepartment.length} prodotti:\n${departments.map(d => d.name).join('\n')}`)
+        
+        if (newDepartment && departments.find(d => d.name === newDepartment)) {
+          // Aggiorna i prodotti con il nuovo reparto
+          setProducts(prev => prev.map(product => 
+            product.department === departmentToDelete 
+              ? { ...product, department: newDepartment }
+              : product
+          ))
+          
+          // Rimuovi il reparto dalla lista
+          setDepartments(prev => prev.filter(d => d.name !== departmentToDelete))
+          
+          alert(`Reparto "${departmentToDelete}" sostituito con "${newDepartment}" per ${productsInDepartment.length} prodotti.`)
+        } else {
+          alert('Reparto non valido. Operazione annullata.')
+        }
+      }
+    } else {
+      // Nessun prodotto nel reparto, può essere eliminato direttamente
+      setDepartments(prev => prev.filter(d => d.name !== departmentToDelete))
+    }
+  }
+
+  const handleConservationPointDeletion = (pointToDelete) => {
+    const productsInPoint = products.filter(product => product.conservationPoint === pointToDelete)
+    
+    if (productsInPoint.length > 0) {
+      const confirmMessage = `Il punto di conservazione "${pointToDelete}" contiene ${productsInPoint.length} prodotti. Vuoi sostituirlo con un altro punto?`
+      
+      if (confirm(confirmMessage)) {
+        // Mostra modal per selezione nuovo punto
+        const newPoint = prompt(`Seleziona il nuovo punto di conservazione per i ${productsInPoint.length} prodotti:\n${conservationPoints.map(p => p.name).join('\n')}`)
+        
+        if (newPoint && conservationPoints.find(p => p.name === newPoint)) {
+          // Aggiorna i prodotti con il nuovo punto
+          setProducts(prev => prev.map(product => 
+            product.conservationPoint === pointToDelete 
+              ? { ...product, conservationPoint: newPoint }
+              : product
+          ))
+          
+          // Rimuovi il punto dalla lista
+          setConservationPoints(prev => prev.filter(p => p.name !== pointToDelete))
+          
+          alert(`Punto di conservazione "${pointToDelete}" sostituito con "${newPoint}" per ${productsInPoint.length} prodotti.`)
+        } else {
+          alert('Punto di conservazione non valido. Operazione annullata.')
+        }
+      }
+    } else {
+      // Nessun prodotto nel punto, può essere eliminato direttamente
+      setConservationPoints(prev => prev.filter(p => p.name !== pointToDelete))
+    }
+  }
 
   // Funzioni di utilità
   const getExpiryStatus = (expiryDate) => {
@@ -262,7 +375,8 @@ const Inventory = () => {
       name: usedIngredient.name,
       category: usedIngredient.category,
       expiryDate: getDefaultExpiryDate(usedIngredient.category),
-      location: usedIngredient.location || '',
+      department: usedIngredient.department || '',
+      conservationPoint: usedIngredient.conservationPoint || '',
       allergens: usedIngredient.allergens || [],
       notes: usedIngredient.notes || '',
       lotNumber: usedIngredient.lotNumber || '',
@@ -360,8 +474,11 @@ const Inventory = () => {
         if (categoryInfo) {
           doc.text(`   Categoria: ${categoryInfo.name}`, 25, yPosition + 5)
         }
-        if (product.location) {
-          doc.text(`   Posizione: ${product.location}`, 25, yPosition + 10)
+        if (product.department) {
+          doc.text(`   Reparto: ${product.department}`, 25, yPosition + 10)
+        }
+        if (product.conservationPoint) {
+          doc.text(`   Punto di Conservazione: ${product.conservationPoint}`, 25, yPosition + 15)
         }
         yPosition += 20
       })
@@ -375,11 +492,38 @@ const Inventory = () => {
     setShoppingItems([])
   }
 
+  // Funzione per raggruppare i prodotti
+  const groupProducts = (products) => {
+    if (groupByDepartment) {
+      const grouped = {}
+      products.forEach(product => {
+        const key = product.department || 'Non assegnato'
+        if (!grouped[key]) {
+          grouped[key] = []
+        }
+        grouped[key].push(product)
+      })
+      return grouped
+    } else if (groupByConservationPoint) {
+      const grouped = {}
+      products.forEach(product => {
+        const key = product.conservationPoint || 'Non assegnato'
+        if (!grouped[key]) {
+          grouped[key] = []
+        }
+        grouped[key].push(product)
+      })
+      return grouped
+    }
+    return { 'Tutti i prodotti': products }
+  }
+
   // Filtri prodotti
   const filteredProducts = products.filter(product => {
     const matchesSearch = !searchTerm || 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.conservationPoint?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       CATEGORIES.find(c => c.id === product.category)?.name.toLowerCase().includes(searchTerm.toLowerCase())
     
     const matchesCategory = !filterCategory || product.category === filterCategory
@@ -402,7 +546,11 @@ const Inventory = () => {
     const matchesOrderId = !filterOrderId || 
       (product.associatedOrderId && product.associatedOrderId.toLowerCase().includes(filterOrderId.toLowerCase()))
     
-    return matchesSearch && matchesCategory && matchesExpiry && matchesAllergen && matchesLot && matchesSupplier && matchesOrderId
+    const matchesDepartment = !filterDepartment || product.department === filterDepartment
+    
+    const matchesConservationPoint = !filterConservationPoint || product.conservationPoint === filterConservationPoint
+    
+    return matchesSearch && matchesCategory && matchesExpiry && matchesAllergen && matchesLot && matchesSupplier && matchesOrderId && matchesDepartment && matchesConservationPoint
   })
 
   // Gestione form
@@ -410,7 +558,8 @@ const Inventory = () => {
     setFormData({
       name: '',
       category: '',
-      location: '',
+      department: '',
+      conservationPoint: '',
       expiryDate: '',
       allergens: [],
       notes: '',
@@ -442,7 +591,7 @@ const Inventory = () => {
   const handleSubmit = (e) => {
     e.preventDefault()
     
-    if (!formData.name || !formData.category || !formData.location || !formData.expiryDate) {
+    if (!formData.name || !formData.category || !formData.department || !formData.conservationPoint || !formData.expiryDate) {
       alert('Compila tutti i campi obbligatori')
       return
     }
@@ -466,7 +615,8 @@ const Inventory = () => {
     setFormData({
       name: product.name,
       category: product.category,
-      location: product.location,
+      department: product.department || '',
+      conservationPoint: product.conservationPoint || '',
       expiryDate: product.expiryDate,
       allergens: product.allergens || [],
       notes: product.notes || '',
@@ -499,10 +649,16 @@ const Inventory = () => {
     const today = new Date()
     const expiryDate = new Date(today.getTime() + (7 * 24 * 60 * 60 * 1000)) // 7 giorni da oggi
     
+    // Trova il punto di conservazione appropriato per la categoria
+    const appropriateConservationPoint = getAppropriateRefrigerator(product.category)
+    const conservationPoint = conservationPoints.find(cp => cp.name === appropriateConservationPoint)
+    const department = conservationPoint?.location || ''
+    
     const quickProduct = {
       ...product,
       id: Date.now().toString(),
-      location: getAppropriateRefrigerator(product.category),
+      department: department,
+      conservationPoint: appropriateConservationPoint,
       expiryDate: expiryDate.toISOString().split('T')[0],
       allergens: [],
       notes: '',
@@ -558,7 +714,12 @@ const Inventory = () => {
       
       doc.text(`${index + 1}. ${product.name}`, 20, y)
       doc.text(`   Categoria: ${category?.name || 'N/A'}`, 25, y + 5)
-      doc.text(`   Posizione: ${product.location}`, 25, y + 10)
+      if (product.department) {
+        doc.text(`   Reparto: ${product.department}`, 25, y + 10)
+      }
+      if (product.conservationPoint) {
+        doc.text(`   Punto di Conservazione: ${product.conservationPoint}`, 25, y + 15)
+      }
       doc.text(`   Scadenza: ${new Date(product.expiryDate).toLocaleDateString('it-IT')} (${expiryStatus.label})`, 25, y + 15)
       
       if (product.allergens && product.allergens.length > 0) {
@@ -622,7 +783,7 @@ const Inventory = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
               <Label htmlFor="search">Cerca</Label>
               <div className="relative">
@@ -631,7 +792,7 @@ const Inventory = () => {
                   id="search"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Nome prodotto, posizione..."
+                  placeholder="Nome prodotto, reparto, punto di conservazione..."
                   className="pl-10"
                 />
               </div>
@@ -713,7 +874,67 @@ const Inventory = () => {
               />
             </div>
             
+            <div>
+              <Label htmlFor="department">Reparto</Label>
+              <select
+                id="department"
+                value={filterDepartment}
+                onChange={(e) => setFilterDepartment(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Tutti i reparti</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.name}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <Label htmlFor="conservationPoint">Punto di Conservazione</Label>
+              <select
+                id="conservationPoint"
+                value={filterConservationPoint}
+                onChange={(e) => setFilterConservationPoint(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Tutti i punti</option>
+                {conservationPoints.map(point => (
+                  <option key={point.id} value={point.name}>{point.name}</option>
+                ))}
+              </select>
+            </div>
+            
             <div className="col-span-full">
+              <div className="flex flex-wrap gap-4 items-center mb-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="groupByDepartment"
+                    checked={groupByDepartment}
+                    onChange={(e) => {
+                      setGroupByDepartment(e.target.checked)
+                      if (e.target.checked) setGroupByConservationPoint(false)
+                    }}
+                    className="rounded"
+                  />
+                  <Label htmlFor="groupByDepartment" className="text-sm">Raggruppa per Reparto</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="groupByConservationPoint"
+                    checked={groupByConservationPoint}
+                    onChange={(e) => {
+                      setGroupByConservationPoint(e.target.checked)
+                      if (e.target.checked) setGroupByDepartment(false)
+                    }}
+                    className="rounded"
+                  />
+                  <Label htmlFor="groupByConservationPoint" className="text-sm">Raggruppa per Punto di Conservazione</Label>
+                </div>
+              </div>
+              
               <Button 
                 onClick={() => {
                   setSearchTerm('')
@@ -723,6 +944,10 @@ const Inventory = () => {
                   setFilterLot('')
                   setFilterSupplier('')
                   setFilterOrderId('')
+                  setFilterDepartment('')
+                  setFilterConservationPoint('')
+                  setGroupByDepartment(false)
+                  setGroupByConservationPoint(false)
                 }}
                 variant="outline"
                 className="w-full"
@@ -733,6 +958,60 @@ const Inventory = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Alert prodotti senza punto di conservazione */}
+      {showMissingConservationAlert && productsWithoutConservation.length > 0 && (
+        <Card className="border-red-200 bg-red-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-red-800">
+              <AlertTriangle className="h-5 w-5" />
+              Attenzione: {productsWithoutConservation.length} prodotti senza punto di conservazione!
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-red-700 mb-4">
+              I seguenti prodotti devono essere posizionati in un adeguato punto di conservazione:
+            </p>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {productsWithoutConservation.map(product => {
+                const category = CATEGORIES.find(c => c.id === product.category)
+                return (
+                  <div key={product.id} className="flex items-center justify-between p-2 bg-white rounded border border-red-200">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <span className="font-medium">{product.name}</span>
+                      <span className="text-sm text-gray-600">
+                        ({category?.name || 'Categoria sconosciuta'})
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        handleEdit(product)
+                        setShowMissingConservationAlert(false)
+                      }}
+                      size="sm"
+                      variant="outline"
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Edit className="h-4 w-4 mr-1" />
+                      Assegna
+                    </Button>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex gap-2 mt-4">
+              <Button
+                onClick={() => setShowMissingConservationAlert(false)}
+                variant="outline"
+                size="sm"
+              >
+                Chiudi
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 1. Gestione Inventario */}
         <Card>
@@ -777,12 +1056,20 @@ const Inventory = () => {
               </div>
             ) : (
               <div className="space-y-3">
-              {filteredProducts.map(product => {
-                const category = CATEGORIES.find(c => c.id === product.category)
-                const expiryStatus = getExpiryStatus(product.expiryDate)
-                
-                return (
-                  <div key={product.id} className="border rounded-lg p-4">
+              {Object.entries(groupProducts(filteredProducts)).map(([groupName, groupProducts]) => (
+                <div key={groupName}>
+                  {(groupByDepartment || groupByConservationPoint) && (
+                    <h3 className="text-lg font-semibold mb-3 text-gray-800 bg-gray-100 px-3 py-2 rounded-md">
+                      {groupName} ({groupProducts.length} prodotti)
+                    </h3>
+                  )}
+                  <div className="space-y-3">
+                    {groupProducts.map(product => {
+                      const category = CATEGORIES.find(c => c.id === product.category)
+                      const expiryStatus = getExpiryStatus(product.expiryDate)
+                      
+                      return (
+                        <div key={product.id} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -795,7 +1082,8 @@ const Inventory = () => {
                           </span>
                           </div>
                         <div className="text-sm text-gray-600 space-y-1">
-                          <p>📍 {product.location}</p>
+                          <p>🏢 Reparto: {product.department || 'Non assegnato'}</p>
+                          <p>📍 Punto: {product.conservationPoint || 'Non assegnato'}</p>
                           <p>📅 Scadenza: {new Date(product.expiryDate).toLocaleDateString('it-IT')}</p>
                           {product.allergens && product.allergens.length > 0 && (
                             <p>⚠️ Allergeni: {product.allergens.map(a => ALLERGENS.find(al => al.id === a)?.name).join(', ')}</p>
@@ -823,7 +1111,10 @@ const Inventory = () => {
                   </div>
                   </div>
                 )
-              })}
+                    })}
+                  </div>
+                </div>
+              ))}
               </div>
             )}
           </CardContent>
@@ -833,7 +1124,14 @@ const Inventory = () => {
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>Prodotti nell'inventario ({filteredProducts.length})</CardTitle>
+            <CardTitle>
+              Prodotti nell'inventario ({filteredProducts.length})
+              {(groupByDepartment || groupByConservationPoint) && (
+                <span className="text-sm font-normal text-gray-600 ml-2">
+                  - Raggruppati per {groupByDepartment ? 'Reparto' : 'Punto di Conservazione'}
+                </span>
+              )}
+            </CardTitle>
             <div className="flex gap-2">
               {products.length > 0 && (
                 <>
@@ -869,12 +1167,20 @@ const Inventory = () => {
                   </div>
                 ) : (
             <div className="space-y-3">
-              {filteredProducts.map(product => {
-                const category = CATEGORIES.find(c => c.id === product.category)
-                const expiryStatus = getExpiryStatus(product.expiryDate)
-                
-                    return (
-                  <div key={product.id} className="border rounded-lg p-4">
+              {Object.entries(groupProducts(filteredProducts)).map(([groupName, groupProducts]) => (
+                <div key={groupName}>
+                  {(groupByDepartment || groupByConservationPoint) && (
+                    <h3 className="text-lg font-semibold mb-3 text-gray-800 bg-gray-100 px-3 py-2 rounded-md">
+                      {groupName} ({groupProducts.length} prodotti)
+                    </h3>
+                  )}
+                  <div className="space-y-3">
+                    {groupProducts.map(product => {
+                      const category = CATEGORIES.find(c => c.id === product.category)
+                      const expiryStatus = getExpiryStatus(product.expiryDate)
+                      
+                      return (
+                        <div key={product.id} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -887,7 +1193,8 @@ const Inventory = () => {
                           </span>
                         </div>
                         <div className="text-sm text-gray-600 space-y-1">
-                          <p>📍 {product.location}</p>
+                          <p>🏢 Reparto: {product.department || 'Non assegnato'}</p>
+                          <p>📍 Punto: {product.conservationPoint || 'Non assegnato'}</p>
                           <p>📅 Scadenza: {new Date(product.expiryDate).toLocaleDateString('it-IT')}</p>
                           {product.allergens && product.allergens.length > 0 && (
                             <p>⚠️ Allergeni: {product.allergens.map(a => ALLERGENS.find(al => al.id === a)?.name).join(', ')}</p>
@@ -915,9 +1222,80 @@ const Inventory = () => {
                         </div>
                       </div>
                     )
-              })}
-              </div>
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Gestione Reparti e Punti di Conservazione */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Gestione Reparti e Punti di Conservazione
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Gestione Reparti */}
+            <div>
+              <h3 className="font-semibold mb-3">Reparti Attivi ({departments.length})</h3>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {departments.map(dept => {
+                  const productsInDept = products.filter(p => p.department === dept.name).length
+                  return (
+                    <div key={dept.id} className="flex items-center justify-between p-2 border rounded">
+                      <div>
+                        <span className="font-medium">{dept.name}</span>
+                        <span className="text-sm text-gray-600 ml-2">({productsInDept} prodotti)</span>
+                      </div>
+                      <Button
+                        onClick={() => handleDepartmentDeletion(dept.name)}
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Gestione Punti di Conservazione */}
+            <div>
+              <h3 className="font-semibold mb-3">Punti di Conservazione ({conservationPoints.length})</h3>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {conservationPoints.map(point => {
+                  const productsInPoint = products.filter(p => p.conservationPoint === point.name).length
+                  return (
+                    <div key={point.id} className="flex items-center justify-between p-2 border rounded">
+                      <div>
+                        <span className="font-medium">{point.name}</span>
+                        <span className="text-sm text-gray-600 ml-2">({productsInPoint} prodotti)</span>
+                        <div className="text-xs text-gray-500">
+                          {point.location} • {point.targetTemp}°C
+                        </div>
+                      </div>
+                      <Button
+                        onClick={() => handleConservationPointDeletion(point.name)}
+                        size="sm"
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -1044,7 +1422,12 @@ const Inventory = () => {
                         />
                         <div className="flex-1">
                           <div className="font-medium text-sm">{product.name || 'Prodotto non disponibile'}</div>
-                          <div className="text-xs text-gray-500">{product.location}</div>
+                          <div className="text-xs text-gray-500">
+                            {product.department && product.conservationPoint 
+                              ? `${product.department} • ${product.conservationPoint}`
+                              : product.department || product.conservationPoint || 'Non assegnato'
+                            }
+                          </div>
                         </div>
                       </div>
                     )
@@ -1090,7 +1473,12 @@ const Inventory = () => {
                         />
                         <div className="flex-1">
                           <div className="font-medium text-sm">{product.name || 'Prodotto non disponibile'}</div>
-                          <div className="text-xs text-gray-500">{product.location}</div>
+                          <div className="text-xs text-gray-500">
+                            {product.department && product.conservationPoint 
+                              ? `${product.department} • ${product.conservationPoint}`
+                              : product.department || product.conservationPoint || 'Non assegnato'
+                            }
+                          </div>
                         </div>
                       </div>
                     )
@@ -1209,14 +1597,35 @@ const Inventory = () => {
                         </div>
                         
                 <div>
-                  <Label htmlFor="location">Posizione *</Label>
-                  <Input
-                    id="location"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    placeholder="Es. Frigorifero A, Scaffale 2"
+                  <Label htmlFor="department">Reparto *</Label>
+                  <select
+                    id="department"
+                    value={formData.department}
+                    onChange={(e) => handleInputChange('department', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                  />
+                  >
+                    <option value="">Seleziona reparto</option>
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.name}>{dept.name}</option>
+                    ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <Label htmlFor="conservationPoint">Punto di Conservazione *</Label>
+                  <select
+                    id="conservationPoint"
+                    value={formData.conservationPoint}
+                    onChange={(e) => handleInputChange('conservationPoint', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  >
+                    <option value="">Seleziona punto di conservazione</option>
+                    {conservationPoints.map(point => (
+                      <option key={point.id} value={point.name}>{point.name}</option>
+                    ))}
+                  </select>
                 </div>
                 
                 <div>
@@ -1285,7 +1694,7 @@ const Inventory = () => {
                   type="text"
                   value={bulkSearchTerm}
                   onChange={(e) => setBulkSearchTerm(e.target.value)}
-                  placeholder="Cerca prodotti..."
+                  placeholder="Cerca prodotti, reparti, punti..."
                   className="px-3 py-2 border rounded-md"
                 />
               
@@ -1330,7 +1739,8 @@ const Inventory = () => {
                 {filteredProducts.filter(product => {
                   const matchesSearch = !bulkSearchTerm || 
                     product.name.toLowerCase().includes(bulkSearchTerm.toLowerCase()) ||
-                    product.location?.toLowerCase().includes(bulkSearchTerm.toLowerCase()) ||
+                    product.department?.toLowerCase().includes(bulkSearchTerm.toLowerCase()) ||
+                    product.conservationPoint?.toLowerCase().includes(bulkSearchTerm.toLowerCase()) ||
                     CATEGORIES.find(c => c.id === product.category)?.name.toLowerCase().includes(bulkSearchTerm.toLowerCase());
                   
                   const matchesCategory = !bulkFilterCategory || product.category === bulkFilterCategory;
@@ -1360,7 +1770,7 @@ const Inventory = () => {
                       <div className="flex-1">
                         <div className="font-medium">{product.name || 'Prodotto non disponibile'}</div>
                         <div className="text-sm text-gray-500">
-                          {category?.name} • {product.location} • Scade: {new Date(product.expiryDate).toLocaleDateString('it-IT')}
+                          {category?.name} • {product.department || 'N/A'} • {product.conservationPoint || 'N/A'} • Scade: {new Date(product.expiryDate).toLocaleDateString('it-IT')}
                       </div>
                       </div>
                       <span className={`px-2 py-1 text-xs rounded-full ${expiryStatus.color}`}>
@@ -1423,7 +1833,7 @@ const Inventory = () => {
                           <div className="flex-1">
                             <div className="font-medium">{product.name || 'Prodotto non disponibile'}</div>
                             <div className="text-sm text-gray-600">
-                              {categoryInfo?.name} • {product.location}
+                              {categoryInfo?.name} • {product.department || 'N/A'} • {product.conservationPoint || 'N/A'}
                             </div>
                           </div>
                         </div>
@@ -1508,7 +1918,7 @@ const Inventory = () => {
                       <div key={product.id} className="p-2 border rounded">
                         <div className="font-medium text-sm">{product.name}</div>
                         <div className="text-xs text-gray-600">
-                          {category?.name} • {product.location}
+                          {category?.name} • {product.department || 'N/A'} • {product.conservationPoint || 'N/A'}
                         </div>
                       </div>
                     )
