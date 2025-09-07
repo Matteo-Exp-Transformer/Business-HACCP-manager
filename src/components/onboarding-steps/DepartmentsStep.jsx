@@ -199,7 +199,7 @@ const DepartmentsStep = ({
             }`}>
               {canProceed 
                 ? '✅ Requisito soddisfatto! Puoi procedere.'
-                : '⚠️ Devi attivare almeno un reparto per continuare.'
+                : '⚠️ Devi attivare almeno 1 reparto per continuare.'
               }
             </p>
           </div>

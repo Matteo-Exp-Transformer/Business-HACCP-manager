@@ -720,8 +720,8 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
           {departments
             .slice()
             .sort((a, b) => {
-              const nameA = a.name || ''
-              const nameB = b.name || ''
+              const nameA = (a && a.name) ? String(a.name) : ''
+              const nameB = (b && b.name) ? String(b.name) : ''
               return nameA.localeCompare(nameB)
             })
             .map(department => {

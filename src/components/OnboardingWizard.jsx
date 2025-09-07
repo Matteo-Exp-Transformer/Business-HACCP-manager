@@ -208,9 +208,9 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
        // DepartmentsStep salva come { list: [...], enabledCount: number }
        const departmentsList = data.departments?.list || [];
        const enabledDepartments = departmentsList.filter(dept => dept.enabled);
-       if (enabledDepartments.length < 4) {
-         errors.departments = "Devi attivare almeno 4 reparti per procedere";
-       } else {
+      if (enabledDepartments.length < 1) {
+        errors.departments = "Devi attivare almeno 1 reparto per procedere";
+      } else {
          // Controlla solo che i reparti attivi abbiano nomi validi
          enabledDepartments.forEach((dept, index) => {
            if (!dept.name?.trim() || dept.name.trim().length < 2) {

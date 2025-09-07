@@ -105,47 +105,48 @@ const ConservationStep = ({
         };
       }
       
-      let isInRange = false;
-      let isInToleranceRange = false;
-      let categoryInfo = null;
+      let allInRange = true;
+      let allInToleranceRange = true;
+      let incompatibleCategories = [];
       
       for (const categoryId of selectedCategories) {
         const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
         if (category) {
-          categoryInfo = category;
           // Controlla se è nel range HACCP
-          if (temp >= category.minTemp && temp <= category.maxTemp) {
-            isInRange = true;
-            break;
-          }
+          const inRange = temp >= category.minTemp && temp <= category.maxTemp;
           // Controlla se è nel range di tolleranza estesa (±0.5°C)
           const categoryMin = category.minTemp - tolerance;
           const categoryMax = category.maxTemp + tolerance;
-          if (temp >= categoryMin && temp <= categoryMax) {
-            isInToleranceRange = true;
-            break;
+          const inToleranceRange = temp >= categoryMin && temp <= categoryMax;
+          
+          if (!inRange) {
+            allInRange = false;
+            if (!inToleranceRange) {
+              allInToleranceRange = false;
+              incompatibleCategories.push(category.name);
+            }
           }
         }
       }
       
-      if (isInRange) {
+      if (allInRange) {
         return { 
           compliant: true, 
-          message: '✅ Valore temperatura valido', 
+          message: '✅ Valore temperatura valido per tutte le categorie', 
           type: 'compliant',
           color: 'green'
         };
-      } else if (isInToleranceRange) {
+      } else if (allInToleranceRange) {
         return { 
           compliant: true, 
-          message: `Temperatura impostata entro i limiti accettabili (0,5°C di differenza)`, 
+          message: `Temperatura impostata entro i limiti accettabili (0,5°C di differenza) per tutte le categorie`, 
           type: 'warning',
           color: 'yellow'
         };
       } else {
         return { 
           compliant: false, 
-          message: `❌ Fuori range HACCP per ${categoryInfo?.name || 'categorie selezionate'}`, 
+          message: `❌ Fuori range HACCP per: ${incompatibleCategories.join(', ')}`, 
           type: 'error',
           color: 'red'
         };
