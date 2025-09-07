@@ -205,109 +205,7 @@ function App() {
     }
   }
 
-  // Funzione per precompilare l'onboarding con dati di test
-  const prefillOnboarding = () => {
-    const prefillData = {
-      business: {
-        companyName: 'Al Ritrovo SRL',
-        address: 'Via centotrecento 1/1b',
-        city: 'Bologna',
-        postalCode: '40128',
-        vatNumber: '001255668899101',
-        email: '000@gmail.com',
-        phone: '',
-        businessType: 'Ristorante'
-      },
-      departments: {
-        list: [
-          { id: 'cucina', name: 'Cucina', enabled: true, isCustom: false },
-          { id: 'bancone', name: 'Bancone', enabled: true, isCustom: false },
-          { id: 'sala', name: 'Sala', enabled: true, isCustom: false },
-          { id: 'magazzino', name: 'Magazzino', enabled: true, isCustom: false },
-          { id: 'magazzino-b', name: 'Magazzino B', enabled: true, isCustom: true },
-          { id: 'sala-b', name: 'Sala B', enabled: true, isCustom: true }
-        ],
-        enabledCount: 6
-      },
-      staff: {
-        staffMembers: [
-          {
-            id: 'staff-1',
-            name: 'Matteo',
-            surname: 'Cavallaro',
-            fullName: 'Matteo Cavallaro',
-            role: 'Amministratore',
-            categories: ['Amministratore', 'Banconisti'],
-            haccpExpiry: '',
-            primaryCategory: 'Amministratore'
-          }
-        ]
-      },
-      conservation: {
-        points: [
-          {
-            id: 'conservation-1',
-            name: 'Frigo A',
-            location: 'Cucina',
-            targetTemp: 2,
-            selectedCategories: ['fresh_dairy', 'fresh_produce', 'fresh_meat']
-          }
-        ]
-      },
-      tasks: {
-        tasksList: [
-          {
-            id: 'task-1',
-            name: 'Rilevamento temperatura Frigo A',
-            assignedRole: 'Amministratore',
-            assignedEmployee: 'Matteo Cavallaro',
-            frequency: 'Giornalmente',
-            isTemperatureTask: true
-          }
-        ]
-      },
-      products: {
-        productsList: [
-          {
-            id: 'product-1',
-            name: 'Acqua nato 0,5',
-            type: 'Bevande',
-            expiryDate: '2025-09-08',
-            position: 'Frigo A',
-            allergens: []
-          }
-        ]
-      }
-    }
-    
-    // Salva i dati di precompilazione nell'onboarding
-    localStorage.setItem('haccp-onboarding-new', JSON.stringify({
-      currentStep: 0,
-      completedSteps: [],
-      confirmedSteps: [],
-      formData: prefillData,
-      lastActivity: new Date().toISOString()
-    }))
-    
-    // Precompila anche i dati di accesso
-    const defaultUsers = [
-      {
-        id: 'admin-1',
-        name: 'Admin',
-        pin: '0000',
-        role: 'admin',
-        department: 'Amministrazione',
-        createdAt: new Date().toISOString(),
-        isActive: true
-      }
-    ]
-    
-    localStorage.setItem('haccp-users', JSON.stringify(defaultUsers))
-    localStorage.setItem('haccp-current-user', JSON.stringify(defaultUsers[0]))
-    
-    console.log('✅ Onboarding precompilato con i tuoi dati')
-    console.log('✅ Dati di accesso precompilati: Admin / 0000')
-  }
+
 
   // Funzione per resettare completamente l'onboarding
   const resetOnboarding = () => {
@@ -367,14 +265,13 @@ function App() {
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       window.resetApp = resetApp
-      window.prefillOnboarding = prefillOnboarding
       window.resetOnboarding = resetOnboarding
       console.log('🔄 Funzioni disponibili globalmente:')
       console.log('  - resetApp() - Reset completo app')
-      console.log('  - prefillOnboarding() - Precompila onboarding')
       console.log('  - resetOnboarding() - Reset onboarding e app')
     }
   }, [])
+
 
   // Load data from localStorage on app start
   useEffect(() => {
@@ -1276,16 +1173,6 @@ function App() {
             {/* Pulsanti Onboarding - Solo in sviluppo */}
             {process.env.NODE_ENV === 'development' && (
               <>
-                <Button
-                  onClick={prefillOnboarding}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-                  title="Precompila l'onboarding con dati di test"
-                >
-                  <Settings className="h-4 w-4" />
-                  Precompila
-                </Button>
                 
                 <Button
                   onClick={resetOnboarding}

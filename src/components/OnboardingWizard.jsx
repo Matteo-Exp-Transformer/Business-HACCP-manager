@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from './ui/Button';
+import StepNavigator from './StepNavigator';
 import { 
   ArrowRight, 
   ArrowLeft, 
@@ -532,6 +533,19 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
     localStorage.setItem('haccp-onboarding-new', JSON.stringify(progress));
   };
 
+  // Naviga a uno step specifico
+  const goToStep = (stepIndex) => {
+    console.log(`🔍 goToStep chiamato per step ${stepIndex}`);
+    
+    if (stepIndex >= 0 && stepIndex < ONBOARDING_STEPS.length) {
+      setCurrentStepWithLogging(stepIndex);
+      saveProgress();
+      console.log(`✅ Navigazione diretta completata a step ${stepIndex + 1}`);
+    } else {
+      console.log(`❌ Step ${stepIndex} non valido`);
+    }
+  };
+
   // Avanza al prossimo step con validazione al click
   const nextStep = () => {
     console.log(`🔍 nextStep chiamato`);
@@ -632,38 +646,14 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
             </div>
           </div>
           
-          {/* Step indicators */}
-          <div className="flex justify-center mt-4 space-x-2">
-            {ONBOARDING_STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-center">
-                {index > 0 && <div className="w-8 h-px bg-gray-300 mx-2"></div>}
-                <button
-                  onClick={() => {
-                    // Permetti navigazione solo agli step completati o al primo step
-                    if (completedSteps.has(step.id) || index === 0 || index === currentStep) {
-                      setCurrentStepWithLogging(index);
-                    }
-                  }}
-                  disabled={!completedSteps.has(step.id) && index !== 0 && index !== currentStep}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all duration-200 ${
-                    completedSteps.has(step.id) 
-                      ? 'bg-green-500 text-white hover:bg-green-600 cursor-pointer' 
-                      : index === currentStep 
-                      ? 'bg-blue-500 text-white cursor-pointer' 
-                      : 'bg-gray-200 text-gray-600 cursor-not-allowed opacity-50'
-                  }`}
-                  title={
-                    completedSteps.has(step.id) 
-                      ? `Vai allo step ${index + 1}: ${step.title}` 
-                      : index === 0 
-                      ? `Step ${index + 1}: ${step.title}` 
-                      : `Completa gli step precedenti per accedere a: ${step.title}`
-                  }
-                >
-                  {completedSteps.has(step.id) ? <CheckCircle className="h-4 w-4" /> : index + 1}
-                </button>
-              </div>
-            ))}
+          {/* Step Navigation */}
+          <div className="mt-4">
+            <StepNavigator
+              currentStep={currentStep}
+              completedSteps={completedSteps}
+              onStepClick={goToStep}
+              steps={ONBOARDING_STEPS}
+            />
           </div>
         </div>
 
