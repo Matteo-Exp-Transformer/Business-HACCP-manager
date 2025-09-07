@@ -32,7 +32,7 @@ const BusinessInfoStep = ({
     }
   }, [formData.business?.email]);
 
-  const canProceed = formData.business?.name && formData.business?.address && formData.business?.email && emailValid === true;
+  const canProceed = formData.business?.companyName && formData.business?.address && formData.business?.email && emailValid === true;
 
   return (
     <div className="space-y-6">
@@ -46,10 +46,10 @@ const BusinessInfoStep = ({
           <Label htmlFor="businessName">Nome Attività *</Label>
           <Input
             id="businessName"
-            value={formData.business?.name || ''}
+            value={formData.business?.companyName || ''}
             onChange={(e) => setFormData(prev => ({
               ...prev,
-              business: { ...prev.business, name: e.target.value }
+              business: { ...prev.business, companyName: e.target.value }
             }))}
             placeholder="Es. Pizzeria Bella Napoli"
             className="mt-1"

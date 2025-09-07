@@ -22,8 +22,8 @@ import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
 
-// Service Worker Registration
-if ('serviceWorker' in navigator) {
+// Service Worker Registration - Solo in produzione
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
       .then(registration => {
@@ -46,6 +46,18 @@ if ('serviceWorker' in navigator) {
         console.log('SW registration failed: ', registrationError);
       });
   });
+} else if (import.meta.env.DEV) {
+  console.log('Service Worker disabilitato in modalità sviluppo per evitare errori di fetch');
+  
+  // Disabilita il Service Worker esistente se presente
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(registrations => {
+      registrations.forEach(registration => {
+        console.log('Disabilitando Service Worker esistente:', registration.scope);
+        registration.unregister();
+      });
+    });
+  }
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

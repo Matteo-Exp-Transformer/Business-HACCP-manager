@@ -36,21 +36,37 @@ const ConservationStep = ({
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
     if (formData.conservation?.points && formData.conservation.points.length > 0) {
-      setConservationPoints(formData.conservation.points);
+      // Calcola automaticamente la compliance per ogni punto se non è già presente
+      const pointsWithCompliance = formData.conservation.points.map(point => {
+        if (!point.compliance && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) {
+          return {
+            ...point,
+            compliance: checkHACCPCompliance(point.targetTemp, point.selectedCategories)
+          };
+        }
+        return point;
+      });
+      setConservationPoints(pointsWithCompliance);
     }
   }, [formData.conservation]);
 
-  // Aggiorna automaticamente il formData quando i punti di conservazione cambiano
-  useEffect(() => {
-    const updatedFormData = {
-      ...formData,
-      conservation: {
-        points: conservationPoints,
-        count: conservationPoints.length
-      }
-    };
-    setFormData(updatedFormData);
-  }, [conservationPoints]);
+  // Aggiorna il formData solo quando necessario (rimosso per evitare loop infinito)
+  // La funzione handleAddPoint gestisce già l'aggiornamento del formData
+
+  // Funzione per aggiornare la compliance di un punto specifico
+  const updatePointCompliance = (pointId) => {
+    setConservationPoints(prevPoints => 
+      prevPoints.map(point => {
+        if (point.id === pointId && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) {
+          return {
+            ...point,
+            compliance: checkHACCPCompliance(point.targetTemp, point.selectedCategories)
+          };
+        }
+        return point;
+      })
+    );
+  };
 
   const resetForm = () => {
     setLocalFormData({
@@ -280,16 +296,36 @@ const ConservationStep = ({
       
       if (editingPoint) {
         // Modifica punto esistente
-        setConservationPoints(prev => prev.map(point => 
+        const updatedPoints = conservationPoints.map(point => 
           point.id === editingPoint ? { ...point, ...pointData } : point
-        ));
+        );
+        setConservationPoints(updatedPoints);
+        
+        // Aggiorna il formData
+        setFormData(prev => ({
+          ...prev,
+          conservation: {
+            points: updatedPoints,
+            count: updatedPoints.length
+          }
+        }));
       } else {
         // Aggiungi nuovo punto
         const newPoint = {
           id: Date.now(),
           ...pointData
         };
-        setConservationPoints(prev => [...prev, newPoint]);
+        const updatedPoints = [...conservationPoints, newPoint];
+        setConservationPoints(updatedPoints);
+        
+        // Aggiorna il formData
+        setFormData(prev => ({
+          ...prev,
+          conservation: {
+            points: updatedPoints,
+            count: updatedPoints.length
+          }
+        }));
       }
       
       resetForm();
@@ -299,7 +335,17 @@ const ConservationStep = ({
 
 
   const handleDeletePoint = (id) => {
-    setConservationPoints(prev => prev.filter(point => point.id !== id));
+    const updatedPoints = conservationPoints.filter(point => point.id !== id);
+    setConservationPoints(updatedPoints);
+    
+    // Aggiorna il formData
+    setFormData(prev => ({
+      ...prev,
+      conservation: {
+        points: updatedPoints,
+        count: updatedPoints.length
+      }
+    }));
   };
 
   const handleEditPoint = (id) => {
@@ -326,12 +372,12 @@ const ConservationStep = ({
     return compliance.compliant;
   };
 
+  // Verifica se ci sono punti non HACCP compliant per TUTTE le categorie
+  const hasNonCompliantPoints = conservationPoints.some(point => !isPointFullyCompliant(point));
+
   const canProceed = conservationPoints.length > 0 && 
     conservationPoints.every(point => point.name && point.location && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) &&
     !hasNonCompliantPoints; // Non può procedere se ci sono punti non compliant
-
-  // Verifica se ci sono punti non HACCP compliant per TUTTE le categorie
-  const hasNonCompliantPoints = conservationPoints.some(point => !isPointFullyCompliant(point));
 
   // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
@@ -380,7 +426,7 @@ const ConservationStep = ({
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-4 mb-2">
-                      <h5 className="font-medium">{point.name}</h5>
+                      <h5 className="font-medium">{point.name || 'Nome non disponibile'}</h5>
                       <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
                         {point.location}
                       </span>
@@ -394,13 +440,13 @@ const ConservationStep = ({
                        <div>
                          <span className="text-gray-600">HACCP:</span>
                          <div className={`flex items-center gap-1 ${
-                           point.compliance.type === 'compliant' ? 'text-green-600' :
-                           point.compliance.type === 'warning' ? 'text-yellow-600' :
+                           point.compliance?.type === 'compliant' ? 'text-green-600' :
+                           point.compliance?.type === 'warning' ? 'text-yellow-600' :
                            'text-red-600'
                          }`}>
-                           {point.compliance.type === 'compliant' ? '✅' : 
-                            point.compliance.type === 'warning' ? '⚠️' : '❌'}
-                           <span className="text-xs">{point.compliance.message}</span>
+                           {point.compliance?.type === 'compliant' ? '✅' : 
+                            point.compliance?.type === 'warning' ? '⚠️' : '❌'}
+                           <span className="text-xs">{point.compliance?.message || 'Non validato'}</span>
                          </div>
                        </div>
                      </div>
@@ -414,7 +460,7 @@ const ConservationStep = ({
                              const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
                              return category ? (
                                <span key={categoryId} className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                                 {category.name}
+                                 {category.name || 'Categoria non disponibile'}
                                </span>
                              ) : null;
                            })}

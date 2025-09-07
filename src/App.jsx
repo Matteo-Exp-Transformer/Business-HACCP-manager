@@ -125,11 +125,59 @@ function App() {
   // Carica i dati dell'applicazione per validazione HACCP
   const loadAppData = () => {
     const users = JSON.parse(localStorage.getItem('haccp-users') || '[]')
-    const departments = JSON.parse(localStorage.getItem('haccp-departments') || '[]')
+    let departments = []
     const refrigerators = JSON.parse(localStorage.getItem('haccp-refrigerators') || '[]')
     const staff = JSON.parse(localStorage.getItem('haccp-staff') || '[]')
     const cleaning = JSON.parse(localStorage.getItem('haccp-cleaning') || '[]')
     const inventory = JSON.parse(localStorage.getItem('haccp-products') || '[]')
+    
+    // Carica departments con gestione errori
+    try {
+      departments = JSON.parse(localStorage.getItem('haccp-departments') || '[]')
+    } catch (error) {
+      console.warn('Errore nel parsing departments:', error)
+      departments = []
+    }
+    
+    // Controlla se i reparti sono corrotti (contengono ruoli invece di nomi reparti)
+    const corruptedDepartments = departments.some(dept => 
+      dept && dept.name && (
+        dept.name === 'Amministratori' || 
+        dept.name === 'Responsabili' || 
+        dept.name === 'Dipendenti' || 
+        dept.name === 'Collaboratore Occasionale' ||
+        /^\d+$/.test(dept.name) || // Nomi numerici
+        dept.name.length < 3 // Nomi troppo corti
+      )
+    )
+    
+    // Se i reparti sono corrotti o non ci sono reparti, carica dall'onboarding
+    if (corruptedDepartments || departments.length === 0) {
+      console.log('🧹 Rilevati reparti corrotti, ricaricamento dall\'onboarding...')
+      const onboardingData = localStorage.getItem('haccp-onboarding')
+      if (onboardingData && typeof onboardingData === 'string') {
+        try {
+          const onboarding = JSON.parse(onboardingData)
+          if (onboarding.departments?.list) {
+            departments = onboarding.departments.list
+              .filter(dept => dept && dept.enabled)
+              .map(dept => ({
+                id: dept.id || Date.now() + Math.random(),
+                name: dept.name || 'Reparto non disponibile',
+                enabled: true,
+                isCustom: dept.isCustom || false,
+                createdAt: new Date().toISOString()
+              }))
+            // Salva i reparti corretti
+            setDepartments(departments)
+            localStorage.setItem('haccp-departments', JSON.stringify(departments))
+            console.log('✅ Reparti corretti caricati dall\'onboarding:', departments)
+          }
+        } catch (error) {
+          console.warn('Errore nel caricamento reparti dall\'onboarding:', error)
+        }
+      }
+    }
     
     setAppData({
       users,
@@ -157,11 +205,174 @@ function App() {
     }
   }
 
-  // Rendi la funzione disponibile globalmente per la console (solo in sviluppo)
+  // Funzione per precompilare l'onboarding con dati di test
+  const prefillOnboarding = () => {
+    const prefillData = {
+      business: {
+        companyName: 'Al Ritrovo SRL',
+        address: 'Via centotrecento 1/1b',
+        city: 'Bologna',
+        postalCode: '40128',
+        vatNumber: '001255668899101',
+        email: '000@gmail.com',
+        phone: '',
+        businessType: 'Ristorante'
+      },
+      departments: {
+        list: [
+          { id: 'cucina', name: 'Cucina', enabled: true, isCustom: false },
+          { id: 'bancone', name: 'Bancone', enabled: true, isCustom: false },
+          { id: 'sala', name: 'Sala', enabled: true, isCustom: false },
+          { id: 'magazzino', name: 'Magazzino', enabled: true, isCustom: false },
+          { id: 'magazzino-b', name: 'Magazzino B', enabled: true, isCustom: true },
+          { id: 'sala-b', name: 'Sala B', enabled: true, isCustom: true }
+        ],
+        enabledCount: 6
+      },
+      staff: {
+        staffMembers: [
+          {
+            id: 'staff-1',
+            name: 'Matteo',
+            surname: 'Cavallaro',
+            fullName: 'Matteo Cavallaro',
+            role: 'Amministratore',
+            categories: ['Amministratore', 'Banconisti'],
+            haccpExpiry: '',
+            primaryCategory: 'Amministratore'
+          }
+        ]
+      },
+      conservation: {
+        points: [
+          {
+            id: 'conservation-1',
+            name: 'Frigo A',
+            location: 'Cucina',
+            targetTemp: 2,
+            selectedCategories: ['fresh_dairy', 'fresh_produce', 'fresh_meat']
+          }
+        ]
+      },
+      tasks: {
+        tasksList: [
+          {
+            id: 'task-1',
+            name: 'Rilevamento temperatura Frigo A',
+            assignedRole: 'Amministratore',
+            assignedEmployee: 'Matteo Cavallaro',
+            frequency: 'Giornalmente',
+            isTemperatureTask: true
+          }
+        ]
+      },
+      products: {
+        productsList: [
+          {
+            id: 'product-1',
+            name: 'Acqua nato 0,5',
+            type: 'Bevande',
+            expiryDate: '2025-09-08',
+            position: 'Frigo A',
+            allergens: []
+          }
+        ]
+      }
+    }
+    
+    // Salva i dati di precompilazione nell'onboarding
+    localStorage.setItem('haccp-onboarding-new', JSON.stringify({
+      currentStep: 0,
+      completedSteps: [],
+      confirmedSteps: [],
+      formData: prefillData,
+      lastActivity: new Date().toISOString()
+    }))
+    
+    // Precompila anche i dati di accesso
+    const defaultUsers = [
+      {
+        id: 'admin-1',
+        name: 'Admin',
+        pin: '0000',
+        role: 'admin',
+        department: 'Amministrazione',
+        createdAt: new Date().toISOString(),
+        isActive: true
+      }
+    ]
+    
+    localStorage.setItem('haccp-users', JSON.stringify(defaultUsers))
+    localStorage.setItem('haccp-current-user', JSON.stringify(defaultUsers[0]))
+    
+    console.log('✅ Onboarding precompilato con i tuoi dati')
+    console.log('✅ Dati di accesso precompilati: Admin / 0000')
+  }
+
+  // Funzione per resettare completamente l'onboarding
+  const resetOnboarding = () => {
+    if (window.confirm('⚠️ ATTENZIONE: Questo cancellerà TUTTI i dati dell\'onboarding e dell\'app!\n\nSei sicuro di voler procedere?')) {
+      // Pulisce tutti i dati dell'onboarding
+      localStorage.removeItem('haccp-onboarding')
+      localStorage.removeItem('haccp-onboarding-new')
+      
+      // Pulisce tutti i dati dell'app
+      localStorage.removeItem('haccp-departments')
+      localStorage.removeItem('haccp-staff')
+      localStorage.removeItem('haccp-refrigerators')
+      localStorage.removeItem('haccp-cleaning')
+      localStorage.removeItem('haccp-products')
+      localStorage.removeItem('haccp-users')
+      localStorage.removeItem('haccp-temperatures')
+      localStorage.removeItem('haccp-product-labels')
+      
+      // Reset degli stati dell'app
+      setDepartments([])
+      setStaff([])
+      setRefrigerators([])
+      setCleaning([])
+      setProducts([])
+      setUsers([])
+      setTemperatures([])
+      setProductLabels([])
+      setOnboardingCompleted(false)
+      
+      console.log('🧹 Onboarding e app completamente resettati')
+      
+      // Ricrea i dati di accesso predefiniti
+      const defaultUsers = [
+        {
+          id: 'admin-1',
+          name: 'Admin',
+          pin: '0000',
+          role: 'admin',
+          department: 'Amministrazione',
+          createdAt: new Date().toISOString(),
+          isActive: true
+        }
+      ]
+      
+      localStorage.setItem('haccp-users', JSON.stringify(defaultUsers))
+      localStorage.setItem('haccp-current-user', JSON.stringify(defaultUsers[0]))
+      
+      console.log('✅ Dati di accesso ricreati: Admin / 0000')
+      
+      // Ricarica la pagina per applicare le modifiche
+      window.location.reload()
+    }
+  }
+
+
+  // Rendi le funzioni disponibili globalmente per la console (solo in sviluppo)
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       window.resetApp = resetApp
-      console.log('🔄 Funzione resetApp disponibile globalmente. Usa: resetApp()')
+      window.prefillOnboarding = prefillOnboarding
+      window.resetOnboarding = resetOnboarding
+      console.log('🔄 Funzioni disponibili globalmente:')
+      console.log('  - resetApp() - Reset completo app')
+      console.log('  - prefillOnboarding() - Precompila onboarding')
+      console.log('  - resetOnboarding() - Reset onboarding e app')
     }
   }, [])
 
@@ -765,12 +976,16 @@ function App() {
     }
     
     if (onboardingData.departments?.list) {
-      // Migra dipartimenti
-      const departments = onboardingData.departments.list.map(dept => ({
-        id: Date.now() + Math.random(),
-        name: dept,
-        createdAt: new Date().toISOString()
-      }))
+      // Migra dipartimenti - filtra solo quelli attivati durante l'onboarding
+      const departments = onboardingData.departments.list
+        .filter(dept => dept && dept.enabled) // Solo reparti attivati
+        .map(dept => ({
+          id: dept.id || Date.now() + Math.random(),
+          name: dept.name || 'Reparto non disponibile',
+          enabled: true,
+          isCustom: dept.isCustom || false,
+          createdAt: new Date().toISOString()
+        }))
       setDepartments(departments)
       localStorage.setItem('haccp-departments', JSON.stringify(departments))
     }
@@ -1045,6 +1260,45 @@ function App() {
                 Reset App
               </Button>
             )}
+            
+            {/* Pulsante Riapri Onboarding - Sempre visibile */}
+            <Button
+              onClick={() => setShowOnboarding(true)}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+              title="Riapri l'onboarding"
+            >
+              <Users className="h-4 w-4" />
+              Riapri Onboarding
+            </Button>
+            
+            {/* Pulsanti Onboarding - Solo in sviluppo */}
+            {process.env.NODE_ENV === 'development' && (
+              <>
+                <Button
+                  onClick={prefillOnboarding}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                  title="Precompila l'onboarding con dati di test"
+                >
+                  <Settings className="h-4 w-4" />
+                  Precompila
+                </Button>
+                
+                <Button
+                  onClick={resetOnboarding}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                  title="Reset completo onboarding e app"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset Onboarding
+                </Button>
+              </>
+            )}
             <Button
               onClick={exportData}
               variant="outline"
@@ -1292,7 +1546,7 @@ function App() {
                   setUsers={setUsers}
                   currentUser={currentUser}
                   isAdmin={isAdmin()}
-                  departments={departments}
+                  departments={onboardingCompleted ? departments : []}
                   setDepartments={(newDepartments) => {
                     setDepartments(newDepartments)
                     trackDataChange('departments', newDepartments)

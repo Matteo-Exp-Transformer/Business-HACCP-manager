@@ -270,7 +270,7 @@ const StaffStep = ({
                   <div className="flex-1">
                     <div className="flex items-center gap-4">
                       <div>
-                        <p className="font-medium">{member.fullName}</p>
+                        <p className="font-medium">{member.fullName || 'Nome non disponibile'}</p>
                         <p className="text-sm text-gray-600">{member.role}</p>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {(member.categories && member.categories.length > 0 ? member.categories : [member.category || 'Non assegnato']).map((category, index) => (

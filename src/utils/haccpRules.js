@@ -156,7 +156,7 @@ export const CONSERVATION_POINT_RULES = {
   categories: [
     {
       id: 'fresh_dairy',
-      name: 'Latticini Freschi',
+      name: 'Latticini e Formaggi',
       minTemp: 2,
       maxTemp: 4,
       description: 'Latte, formaggi freschi, yogurt',

@@ -856,7 +856,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                   <div className="col-span-3 flex items-center">
                     <div>
                       <div className="font-medium flex items-center gap-2">
-                        {member.name}
+                        {member.name || 'Nome non disponibile'}
                         {member.isRegisteredUser && (
                           <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
                             Utente

@@ -65,6 +65,18 @@ function Login({ isOpen, onClose, onLogin, users, onAddUser }) {
     }
   }, [])
 
+  // Precompila automaticamente i campi se c'è un utente Admin disponibile
+  useEffect(() => {
+    if (users.length > 0 && !selectedUser) {
+      const adminUser = users.find(u => u.name === 'Admin' && u.pin === '0000')
+      if (adminUser) {
+        setSelectedUser(adminUser.id)
+        setPin('0000')
+        console.log('✅ Login precompilato: Admin / 0000')
+      }
+    }
+  }, [users, selectedUser])
+
   const handleLogin = () => {
     if (!selectedUser || !pin) {
       setError('Seleziona utente e inserisci PIN')

@@ -786,7 +786,7 @@ const Inventory = () => {
                     <div className="flex justify-between items-start">
                     <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-medium">{product.name}</h3>
+                          <h3 className="font-medium">{product.name || 'Prodotto non disponibile'}</h3>
                           <span className={`px-2 py-1 text-xs rounded-full ${category?.color}`}>
                             {category?.name}
                             </span>
@@ -878,7 +878,7 @@ const Inventory = () => {
                     <div className="flex justify-between items-start">
                         <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-medium">{product.name}</h3>
+                          <h3 className="font-medium">{product.name || 'Prodotto non disponibile'}</h3>
                           <span className={`px-2 py-1 text-xs rounded-full ${category?.color}`}>
                             {category?.name}
                           </span>
@@ -972,7 +972,7 @@ const Inventory = () => {
                     >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
-                          <div className="font-medium text-sm text-green-900">{product.name}</div>
+                          <div className="font-medium text-sm text-green-900">{product.name || 'Prodotto non disponibile'}</div>
                           <div className="text-xs text-green-700 mt-1">
                             {refrigerators.length > 0 
                               ? getAppropriateRefrigerator(product.category) 
@@ -1043,7 +1043,7 @@ const Inventory = () => {
                           className="mr-3 w-4 h-4"
                         />
                         <div className="flex-1">
-                          <div className="font-medium text-sm">{product.name}</div>
+                          <div className="font-medium text-sm">{product.name || 'Prodotto non disponibile'}</div>
                           <div className="text-xs text-gray-500">{product.location}</div>
                         </div>
                       </div>
@@ -1089,7 +1089,7 @@ const Inventory = () => {
                           className="mr-3 w-4 h-4"
                         />
                         <div className="flex-1">
-                          <div className="font-medium text-sm">{product.name}</div>
+                          <div className="font-medium text-sm">{product.name || 'Prodotto non disponibile'}</div>
                           <div className="text-xs text-gray-500">{product.location}</div>
                         </div>
                       </div>
@@ -1358,7 +1358,7 @@ const Inventory = () => {
                         className="mr-3 w-4 h-4"
                       />
                       <div className="flex-1">
-                        <div className="font-medium">{product.name}</div>
+                        <div className="font-medium">{product.name || 'Prodotto non disponibile'}</div>
                         <div className="text-sm text-gray-500">
                           {category?.name} • {product.location} • Scade: {new Date(product.expiryDate).toLocaleDateString('it-IT')}
                       </div>
@@ -1421,7 +1421,7 @@ const Inventory = () => {
                       return (
                         <div key={product.id} className="flex items-center p-3 border rounded bg-gray-50">
                           <div className="flex-1">
-                            <div className="font-medium">{product.name}</div>
+                            <div className="font-medium">{product.name || 'Prodotto non disponibile'}</div>
                             <div className="text-sm text-gray-600">
                               {categoryInfo?.name} • {product.location}
                             </div>

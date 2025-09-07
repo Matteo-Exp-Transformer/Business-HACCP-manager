@@ -166,7 +166,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
     const errors = {};
     
          if (stepNumber === 0) { // Business Info
-       if (!data.business?.name?.trim()) {
+       if (!data.business?.companyName?.trim()) {
          errors.businessName = "Il nome attività è obbligatorio";
        }
        if (!data.business?.address?.trim()) {
@@ -179,7 +179,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
        }
        
        // Controlla che il nome attività non sia troppo corto
-       if (data.business?.name?.trim() && data.business.name.trim().length < 3) {
+       if (data.business?.companyName?.trim() && data.business.companyName.trim().length < 3) {
          errors.businessName = "Il nome attività deve essere di almeno 3 caratteri";
        }
        
@@ -189,8 +189,8 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
        }
        
        // Controlla che il nome dell'attività sia unico (non duplicato)
-       if (data.business?.name?.trim()) {
-         const businessName = data.business.name.trim().toLowerCase();
+       if (data.business?.companyName?.trim()) {
+         const businessName = data.business.companyName.trim().toLowerCase();
          // In un sistema reale, qui si controllerebbe contro un database
          // Per ora, controlliamo solo che non sia vuoto o troppo corto
          if (businessName.length < 3) {
@@ -410,7 +410,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
     
              if (stepNumber === 5) { // Inventario Prodotti
            // InventoryStep salva come { products: [...], count: number }
-           const productsList = data.inventory?.products || [];
+           const productsList = data.products?.productsList || data.inventory?.products || [];
            if (productsList.length === 0) {
              errors.inventory = "Devi aggiungere almeno un prodotto";
            } else {
@@ -452,7 +452,9 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              } else {
                // Controlla che ogni prodotto sia assegnato a un punto di conservazione valido
                productsList.forEach((product, index) => {
-                 const position = conservationPoints.find(point => point.id === parseInt(product.position));
+                 const position = conservationPoints.find(point => 
+                   point.id === parseInt(product.position) || point.name === product.position
+                 );
                  if (!position) {
                    errors[`product_${index}_position`] = "Posizione non valida - seleziona un punto di conservazione esistente";
                  }
@@ -635,15 +637,31 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
             {ONBOARDING_STEPS.map((step, index) => (
               <div key={step.id} className="flex items-center">
                 {index > 0 && <div className="w-8 h-px bg-gray-300 mx-2"></div>}
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-                  completedSteps.has(step.id) 
-                    ? 'bg-green-500 text-white' 
-                    : index === currentStep 
-                    ? 'bg-blue-500 text-white' 
-                    : 'bg-gray-200 text-gray-600'
-                }`}>
+                <button
+                  onClick={() => {
+                    // Permetti navigazione solo agli step completati o al primo step
+                    if (completedSteps.has(step.id) || index === 0 || index === currentStep) {
+                      setCurrentStepWithLogging(index);
+                    }
+                  }}
+                  disabled={!completedSteps.has(step.id) && index !== 0 && index !== currentStep}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition-all duration-200 ${
+                    completedSteps.has(step.id) 
+                      ? 'bg-green-500 text-white hover:bg-green-600 cursor-pointer' 
+                      : index === currentStep 
+                      ? 'bg-blue-500 text-white cursor-pointer' 
+                      : 'bg-gray-200 text-gray-600 cursor-not-allowed opacity-50'
+                  }`}
+                  title={
+                    completedSteps.has(step.id) 
+                      ? `Vai allo step ${index + 1}: ${step.title}` 
+                      : index === 0 
+                      ? `Step ${index + 1}: ${step.title}` 
+                      : `Completa gli step precedenti per accedere a: ${step.title}`
+                  }
+                >
                   {completedSteps.has(step.id) ? <CheckCircle className="h-4 w-4" /> : index + 1}
-                </div>
+                </button>
               </div>
             ))}
           </div>

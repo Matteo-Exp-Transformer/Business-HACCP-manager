@@ -87,25 +87,79 @@ function Departments({ currentUser, departments, setDepartments }) {
 
   // Carica i reparti esistenti dal localStorage
   useEffect(() => {
-    const savedDepartments = localStorage.getItem('haccp-departments')
-    if (savedDepartments) {
+    // Controlla se l'onboarding è completato
+    const onboardingCompleted = localStorage.getItem('haccp-onboarding')
+    let isOnboardingComplete = false
+    
+    if (onboardingCompleted) {
       try {
-        const existingDepartments = JSON.parse(savedDepartments)
-        if (existingDepartments.length > 0) {
-          setDepartments(existingDepartments)
-        } else {
-          // Se non ci sono reparti, crea quelli standard
-          setDepartments(createStandardDepartments())
-        }
+        const onboarding = JSON.parse(onboardingCompleted)
+        isOnboardingComplete = onboarding && onboarding.completed === true
       } catch (error) {
-        console.error('Errore nel caricamento reparti:', error)
-        setDepartments(createStandardDepartments())
+        console.warn('Errore nel parsing dati onboarding:', error)
+        isOnboardingComplete = false
       }
+    }
+
+    if (isOnboardingComplete) {
+      // Onboarding completato - carica i reparti dall'onboarding
+      console.log('✅ Onboarding completato, caricamento reparti...')
+      loadDepartmentsFromOnboarding()
     } else {
-      // Se non ci sono dati salvati, crea quelli standard
-      setDepartments(createStandardDepartments())
+      // Onboarding non completato - sezione vuota
+      console.log('⏳ Onboarding in corso, sezione reparti vuota')
+      setDepartments([])
     }
   }, []) // Array vuoto per eseguire solo al mount
+
+  // Funzione per caricare i reparti dall'onboarding
+  const loadDepartmentsFromOnboarding = () => {
+    const onboardingData = localStorage.getItem('haccp-onboarding')
+    if (onboardingData) {
+      try {
+        const onboarding = JSON.parse(onboardingData)
+        if (onboarding.departments?.list) {
+          const departmentsFromOnboarding = onboarding.departments.list
+            .filter(dept => dept && dept.enabled)
+            .map(dept => ({
+              id: dept.id || Date.now() + Math.random(),
+              name: dept.name || 'Reparto non disponibile',
+              description: dept.description || '',
+              location: dept.location || '',
+              manager: dept.manager || '',
+              notes: dept.notes || '',
+              enabled: true,
+              isCustom: dept.isCustom || false,
+              createdAt: new Date().toISOString(),
+              createdBy: 'Onboarding'
+            }))
+          
+          if (departmentsFromOnboarding.length > 0) {
+            console.log('✅ Reparti caricati dall\'onboarding:', departmentsFromOnboarding)
+            setDepartments(departmentsFromOnboarding)
+            // Salva i reparti caricati dall'onboarding
+            localStorage.setItem('haccp-departments', JSON.stringify(departmentsFromOnboarding))
+            return
+          }
+        }
+      } catch (error) {
+        console.warn('Errore nel caricamento reparti dall\'onboarding:', error)
+      }
+    }
+    
+    // Se non ci sono reparti dall'onboarding, crea quelli standard
+    console.log('⚠️ Nessun reparto dall\'onboarding, creando reparti standard')
+    setDepartments(createStandardDepartments())
+  }
+
+  // Funzione per pulire e ricaricare i reparti
+  const clearAndReloadDepartments = () => {
+    console.log('🧹 Pulizia reparti corrotti...')
+    // Rimuovi i dati corrotti
+    localStorage.removeItem('haccp-departments')
+    // Ricarica dall'onboarding
+    loadDepartmentsFromOnboarding()
+  }
 
 
   // Salva i reparti nel localStorage
@@ -225,6 +279,15 @@ function Departments({ currentUser, departments, setDepartments }) {
           <h2 className="text-lg font-semibold text-gray-900">
             Reparti Attivi ({departments.length})
           </h2>
+          <Button 
+            onClick={clearAndReloadDepartments}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 text-orange-600 border-orange-300 hover:bg-orange-50"
+          >
+            <AlertCircle className="h-4 w-4" />
+            Ricarica dall'Onboarding
+          </Button>
         </div>
         
         {departments.length === 0 ? (
@@ -239,14 +302,14 @@ function Departments({ currentUser, departments, setDepartments }) {
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {departments.map((department) => (
+            {departments.filter(dept => dept && dept.id && dept.name && typeof dept.name === 'string').map((department) => (
               <Card key={department.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Building2 className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="text-sm text-gray-600">{department.name}</p>
+                        <p className="text-sm text-gray-600">{department.name || 'Nome non disponibile'}</p>
                         <p className="text-lg font-bold text-gray-900">Attivo</p>
                       </div>
                     </div>

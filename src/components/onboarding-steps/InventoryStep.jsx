@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
@@ -39,24 +39,69 @@ const InventoryStep = ({
     ];
   };
 
-  // Carica dati esistenti quando il componente si monta
+  // Carica dati esistenti quando il componente si monta - SOLO UNA VOLTA
   useEffect(() => {
-    if (formData.inventory?.products && formData.inventory.products.length > 0) {
-      setProducts(formData.inventory.products);
+    let productsToLoad = [];
+    
+    if (formData.products?.productsList && formData.products.productsList.length > 0) {
+      productsToLoad = formData.products.productsList;
+    } else if (formData.inventory?.products && formData.inventory.products.length > 0) {
+      productsToLoad = formData.inventory.products;
     }
-  }, [formData.inventory]);
+    
+    if (productsToLoad.length > 0) {
+      // Calcola automaticamente la compliance per ogni prodotto se non è già presente
+      const productsWithCompliance = productsToLoad.map(product => {
+        if (!product.compliance && product.type && product.position) {
+          return {
+            ...product,
+            compliance: checkHACCPCompliance(product.type, product.position)
+          };
+        }
+        return product;
+      });
+      setProducts(productsWithCompliance);
+    }
+  }, []); // SOLO al mount, non quando formData cambia
+
 
   // Aggiorna automaticamente il formData quando i prodotti cambiano
   useEffect(() => {
-    const updatedFormData = {
-      ...formData,
-      inventory: {
-        products,
-        count: products.length
+    // Evita loop infiniti controllando se i dati sono già aggiornati
+    const currentProducts = formData.products?.productsList || [];
+    if (JSON.stringify(currentProducts) !== JSON.stringify(products)) {
+      const updatedFormData = {
+        ...formData,
+        products: {
+          productsList: products,
+          count: products.length
+        }
+      };
+      setFormData(updatedFormData);
+    }
+  }, [products, formData.products?.productsList]);
+
+  // Ricalcola la compliance quando i punti di conservazione cambiano (solo se necessario)
+  useEffect(() => {
+    if (products.length > 0 && formData.conservation?.points) {
+      const needsUpdate = products.some(product => 
+        product.type && product.position && !product.compliance
+      );
+      
+      if (needsUpdate) {
+        const productsWithUpdatedCompliance = products.map(product => {
+          if (product.type && product.position && !product.compliance) {
+            return {
+              ...product,
+              compliance: checkHACCPCompliance(product.type, product.position)
+            };
+          }
+          return product;
+        });
+        setProducts(productsWithUpdatedCompliance);
       }
-    };
-    setFormData(updatedFormData);
-  }, [products]);
+    }
+  }, [formData.conservation?.points]); // Solo quando i punti di conservazione cambiano
 
   const PRODUCT_TYPES = [
     'Latticini e Formaggi',
@@ -97,8 +142,11 @@ const InventoryStep = ({
     setEditingProduct(null);
   };
 
-  const checkHACCPCompliance = (productType, positionId) => {
-    const position = getConservationPoints().find(p => p.id === parseInt(positionId));
+  const checkHACCPCompliance = useCallback((productType, positionId) => {
+    // Gestisci sia ID numerici che nomi di posizione
+    const position = getConservationPoints().find(p => 
+      p.id === parseInt(positionId) || p.name === positionId
+    );
     if (!position) return { compliant: false, message: 'Posizione non valida' };
     
     // Regole HACCP semplificate per il test
@@ -113,7 +161,7 @@ const InventoryStep = ({
     }
     
     return { compliant: true, message: 'Posizione conforme HACCP per questo tipo di prodotto' };
-  };
+  }, [formData.conservation?.points]); // Dipende dai punti di conservazione
 
   const handleAddProduct = () => {
     if (localFormData.name && localFormData.type && localFormData.expiryDate && localFormData.position) {
@@ -241,10 +289,10 @@ const InventoryStep = ({
                       <div>
                         <span className="text-gray-600">HACCP:</span>
                         <div className={`flex items-center gap-1 ${
-                          product.compliance.compliant ? 'text-green-600' : 'text-red-600'
+                          product.compliance?.compliant ? 'text-green-600' : 'text-red-600'
                         }`}>
-                          {product.compliance.compliant ? '✅' : '⚠️'}
-                          <span className="text-xs">{product.compliance.message}</span>
+                          {product.compliance?.compliant ? '✅' : '⚠️'}
+                          <span className="text-xs">{product.compliance?.message || 'Non validato'}</span>
                         </div>
                       </div>
                     </div>

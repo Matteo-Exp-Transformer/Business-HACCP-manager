@@ -993,7 +993,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   <div key={category.id} className="p-3 bg-white border border-green-200 rounded-lg">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h4 className="font-medium text-green-800">{category.name}</h4>
+                        <h4 className="font-medium text-green-800">{category.name || 'Categoria non disponibile'}</h4>
                         <p className="text-sm text-green-700">{category.description}</p>
                         {category.temperatureRange && (
                           <p className="text-xs text-green-600 mt-1">
@@ -1076,7 +1076,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                               <div className="flex items-center gap-2">
                                 {getStatusDot(status)}
                                 <div>
-                                  <h4 className="font-medium text-sm">{refrigerator.name}</h4>
+                                  <h4 className="font-medium text-sm">{refrigerator.name || 'Nome non disponibile'}</h4>
                                   <p className={`text-xs ${
                                     status === 'green' ? 'text-green-600' :
                                     status === 'orange' ? 'text-orange-600' :
@@ -1188,7 +1188,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                               <div className="flex items-center gap-2">
                                 {getStatusDot(status)}
                                 <div>
-                                  <h4 className="font-medium text-sm">{refrigerator.name}</h4>
+                                  <h4 className="font-medium text-sm">{refrigerator.name || 'Nome non disponibile'}</h4>
                                   <p className={`text-xs ${
                                     status === 'green' ? 'text-green-600' :
                                     status === 'orange' ? 'text-orange-600' :
@@ -1300,7 +1300,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                               <div className="flex items-center gap-2">
                                 {getStatusDot(status)}
                                 <div>
-                                  <h4 className="font-medium text-sm">{refrigerator.name}</h4>
+                                  <h4 className="font-medium text-sm">{refrigerator.name || 'Nome non disponibile'}</h4>
                                   <p className={`text-xs ${
                                     status === 'green' ? 'text-green-600' :
                                     status === 'orange' ? 'text-orange-600' :
@@ -1412,7 +1412,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                               <div className="flex items-center gap-2">
                                 {getStatusDot(status)}
                                 <div>
-                                  <h4 className="font-medium text-sm">{refrigerator.name}</h4>
+                                  <h4 className="font-medium text-sm">{refrigerator.name || 'Nome non disponibile'}</h4>
                                   <p className={`text-xs ${
                                     status === 'green' ? 'text-green-600' :
                                     status === 'orange' ? 'text-orange-600' :
@@ -2048,7 +2048,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                         )
                         .map(member => (
                           <option key={member.id} value={member.name}>
-                            {member.name} - {member.role} ({member.category})
+                            {member.name || 'Nome non disponibile'} - {member.role || 'Ruolo non disponibile'} ({member.category || 'Categoria non disponibile'})
                           </option>
                         ))}
                     </select>
@@ -2374,7 +2374,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                         )
                         .map(member => (
                           <option key={member.id} value={member.name}>
-                            {member.name} - {member.role} ({member.category})
+                            {member.name || 'Nome non disponibile'} - {member.role || 'Ruolo non disponibile'} ({member.category || 'Categoria non disponibile'})
                           </option>
                         ))}
                     </select>

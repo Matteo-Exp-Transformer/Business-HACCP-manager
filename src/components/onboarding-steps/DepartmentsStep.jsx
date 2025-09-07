@@ -102,9 +102,9 @@ const DepartmentsStep = ({
       <div className="space-y-4">
         <h4 className="font-medium text-gray-900">Reparti Standard</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {departments.filter(dept => !dept.isCustom).map(dept => (
+          {departments.filter(dept => !dept.isCustom && dept && dept.id && dept.name && typeof dept.name === 'string').map(dept => (
             <div key={dept.id} className="flex items-center justify-between p-3 border rounded-lg">
-              <span className="font-medium">{dept.name}</span>
+              <span className="font-medium">{dept.name || 'Nome non disponibile'}</span>
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
@@ -147,9 +147,9 @@ const DepartmentsStep = ({
       {departments.filter(dept => dept.isCustom).length > 0 && (
         <div className="space-y-3">
           <h4 className="font-medium text-gray-900">Reparti Personalizzati</h4>
-          {departments.filter(dept => dept.isCustom).map(dept => (
+          {departments.filter(dept => dept.isCustom && dept && dept.id && dept.name && typeof dept.name === 'string').map(dept => (
             <div key={dept.id} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
-              <span className="font-medium">{dept.name}</span>
+              <span className="font-medium">{dept.name || 'Nome non disponibile'}</span>
               
               <div className="flex items-center gap-2">
                 <label className="flex items-center cursor-pointer">

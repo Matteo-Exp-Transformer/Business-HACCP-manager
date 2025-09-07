@@ -27,10 +27,40 @@ const TasksStep = ({
 
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
-    if (formData.tasks?.list && formData.tasks.list.length > 0) {
-      setTasks(formData.tasks.list);
+    console.log('🔄 TasksStep: Caricamento dati...');
+    console.log('📋 formData.tasks:', formData.tasks);
+    
+    // Controlla sia la struttura standard che quella di precompilazione
+    const tasksList = formData.tasks?.list || formData.tasks?.tasksList || [];
+    
+    if (tasksList.length > 0) {
+      console.log('✅ Caricando tasks:', tasksList);
+      setTasks(tasksList);
+    } else {
+      console.log('⚠️ Nessun task trovato in formData.tasks');
     }
   }, [formData.tasks]);
+
+  // Precompila il form quando viene aperto
+  useEffect(() => {
+    if (showAddForm) {
+      console.log('🔄 Form aperto, controllando dati disponibili...');
+      console.log('📋 formData.tasks:', formData.tasks);
+      console.log('📋 tasks locali:', tasks);
+      
+      // Se ci sono task locali, usali per precompilare
+      if (tasks.length > 0) {
+        const firstTask = tasks[0];
+        console.log('🔄 Precompilando con task locale:', firstTask);
+        setLocalFormData({
+          name: firstTask.name || '',
+          assignedRole: firstTask.assignedRole || '',
+          assignedEmployee: firstTask.assignedEmployee || '',
+          frequency: firstTask.frequency || ''
+        });
+      }
+    }
+  }, [showAddForm]); // Solo quando showAddForm cambia
 
   // Calcola i contatori per la validazione
   const conservationPointsCount = formData.conservation?.count || 0;
@@ -341,10 +371,10 @@ const TasksStep = ({
                     return member.role === localFormData.assignedRole;
                   }
                   // Altrimenti filtra per categoria (Cuochi, Banconisti, Camerieri)
-                  return member.category === localFormData.assignedRole;
+                  return member.categories?.includes(localFormData.assignedRole) || member.primaryCategory === localFormData.assignedRole;
                 }).map(member => (
-                  <option key={member.id} value={member.name}>
-                    {member.name} - {member.role} ({member.category})
+                  <option key={member.id} value={member.fullName || member.name}>
+                    {member.fullName || member.name} - {member.role} ({member.primaryCategory || member.categories?.[0]})
                   </option>
                 ))}
               </select>
