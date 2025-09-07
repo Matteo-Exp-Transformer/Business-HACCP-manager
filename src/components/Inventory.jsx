@@ -1924,7 +1924,6 @@ const Inventory = () => {
                     )
                   })}
                 </div>
-              </div>
               
               <div className="flex gap-3 pt-4">
                 <Button type="submit" className="flex-1">
@@ -1938,6 +1937,7 @@ const Inventory = () => {
                   Annulla
                 </Button>
               </div>
+            </div>
             </form>
           </div>
         </div>
