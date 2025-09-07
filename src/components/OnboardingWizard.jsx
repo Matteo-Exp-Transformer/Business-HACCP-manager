@@ -329,11 +329,11 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                    }
                  });
                  
-                 // Validazione HACCP: controlla conformità temperatura e categorie
+                 // Validazione HACCP: controlla conformità temperatura e categorie per TUTTE le categorie
                  if (point.targetTemp && point.selectedCategories.length > 0) {
                    const haccpValidation = validateHACCPCompliance(point.targetTemp, point.selectedCategories);
                    if (!haccpValidation.compliant) {
-                     errors[`conservation_${index}_haccp`] = `Non conforme HACCP: ${haccpValidation.message}`;
+                     errors[`conservation_${index}_haccp`] = `Non conforme HACCP: ${haccpValidation.message}. La temperatura deve essere compatibile con TUTTE le categorie selezionate.`;
                    }
                  }
                }

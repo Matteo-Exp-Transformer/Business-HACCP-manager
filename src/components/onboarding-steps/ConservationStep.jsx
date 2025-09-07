@@ -316,13 +316,22 @@ const ConservationStep = ({
     }
   };
 
-  const canProceed = conservationPoints.length > 0 && 
-    conservationPoints.every(point => point.name && point.location && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0);
+  // Funzione per verificare se un punto è HACCP compliant per TUTTE le categorie
+  const isPointFullyCompliant = (point) => {
+    if (!point.targetTemp || !point.selectedCategories || point.selectedCategories.length === 0) {
+      return false;
+    }
+    
+    const compliance = checkHACCPCompliance(point.targetTemp, point.selectedCategories);
+    return compliance.compliant;
+  };
 
-  // Verifica se ci sono punti non HACCP compliant
-  const hasNonCompliantPoints = conservationPoints.some(point => 
-    point.compliance && point.compliance.type !== 'compliant'
-  );
+  const canProceed = conservationPoints.length > 0 && 
+    conservationPoints.every(point => point.name && point.location && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) &&
+    !hasNonCompliantPoints; // Non può procedere se ci sono punti non compliant
+
+  // Verifica se ci sono punti non HACCP compliant per TUTTE le categorie
+  const hasNonCompliantPoints = conservationPoints.some(point => !isPointFullyCompliant(point));
 
   // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
@@ -681,28 +690,28 @@ const ConservationStep = ({
 
       {/* Validazione */}
       <div className={`p-4 rounded-lg ${
-        canProceed && !hasNonCompliantPoints ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
+        canProceed ? 'bg-green-50 border border-green-200' : hasNonCompliantPoints ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'
       }`}>
         <div className="flex items-center gap-3">
           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-            canProceed && !hasNonCompliantPoints ? 'bg-green-500' : 'bg-yellow-500'
+            canProceed ? 'bg-green-500' : hasNonCompliantPoints ? 'bg-red-500' : 'bg-yellow-500'
           } text-white text-sm font-bold`}>
             {conservationPoints.length}
           </div>
           <div>
             <p className={`font-medium ${
-              canProceed && !hasNonCompliantPoints ? 'text-green-900' : 'text-yellow-900'
+              canProceed ? 'text-green-900' : hasNonCompliantPoints ? 'text-red-900' : 'text-yellow-900'
             }`}>
               Punti configurati: {conservationPoints.length}
             </p>
             <p className={`text-sm ${
-              canProceed && !hasNonCompliantPoints ? 'text-green-800' : 'text-yellow-800'
+              canProceed ? 'text-green-800' : 'text-red-800'
             }`}>
               {canProceed 
-                ? (hasNonCompliantPoints 
-                    ? '⚠️ Alcuni punti di conservazione non sono in linea con le norme HACCP. Controlla le temperature e le categorie selezionate.'
-                    : '✅ Tutti i punti hanno i campi obbligatori compilati!')
-                : '⚠️ Devi configurare almeno un punto di conservazione con tutti i campi obbligatori.'
+                ? '✅ Tutti i punti di conservazione sono HACCP compliant! Puoi procedere al prossimo step.'
+                : hasNonCompliantPoints
+                  ? '❌ Non puoi procedere: alcuni punti di conservazione non rispettano i range di temperatura per TUTTE le categorie selezionate. Correggi le temperature o rimuovi le categorie incompatibili.'
+                  : '⚠️ Devi configurare almeno un punto di conservazione con tutti i campi obbligatori.'
               }
             </p>
           </div>
