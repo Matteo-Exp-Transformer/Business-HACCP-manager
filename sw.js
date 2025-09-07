@@ -22,7 +22,14 @@ const EXCLUDE_FROM_CACHE = [
   '/api/',
   '/admin/',
   'chrome-extension://',
-  'moz-extension://'
+  'moz-extension://',
+  '@vite/',
+  '@react-refresh',
+  'vite/',
+  'node_modules/',
+  'src/',
+  '.jsx?',
+  '.tsx?'
 ]
 
 // Installazione Service Worker
@@ -81,8 +88,8 @@ self.addEventListener('fetch', event => {
     return
   }
   
-  // Ignora file esclusi
-  if (EXCLUDE_FROM_CACHE.some(exclude => event.request.url.includes(exclude))) {
+  // Ignora file esclusi (risorse di sviluppo, API, ecc.)
+  if (shouldExcludeFromSW(event.request)) {
     return
   }
   
@@ -110,7 +117,7 @@ async function cacheFirst(request) {
     }
     
     const networkResponse = await fetch(request)
-    if (networkResponse.ok) {
+    if (networkResponse && networkResponse.ok) {
       const cache = await caches.open(STATIC_CACHE)
       cache.put(request, networkResponse.clone())
       console.log('[SW] Cached new resource:', request.url)
@@ -129,7 +136,7 @@ async function cacheFirst(request) {
 async function networkFirst(request) {
   try {
     const networkResponse = await fetch(request)
-    if (networkResponse.ok) {
+    if (networkResponse && networkResponse.ok) {
       const cache = await caches.open(DYNAMIC_CACHE)
       cache.put(request, networkResponse.clone())
       console.log('[SW] Updated cache from network:', request.url)
@@ -161,7 +168,11 @@ async function staleWhileRevalidate(request) {
     return networkResponse
   }).catch(error => {
     console.log('[SW] Background fetch failed:', error)
-    return cachedResponse
+    // Restituisce una risposta valida invece di undefined
+    return cachedResponse || new Response('Resource not available', { 
+      status: 503,
+      statusText: 'Service Unavailable'
+    })
   })
   
   return cachedResponse || fetchPromise
@@ -181,6 +192,19 @@ function isApiRequest(request) {
   return url.pathname.startsWith('/api/') || 
          url.pathname.includes('firebase') ||
          url.pathname.includes('googleapis')
+}
+
+function shouldExcludeFromSW(request) {
+  const url = new URL(request.url)
+  const urlString = url.href
+  
+  // Controlla se l'URL contiene pattern da escludere
+  return EXCLUDE_FROM_CACHE.some(pattern => {
+    if (pattern.includes('://')) {
+      return urlString.includes(pattern)
+    }
+    return urlString.includes(pattern) || url.pathname.includes(pattern)
+  })
 }
 
 // Gestione messaggi dal client
