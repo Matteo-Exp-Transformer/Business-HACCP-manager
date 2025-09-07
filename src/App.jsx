@@ -1089,43 +1089,51 @@ function App() {
           setActiveTab(newTab)
           updateLastCheck(newTab)
         }}>
-          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 md:grid-cols-9' : 'grid-cols-3 md:grid-cols-8'} gap-1 mb-8`}>
-            <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
+          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-4 sm:grid-cols-6 md:grid-cols-9' : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8'} gap-1 mb-8`}>
+            <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Home">
               <BarChart3 className="h-4 w-4" />
+              <span className="sm:hidden">Home</span>
               <span className="hidden sm:inline">Home</span>
               <NotificationDot hasNotification={notifications.dashboard > 0} />
             </TabsTrigger>
-            <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
+            <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Punti di Conservazione">
               <Thermometer className="h-4 w-4" />
+              <span className="sm:hidden text-xs">Frigo</span>
               <span className="hidden sm:inline">Punti di Conservazione</span>
               <NotificationDot hasNotification={notifications.refrigerators > 0} />
             </TabsTrigger>
-            <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
+            <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Attività e Mansioni">
               <Sparkles className="h-4 w-4" />
+              <span className="sm:hidden text-xs">Attività</span>
               <span className="hidden sm:inline">Attività e Mansioni</span>
               <NotificationDot hasNotification={notifications.cleaning > 0} />
             </TabsTrigger>
-            <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
+            <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Inventario">
               <Package className="h-4 w-4" />
+              <span className="sm:hidden text-xs">Stock</span>
               <span className="hidden sm:inline">Inventario</span>
               <NotificationDot hasNotification={notifications.inventory > 0} />
             </TabsTrigger>
-            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
+            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Gestione Etichette">
               <QrCode className="h-4 w-4" />
+              <span className="sm:hidden text-xs">Etichette</span>
               <span className="hidden sm:inline">Gestione Etichette</span>
               <NotificationDot hasNotification={notifications.labels > 0} />
             </TabsTrigger>
-            <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-sm" title="IA Assistant">
               <Bot className="h-4 w-4" />
+              <span className="sm:hidden text-xs">IA</span>
               <span className="hidden sm:inline">IA Assistant</span>
             </TabsTrigger>
-            <TabsTrigger value="data-settings" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+            <TabsTrigger value="data-settings" className="flex items-center gap-1 md:gap-2 text-sm" title="Impostazioni e Dati">
               <Settings className="h-4 w-4" />
+              <span className="sm:hidden text-xs">Settings</span>
               <span className="hidden sm:inline">Impostazioni e Dati</span>
             </TabsTrigger>
             {isAdmin() && (
-              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-xs md:text-sm relative">
+              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Gestione">
                 <Users className="h-4 w-4" />
+                <span className="sm:hidden text-xs">Staff</span>
                 <span className="hidden sm:inline">Gestione</span>
                 <NotificationDot hasNotification={notifications.staff > 0} />
               </TabsTrigger>
@@ -1136,9 +1144,11 @@ function App() {
                   variant="outline" 
                   size="sm"
                   onClick={() => setActiveTab('staff')}
-                  className="flex items-center gap-1 md:gap-2 text-xs md:text-sm h-9 px-3"
+                  className="flex items-center gap-1 md:gap-2 text-sm h-9 px-3"
+                  title="Impostazioni"
                 >
                   <Settings className="h-4 w-4" />
+                  <span className="sm:hidden text-xs">Settings</span>
                   <span className="hidden sm:inline">Impostazioni</span>
                 </Button>
               )}
@@ -1146,9 +1156,11 @@ function App() {
                 variant="outline" 
                 size="sm"
                 onClick={handleLogout}
-                className="flex items-center gap-1 md:gap-2 text-xs md:text-sm h-9 px-3"
+                className="flex items-center gap-1 md:gap-2 text-sm h-9 px-3"
+                title="Esci"
               >
                 <LogOut className="h-4 w-4" />
+                <span className="sm:hidden text-xs">Exit</span>
                 <span className="hidden sm:inline">Esci</span>
               </Button>
             </div>
