@@ -541,13 +541,13 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {departments.filter(dept => dept && dept.id && dept.name).map(dept => (
+                  {departments.filter(dept => dept && dept.id && dept.name && typeof dept.name === 'string').map(dept => (
                     <div key={dept.id} className={`p-4 border rounded-lg ${getCategoryCardColor(dept.name)}`}>
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
-                          <h5 className="font-medium text-lg">{dept.name}</h5>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(dept.name)}`}>
-                            {dept.name}
+                          <h5 className="font-medium text-lg">{dept.name || 'Nome non disponibile'}</h5>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(dept.name || '')}`}>
+                            {dept.name || 'Nome non disponibile'}
                           </span>
                         </div>
                         <div className="flex gap-1">
@@ -631,7 +631,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                         required={index === 0}
                       >
                         <option value="">Seleziona un ruolo...</option>
-                        {departments.filter(dept => dept && dept.id && dept.name).map(dept => (
+                        {departments.filter(dept => dept && dept.id && dept.name && typeof dept.name === 'string').map(dept => (
                           <option key={dept.id} value={dept.name}>
                             {dept.name}
                           </option>
@@ -718,6 +718,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
       {departments.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {departments
+            .filter(dept => dept && dept.id && dept.name && typeof dept.name === 'string')
             .slice()
             .sort((a, b) => {
               const nameA = (a && a.name) ? String(a.name) : ''
@@ -745,7 +746,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div>
-                            <p className="text-sm text-gray-600">{department.name}</p>
+                            <p className="text-sm text-gray-600">{department.name || 'Nome non disponibile'}</p>
                             <p className="text-2xl font-bold text-blue-600">{count}</p>
                           </div>
                           <Users className="h-8 w-8 text-blue-500" />
@@ -766,7 +767,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                           <div className="text-center py-4 text-gray-500">
                             <Users className="h-6 w-6 mx-auto mb-2 text-gray-400" />
                             <p className="text-sm">Nessun dipendente in questa categoria</p>
-                            <p className="text-xs">Aggiungi membri selezionando "{department.name}" nel form sopra</p>
+                            <p className="text-xs">Aggiungi membri selezionando "{department.name || 'questo reparto'}" nel form sopra</p>
                           </div>
                         ) : (
                           <div className="space-y-2">
@@ -986,7 +987,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                 >
                   <option value="">-- Seleziona nuovo ruolo --</option>
                   {departments
-                    .filter(dept => dept.name !== memberToReassign.role)
+                    .filter(dept => dept && dept.id && dept.name && typeof dept.name === 'string' && dept.name !== memberToReassign.role)
                     .map(dept => (
                       <option key={dept.id} value={dept.name}>
                         {dept.name}
