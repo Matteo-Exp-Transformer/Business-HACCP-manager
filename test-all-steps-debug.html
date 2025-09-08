@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Tutti gli Step Onboarding</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .button { 
+            background: #007bff; 
+            color: white; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 10px 5px; 
+            font-size: 14px;
+        }
+        .button:hover { background: #0056b3; }
+        .button.success { background: #28a745; }
+        .button.warning { background: #ffc107; color: #000; }
+        .button.danger { background: #dc3545; }
+        .status { margin: 15px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+        .step-info { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .step-valid { border-left-color: #28a745; background: #d4edda; }
+        .step-invalid { border-left-color: #dc3545; background: #f8d7da; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Debug Tutti gli Step Onboarding</h1>
+        
+        <div class="test-section">
+            <h2>📋 Istruzioni</h2>
+            <p>1. Apri l'app HACCP su <a href="http://localhost:3001" target="_blank">localhost:3001</a></p>
+            <p>2. Clicca "Precompila" per caricare i dati</p>
+            <p>3. Vai attraverso tutti gli step e controlla la console</p>
+            <p>4. Usa i pulsanti qui sotto per analizzare i dati</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Analisi Completa Dati</h2>
+            <button class="button" onclick="analyzeAllSteps()">🔍 Analizza Tutti gli Step</button>
+            <button class="button success" onclick="createCompleteData()">✅ Crea Dati Completi</button>
+            <button class="button warning" onclick="fixStep4()">🔧 Fix Step 4 (Inventario)</button>
+            <div id="analysis-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test Step Specifici</h2>
+            <button class="button" onclick="testStep3()">🧪 Test Step 3 (Conservazione)</button>
+            <button class="button" onclick="testStep4()">🧪 Test Step 4 (Inventario)</button>
+            <button class="button" onclick="testStep5()">🧪 Test Step 5 (Attività)</button>
+            <div id="step-test-results"></div>
+        </div>
+    </div>
+
+    <script>
+        function analyzeAllSteps() {
+            const results = document.getElementById('analysis-results');
+            results.innerHTML = '<div class="info">🔍 Analizzando tutti gli step...</div>';
+            
+            try {
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                
+                if (!onboardingData) {
+                    results.innerHTML = '<div class="error">❌ Nessun dato di onboarding trovato.</div>';
+                    return;
+                }
+                
+                const progress = JSON.parse(onboardingData);
+                const formData = progress.formData || {};
+                
+                let report = '<div class="success">';
+                report += '<h3>🔍 Analisi Completa Step:</h3>';
+                
+                // Step 0: Business Info
+                const business = formData.business;
+                report += '<div class="step-info' + (business ? ' step-valid' : ' step-invalid') + '">';
+                report += '<h4>📊 Step 0: Business Info</h4>';
+                if (business) {
+                    report += `✅ Company: ${business.companyName || 'N/A'}<br>`;
+                    report += `✅ Address: ${business.address || 'N/A'}<br>`;
+                    report += `✅ VAT: ${business.vatNumber || 'N/A'}<br>`;
+                    report += `✅ Email: ${business.email || 'N/A'}<br>`;
+                    report += `✅ Phone: ${business.phone || 'N/A'}<br>`;
+                } else {
+                    report += '❌ Nessun dato business';
+                }
+                report += '</div>';
+                
+                // Step 1: Departments
+                const departments = formData.departments?.list || [];
+                report += '<div class="step-info' + (departments.length > 0 ? ' step-valid' : ' step-invalid') + '">';
+                report += '<h4>🏢 Step 1: Reparti</h4>';
+                report += `✅ Reparti totali: ${departments.length}<br>`;
+                if (departments.length > 0) {
+                    departments.forEach(dept => {
+                        report += `• ${dept.name} (${dept.enabled ? 'Attivo' : 'Disattivo'})<br>`;
+                    });
+                } else {
+                    report += '❌ Nessun reparto';
+                }
+                report += '</div>';
+                
+                // Step 2: Staff
+                const staff = formData.staff?.staffMembers || [];
+                report += '<div class="step-info' + (staff.length > 0 ? ' step-valid' : ' step-invalid') + '">';
+                report += '<h4>👥 Step 2: Staff</h4>';
+                report += `✅ Membri staff: ${staff.length}<br>`;
+                if (staff.length > 0) {
+                    staff.forEach(member => {
+                        report += `• ${member.fullName} (${member.role})<br>`;
+                    });
+                } else {
+                    report += '❌ Nessun membro staff';
+                }
+                report += '</div>';
+                
+                // Step 3: Conservation
+                const conservation = formData.conservation?.points || [];
+                report += '<div class="step-info' + (conservation.length > 0 ? ' step-valid' : ' step-invalid') + '">';
+                report += '<h4>🌡️ Step 3: Punti di Conservazione</h4>';
+                report += `✅ Punti conservazione: ${conservation.length}<br>`;
+                if (conservation.length > 0) {
+                    conservation.forEach(point => {
+                        report += `• ${point.name} (${point.location}) - ${point.targetTemp}°C<br>`;
+                    });
+                } else {
+                    report += '❌ Nessun punto di conservazione';
+                }
+                report += '</div>';
+                
+                // Step 4: Inventory
+                const products = formData.products?.productsList || [];
+                report += '<div class="step-info' + (products.length > 0 ? ' step-valid' : ' step-invalid') + '">';
+                report += '<h4>📦 Step 4: Inventario Prodotti</h4>';
+                report += `✅ Prodotti: ${products.length}<br>`;
+                if (products.length > 0) {
+                    products.forEach(product => {
+                        report += `• ${product.name} (${product.type})<br>`;
+                    });
+                } else {
+                    report += '❌ Nessun prodotto';
+                }
+                report += '</div>';
+                
+                // Step 5: Tasks
+                const tasks = formData.tasks?.list || [];
+                report += '<div class="step-info' + (tasks.length > 0 ? ' step-valid' : ' step-invalid') + '">';
+                report += '<h4>📋 Step 5: Attività</h4>';
+                report += `✅ Attività: ${tasks.length}<br>`;
+                if (tasks.length > 0) {
+                    tasks.forEach(task => {
+                        report += `• ${task.name} (${task.frequency})<br>`;
+                    });
+                } else {
+                    report += '❌ Nessuna attività';
+                }
+                report += '</div>';
+                
+                report += '</div>';
+                results.innerHTML = report;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nell'analisi: ${error.message}</div>`;
+            }
+        }
+
+        function createCompleteData() {
+            const results = document.getElementById('analysis-results');
+            results.innerHTML = '<div class="info">✅ Creando dati completi...</div>';
+            
+            try {
+                const completeData = {
+                    currentStep: 0,
+                    completedSteps: [0, 1, 2, 3, 4, 5],
+                    confirmedSteps: [0, 1, 2, 3, 4, 5],
+                    formData: {
+                        business: {
+                            companyName: 'Al Ritrovo SRL',
+                            address: 'Via centotrecento 1/1b Bologna 40128',
+                            vatNumber: '001255668899101',
+                            email: '000@gmail.com',
+                            phone: '0511234567'
+                        },
+                        departments: {
+                            list: [
+                                { id: 'cucina', name: 'Cucina', enabled: true, isCustom: false },
+                                { id: 'bancone', name: 'Bancone', enabled: true, isCustom: false },
+                                { id: 'sala', name: 'Sala', enabled: true, isCustom: false },
+                                { id: 'magazzino', name: 'Magazzino', enabled: true, isCustom: false },
+                                { id: 'magazzino-b', name: 'Magazzino B', enabled: true, isCustom: true },
+                                { id: 'sala-b', name: 'Sala B', enabled: true, isCustom: true }
+                            ],
+                            enabledCount: 6
+                        },
+                        staff: {
+                            staffMembers: [
+                                {
+                                    id: 'staff_001',
+                                    name: 'Matteo Cavallaro',
+                                    fullName: 'Matteo Cavallaro',
+                                    role: 'Amministratore',
+                                    categories: ['Amministratore'],
+                                    certification: 'HACCP Avanzato',
+                                    notes: 'Responsabile generale'
+                                }
+                            ]
+                        },
+                        conservation: {
+                            points: [
+                                {
+                                    id: 'conservation-1',
+                                    name: 'Frigo A',
+                                    location: 'Cucina',
+                                    targetTemp: 2,
+                                    selectedCategories: ['fresh_dairy', 'fresh_vegetables'],
+                                    compliance: { compliant: true, message: 'Conforme HACCP' }
+                                }
+                            ],
+                            count: 1
+                        },
+                        products: {
+                            productsList: [
+                                {
+                                    id: 'product_001',
+                                    name: 'Acqua nato 0,5L',
+                                    type: 'Bevande',
+                                    expiryDate: '2025-12-31',
+                                    position: 'Frigo A',
+                                    allergens: [],
+                                    compliance: { compliant: true, message: 'Posizione conforme HACCP' }
+                                }
+                            ],
+                            count: 1
+                        },
+                        tasks: {
+                            list: [
+                                {
+                                    id: 'task_001',
+                                    name: 'Rilevamento temperatura Frigo A',
+                                    assignedRole: 'Amministratore',
+                                    assignedEmployee: 'Matteo Cavallaro',
+                                    frequency: 'Giornalmente',
+                                    priority: 'Alta',
+                                    notes: 'Controllo temperatura giornaliero'
+                                }
+                            ],
+                            count: 1
+                        }
+                    },
+                    lastActivity: new Date().toISOString()
+                };
+                
+                localStorage.setItem('haccp-onboarding-new', JSON.stringify(completeData));
+                
+                results.innerHTML = `
+                    <div class="success">
+                        ✅ Dati completi creati con successo!<br><br>
+                        <strong>Tutti gli step sono ora precompilati:</strong><br>
+                        • Step 0: Business Info ✅<br>
+                        • Step 1: Reparti (6) ✅<br>
+                        • Step 2: Staff (1) ✅<br>
+                        • Step 3: Punti di Conservazione (1) ✅<br>
+                        • Step 4: Inventario Prodotti (1) ✅<br>
+                        • Step 5: Attività (1) ✅<br><br>
+                        <strong>Ora ricarica l'app - tutti gli step dovrebbero essere validi!</strong>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nella creazione: ${error.message}</div>`;
+            }
+        }
+
+        function fixStep4() {
+            const results = document.getElementById('analysis-results');
+            results.innerHTML = '<div class="info">🔧 Fixing step 4 (Inventario)...</div>';
+            
+            try {
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                
+                if (!onboardingData) {
+                    results.innerHTML = '<div class="error">❌ Nessun dato di onboarding trovato.</div>';
+                    return;
+                }
+                
+                const progress = JSON.parse(onboardingData);
+                
+                // Assicurati che ci sia la struttura products
+                if (!progress.formData.products) {
+                    progress.formData.products = { productsList: [], count: 0 };
+                }
+                
+                // Aggiungi un prodotto di test
+                const newProduct = {
+                    id: 'product-' + Date.now(),
+                    name: 'Acqua nato 0,5L',
+                    type: 'Bevande',
+                    expiryDate: '2025-12-31',
+                    position: 'Frigo A',
+                    allergens: [],
+                    compliance: { compliant: true, message: 'Posizione conforme HACCP' }
+                };
+                
+                progress.formData.products.productsList.push(newProduct);
+                progress.formData.products.count = progress.formData.products.productsList.length;
+                
+                // Salva i dati aggiornati
+                localStorage.setItem('haccp-onboarding-new', JSON.stringify(progress));
+                
+                results.innerHTML = `
+                    <div class="success">
+                        ✅ Step 4 (Inventario) fixato con successo!<br><br>
+                        <strong>Prodotto aggiunto:</strong><br>
+                        • Nome: ${newProduct.name}<br>
+                        • Tipo: ${newProduct.type}<br>
+                        • Posizione: ${newProduct.position}<br><br>
+                        <strong>Totale prodotti:</strong> ${progress.formData.products.count}<br><br>
+                        <strong>Ora prova a procedere al prossimo step nell'app!</strong>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nel fix: ${error.message}</div>`;
+            }
+        }
+
+        function testStep3() {
+            const results = document.getElementById('step-test-results');
+            results.innerHTML = '<div class="info">🧪 Testing step 3 (Conservazione)...</div>';
+            
+            try {
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                const progress = JSON.parse(onboardingData);
+                const conservation = progress.formData.conservation;
+                
+                let report = '<div class="info">';
+                report += '<h4>🧪 Test Step 3 (Conservazione):</h4>';
+                report += `• Punti conservazione: ${conservation?.points?.length || 0}<br>`;
+                report += `• Count: ${conservation?.count || 0}<br>`;
+                
+                if (conservation?.points?.length > 0) {
+                    report += '<strong>✅ Step 3 VALIDO</strong><br>';
+                    conservation.points.forEach(point => {
+                        report += `• ${point.name} (${point.location}) - ${point.targetTemp}°C<br>`;
+                    });
+                } else {
+                    report += '<strong>❌ Step 3 NON VALIDO - Nessun punto di conservazione</strong><br>';
+                }
+                
+                report += '</div>';
+                results.innerHTML = report;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nel test: ${error.message}</div>`;
+            }
+        }
+
+        function testStep4() {
+            const results = document.getElementById('step-test-results');
+            results.innerHTML = '<div class="info">🧪 Testing step 4 (Inventario)...</div>';
+            
+            try {
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                const progress = JSON.parse(onboardingData);
+                const products = progress.formData.products;
+                
+                let report = '<div class="info">';
+                report += '<h4>🧪 Test Step 4 (Inventario):</h4>';
+                report += `• Prodotti: ${products?.productsList?.length || 0}<br>`;
+                report += `• Count: ${products?.count || 0}<br>`;
+                
+                if (products?.productsList?.length > 0) {
+                    report += '<strong>✅ Step 4 VALIDO</strong><br>';
+                    products.productsList.forEach(product => {
+                        report += `• ${product.name} (${product.type})<br>`;
+                    });
+                } else {
+                    report += '<strong>❌ Step 4 NON VALIDO - Nessun prodotto</strong><br>';
+                }
+                
+                report += '</div>';
+                results.innerHTML = report;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nel test: ${error.message}</div>`;
+            }
+        }
+
+        function testStep5() {
+            const results = document.getElementById('step-test-results');
+            results.innerHTML = '<div class="info">🧪 Testing step 5 (Attività)...</div>';
+            
+            try {
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                const progress = JSON.parse(onboardingData);
+                const tasks = progress.formData.tasks;
+                
+                let report = '<div class="info">';
+                report += '<h4>🧪 Test Step 5 (Attività):</h4>';
+                report += `• Attività: ${tasks?.list?.length || 0}<br>`;
+                report += `• Count: ${tasks?.count || 0}<br>`;
+                
+                if (tasks?.list?.length > 0) {
+                    report += '<strong>✅ Step 5 VALIDO</strong><br>';
+                    tasks.list.forEach(task => {
+                        report += `• ${task.name} (${task.frequency})<br>`;
+                    });
+                } else {
+                    report += '<strong>❌ Step 5 NON VALIDO - Nessuna attività</strong><br>';
+                }
+                
+                report += '</div>';
+                results.innerHTML = report;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nel test: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-analisi all'avvio
+        window.onload = function() {
+            analyzeAllSteps();
+        };
+    </script>
+</body>
+</html>

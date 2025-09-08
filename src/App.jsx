@@ -154,12 +154,41 @@ function App() {
     // Se i reparti sono corrotti o non ci sono reparti, carica dall'onboarding
     if (corruptedDepartments || departments.length === 0) {
       console.log('🧹 Rilevati reparti corrotti, ricaricamento dall\'onboarding...')
-      const onboardingData = localStorage.getItem('haccp-onboarding')
-      if (onboardingData && typeof onboardingData === 'string') {
+      const onboardingData = localStorage.getItem('haccp-onboarding-new') || localStorage.getItem('haccp-onboarding')
+      console.log('🔍 Dati onboarding trovati:', typeof onboardingData, onboardingData)
+      
+      if (onboardingData) {
         try {
-          const onboarding = JSON.parse(onboardingData)
-          if (onboarding.departments?.list) {
-            departments = onboarding.departments.list
+          // Gestisci sia stringhe JSON che oggetti JavaScript
+          let onboarding
+          if (typeof onboardingData === 'string') {
+            // Se è una stringa, prova a parsarla come JSON
+            try {
+              // Controlla se è la stringa corrotta "[object Object]"
+              if (onboardingData === '[object Object]') {
+                console.warn('Rilevata stringa corrotta "[object Object]", usando oggetto vuoto')
+                onboarding = { formData: { departments: { list: [] } } }
+              } else {
+                onboarding = JSON.parse(onboardingData)
+              }
+            } catch (jsonError) {
+              // Se il parsing JSON fallisce, potrebbe essere una stringa che rappresenta un oggetto
+              console.warn('Errore parsing JSON, tentativo con eval:', jsonError)
+              try {
+                onboarding = eval('(' + onboardingData + ')')
+              } catch (evalError) {
+                console.warn('Errore anche con eval, usando oggetto vuoto:', evalError)
+                onboarding = { formData: { departments: { list: [] } } }
+              }
+            }
+          } else {
+            // Se è già un oggetto, usalo direttamente
+            onboarding = onboardingData
+          }
+          // Gestisci sia la struttura vecchia che quella nuova
+          const departmentsData = onboarding.departments?.list || onboarding.formData?.departments?.list
+          if (departmentsData) {
+            departments = departmentsData
               .filter(dept => dept && dept.enabled)
               .map(dept => ({
                 id: dept.id || Date.now() + Math.random(),
@@ -176,6 +205,55 @@ function App() {
         } catch (error) {
           console.warn('Errore nel caricamento reparti dall\'onboarding:', error)
         }
+      }
+    }
+    
+    // Carica sempre i reparti dall'onboarding se ci sono dati precompilati
+    const onboardingData = localStorage.getItem('haccp-onboarding-new')
+    if (onboardingData) {
+      try {
+        // Gestisci sia stringhe JSON che oggetti JavaScript
+        let onboarding
+        if (typeof onboardingData === 'string') {
+          // Se è una stringa, prova a parsarla come JSON
+          try {
+            onboarding = JSON.parse(onboardingData)
+          } catch (jsonError) {
+            // Se il parsing JSON fallisce, potrebbe essere una stringa che rappresenta un oggetto
+            console.warn('Errore parsing JSON, tentativo con eval:', jsonError)
+            try {
+              onboarding = eval('(' + onboardingData + ')')
+            } catch (evalError) {
+              console.warn('Errore anche con eval, usando oggetto vuoto:', evalError)
+              onboarding = { formData: { departments: { list: [] } } }
+            }
+          }
+        } else {
+          // Se è già un oggetto, usalo direttamente
+          onboarding = onboardingData
+        }
+        const departmentsData = onboarding.formData?.departments?.list
+        if (departmentsData && departmentsData.length > 0) {
+          // Carica i reparti precompilati anche se non ci sono errori
+          const precompiledDepartments = departmentsData
+            .filter(dept => dept && dept.enabled)
+            .map(dept => ({
+              id: dept.id || Date.now() + Math.random(),
+              name: dept.name || 'Reparto non disponibile',
+              enabled: true,
+              isCustom: dept.isCustom || false,
+              createdAt: new Date().toISOString()
+            }))
+          
+          // Aggiorna solo se non ci sono già reparti o se i reparti precompilati sono diversi
+          if (departments.length === 0 || JSON.stringify(departments) !== JSON.stringify(precompiledDepartments)) {
+            setDepartments(precompiledDepartments)
+            localStorage.setItem('haccp-departments', JSON.stringify(precompiledDepartments))
+            console.log('✅ Reparti precompilati caricati:', precompiledDepartments)
+          }
+        }
+      } catch (error) {
+        console.warn('Errore nel caricamento reparti precompilati:', error)
       }
     }
     
@@ -206,6 +284,136 @@ function App() {
   }
 
 
+
+  // Funzione per precompilare l'onboarding con i dati di test
+  const prefillOnboarding = () => {
+    console.log('🔄 Precompilando onboarding con dati di test...')
+    
+    // Pulisce COMPLETAMENTE tutti i dati esistenti per evitare conflitti
+    console.log('🧹 Pulizia completa localStorage...')
+    localStorage.clear()
+    sessionStorage.clear()
+    
+    // Pulisce anche i dati specifici dell'onboarding
+    localStorage.removeItem('haccp-onboarding')
+    localStorage.removeItem('haccp-onboarding-new')
+    localStorage.removeItem('haccp-departments')
+    localStorage.removeItem('haccp-staff')
+    localStorage.removeItem('haccp-refrigerators')
+    localStorage.removeItem('haccp-cleaning')
+    localStorage.removeItem('haccp-products')
+    localStorage.removeItem('haccp-temperatures')
+    localStorage.removeItem('haccp-product-labels')
+    localStorage.removeItem('haccp-users')
+    localStorage.removeItem('haccp-current-user')
+    
+    // Dati precompilati per "Al Ritrovo"
+    const prefillData = {
+      business: {
+        companyName: 'Al Ritrovo SRL',
+        address: 'Via centotrecento 1/1b Bologna 40128',
+        vatNumber: '001255668899101',
+        email: '000@gmail.com',
+        phone: '0511234567'
+      },
+      departments: {
+        list: [
+          { id: 'cucina', name: 'Cucina', description: 'Area di preparazione e cottura', location: 'Piano terra', manager: 'Matteo Cavallaro', notes: 'Reparto principale', enabled: true, createdAt: new Date().toISOString(), createdBy: 'Sistema' },
+          { id: 'bancone', name: 'Bancone', description: 'Area di servizio e preparazione', location: 'Piano terra', manager: 'Matteo Cavallaro', notes: 'Area servizio', enabled: true, createdAt: new Date().toISOString(), createdBy: 'Sistema' },
+          { id: 'sala', name: 'Sala', description: 'Area di servizio clienti', location: 'Piano terra', manager: 'Matteo Cavallaro', notes: 'Area clienti', enabled: true, createdAt: new Date().toISOString(), createdBy: 'Sistema' },
+          { id: 'magazzino', name: 'Magazzino', description: 'Area di stoccaggio e conservazione', location: 'Seminterrato', manager: 'Matteo Cavallaro', notes: 'Magazzino principale', enabled: true, createdAt: new Date().toISOString(), createdBy: 'Sistema' },
+          { id: 'magazzino-b', name: 'Magazzino B', description: 'Magazzino secondario', location: 'Piano terra', manager: 'Matteo Cavallaro', notes: 'Magazzino secondario', enabled: true, isCustom: true, createdAt: new Date().toISOString(), createdBy: 'Sistema' },
+          { id: 'sala-b', name: 'Sala B', description: 'Sala secondaria', location: 'Piano terra', manager: 'Matteo Cavallaro', notes: 'Sala secondaria', enabled: true, isCustom: true, createdAt: new Date().toISOString(), createdBy: 'Sistema' }
+        ],
+        enabledCount: 6
+      },
+      staff: {
+        staffMembers: [
+          {
+            id: 'staff_001',
+            name: 'Matteo Cavallaro',
+            fullName: 'Matteo Cavallaro',
+            role: 'Amministratore',
+            categories: ['Amministratore', 'Banconisti'],
+            certification: 'HACCP Avanzato',
+            notes: 'Responsabile generale',
+            addedDate: new Date().toLocaleDateString('it-IT'),
+            addedTime: new Date().toLocaleString('it-IT')
+          }
+        ]
+      },
+      conservation: {
+        points: [
+          {
+            id: 'conservation-1',
+            name: 'Frigo A',
+            location: 'Cucina',
+            targetTemp: 2,
+            selectedCategories: ['fresh_dairy', 'fresh_produce', 'fresh_meat']
+            // La compliance verrà calcolata automaticamente dal componente
+          }
+        ],
+        count: 1
+      },
+      tasks: {
+        list: [
+          {
+            id: 'task_001',
+            name: 'Rilevamento temperatura Frigo A',
+            assignedRole: 'Amministratore',
+            assignedEmployee: 'Matteo Cavallaro',
+            frequency: 'Giornalmente',
+            priority: 'Alta',
+            notes: 'Controllo temperatura giornaliero del frigorifero principale'
+          }
+        ],
+        count: 1
+      },
+      products: {
+        productsList: [
+          {
+            id: 'product_001',
+            name: 'Acqua nato 0,5',
+            type: 'Bevande',
+            expiryDate: '2025-09-08',
+            position: 'Frigo A',
+            allergens: []
+            // La compliance verrà calcolata automaticamente dal componente
+          }
+        ],
+        count: 1
+      }
+    }
+    
+    // Salva i dati nell'onboarding con la struttura corretta
+    const onboardingProgress = {
+      currentStep: 0,
+      completedSteps: [0, 1, 2, 3, 4, 5], // Tutti gli step completati
+      confirmedSteps: [0, 1, 2, 3, 4, 5], // Tutti gli step confermati
+      formData: prefillData,
+      lastActivity: new Date().toISOString()
+    }
+    localStorage.setItem('haccp-onboarding-new', JSON.stringify(onboardingProgress))
+    
+    // Crea anche i dati di accesso precompilati
+    const adminUser = {
+      id: 'admin_001',
+      name: 'Admin',
+      pin: '0000',
+      role: 'admin',
+      department: 'Amministrazione',
+      createdAt: new Date().toISOString()
+    }
+    
+    localStorage.setItem('haccp-users', JSON.stringify([adminUser]))
+    localStorage.setItem('haccp-current-user', JSON.stringify(adminUser))
+    
+    console.log('✅ Onboarding precompilato con i tuoi dati')
+    console.log('✅ Dati di accesso precompilati: Admin / 0000')
+    
+    // Mostra conferma
+    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- Matteo Cavallaro (Admin)\n- Frigo A (2°C)\n- Task temperatura\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
+  }
 
   // Funzione per resettare completamente l'onboarding
   const resetOnboarding = () => {
@@ -266,9 +474,11 @@ function App() {
     if (process.env.NODE_ENV === 'development') {
       window.resetApp = resetApp
       window.resetOnboarding = resetOnboarding
+      window.prefillOnboarding = prefillOnboarding
       console.log('🔄 Funzioni disponibili globalmente:')
       console.log('  - resetApp() - Reset completo app')
       console.log('  - resetOnboarding() - Reset onboarding e app')
+      console.log('  - prefillOnboarding() - Precompila onboarding')
     }
   }, [])
 
@@ -1173,6 +1383,16 @@ function App() {
             {/* Pulsanti Onboarding - Solo in sviluppo */}
             {process.env.NODE_ENV === 'development' && (
               <>
+                <Button
+                  onClick={prefillOnboarding}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                  title="Precompila onboarding con dati di test"
+                >
+                  <Users className="h-4 w-4" />
+                  Precompila
+                </Button>
                 
                 <Button
                   onClick={resetOnboarding}

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix Reparti Personalizzati</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .button { 
+            background: #007bff; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 10px; 
+        }
+        .button:hover { background: #0056b3; }
+        .status { margin: 20px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fix Reparti Personalizzati - HACCP Manager</h1>
+    
+    <div class="test-section">
+        <h2>1. Diagnosi Problema</h2>
+        <button class="button" onclick="diagnoseProblem()">🔍 Diagnostica Problema</button>
+        <div id="diagnosis"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Pulizia localStorage</h2>
+        <button class="button" onclick="cleanLocalStorage()">🧹 Pulisci localStorage</button>
+        <div id="cleanup"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Ricarica Dati Corretti</h2>
+        <button class="button" onclick="reloadCorrectData()">🔄 Ricarica Dati</button>
+        <div id="reload"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Test Reparti Personalizzati</h2>
+        <button class="button" onclick="testCustomDepartments()">✅ Test Reparti</button>
+        <div id="test"></div>
+    </div>
+
+    <script>
+        function diagnoseProblem() {
+            const diagnosis = document.getElementById('diagnosis');
+            diagnosis.innerHTML = '<div class="info">🔍 Analizzando localStorage...</div>';
+            
+            try {
+                // Controlla dati onboarding
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                const onboardingOld = localStorage.getItem('haccp-onboarding');
+                const departments = localStorage.getItem('haccp-departments');
+                
+                let report = '<h3>📊 Stato localStorage:</h3>';
+                
+                // Analizza onboarding-new
+                if (onboardingData) {
+                    report += '<h4>haccp-onboarding-new:</h4>';
+                    report += `<p><strong>Tipo:</strong> ${typeof onboardingData}</p>`;
+                    if (typeof onboardingData === 'string') {
+                        try {
+                            const parsed = JSON.parse(onboardingData);
+                            report += '<p><strong>✅ JSON valido</strong></p>';
+                            if (parsed.formData?.departments?.list) {
+                                report += `<p><strong>Reparti trovati:</strong> ${parsed.formData.departments.list.length}</p>`;
+                                report += '<pre>' + JSON.stringify(parsed.formData.departments.list, null, 2) + '</pre>';
+                            }
+                        } catch (e) {
+                            report += `<p><strong>❌ JSON non valido:</strong> ${e.message}</p>`;
+                            report += `<p><strong>Contenuto:</strong> ${onboardingData.substring(0, 200)}...</p>`;
+                        }
+                    } else {
+                        report += '<p><strong>⚠️ Non è una stringa</strong></p>';
+                    }
+                } else {
+                    report += '<p><strong>❌ haccp-onboarding-new non trovato</strong></p>';
+                }
+                
+                // Analizza reparti
+                if (departments) {
+                    report += '<h4>haccp-departments:</h4>';
+                    try {
+                        const parsed = JSON.parse(departments);
+                        report += '<p><strong>✅ JSON valido</strong></p>';
+                        report += `<p><strong>Reparti:</strong> ${parsed.length}</p>`;
+                        report += '<pre>' + JSON.stringify(parsed, null, 2) + '</pre>';
+                    } catch (e) {
+                        report += `<p><strong>❌ JSON non valido:</strong> ${e.message}</p>`;
+                    }
+                } else {
+                    report += '<p><strong>❌ haccp-departments non trovato</strong></p>';
+                }
+                
+                diagnosis.innerHTML = report;
+            } catch (error) {
+                diagnosis.innerHTML = `<div class="error">❌ Errore nella diagnosi: ${error.message}</div>`;
+            }
+        }
+
+        function cleanLocalStorage() {
+            const cleanup = document.getElementById('cleanup');
+            cleanup.innerHTML = '<div class="info">🧹 Pulendo localStorage...</div>';
+            
+            try {
+                // Rimuovi dati corrotti
+                localStorage.removeItem('haccp-onboarding-new');
+                localStorage.removeItem('haccp-onboarding');
+                localStorage.removeItem('haccp-departments');
+                
+                cleanup.innerHTML = '<div class="success">✅ localStorage pulito con successo!</div>';
+            } catch (error) {
+                cleanup.innerHTML = `<div class="error">❌ Errore nella pulizia: ${error.message}</div>`;
+            }
+        }
+
+        function reloadCorrectData() {
+            const reload = document.getElementById('reload');
+            reload.innerHTML = '<div class="info">🔄 Ricaricando dati corretti...</div>';
+            
+            try {
+                // Crea dati di test corretti
+                const testData = {
+                    formData: {
+                        departments: {
+                            list: [
+                                { id: 1, name: 'Cucina', enabled: true, isCustom: false },
+                                { id: 2, name: 'Bancone', enabled: true, isCustom: false },
+                                { id: 3, name: 'Sala', enabled: true, isCustom: false },
+                                { id: 4, name: 'Magazzino', enabled: true, isCustom: false },
+                                { id: 5, name: 'Bar', enabled: true, isCustom: true },
+                                { id: 6, name: 'Pizzeria', enabled: true, isCustom: true }
+                            ]
+                        }
+                    }
+                };
+                
+                // Salva dati corretti
+                localStorage.setItem('haccp-onboarding-new', JSON.stringify(testData));
+                
+                // Crea reparti per l'app
+                const departments = testData.formData.departments.list.map(dept => ({
+                    id: dept.id,
+                    name: dept.name,
+                    enabled: dept.enabled,
+                    isCustom: dept.isCustom,
+                    createdAt: new Date().toISOString()
+                }));
+                
+                localStorage.setItem('haccp-departments', JSON.stringify(departments));
+                
+                reload.innerHTML = `
+                    <div class="success">
+                        ✅ Dati ricaricati con successo!<br>
+                        <strong>Reparti caricati:</strong> ${departments.length}<br>
+                        <strong>Reparti personalizzati:</strong> ${departments.filter(d => d.isCustom).length}
+                    </div>
+                `;
+            } catch (error) {
+                reload.innerHTML = `<div class="error">❌ Errore nel ricaricamento: ${error.message}</div>`;
+            }
+        }
+
+        function testCustomDepartments() {
+            const test = document.getElementById('test');
+            test.innerHTML = '<div class="info">✅ Testando reparti personalizzati...</div>';
+            
+            try {
+                // Verifica dati
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                const departments = localStorage.getItem('haccp-departments');
+                
+                if (!onboardingData || !departments) {
+                    test.innerHTML = '<div class="error">❌ Dati non trovati. Esegui prima "Ricarica Dati"</div>';
+                    return;
+                }
+                
+                const onboarding = JSON.parse(onboardingData);
+                const deptList = JSON.parse(departments);
+                
+                const customDepts = deptList.filter(d => d.isCustom);
+                const enabledDepts = deptList.filter(d => d.enabled);
+                
+                test.innerHTML = `
+                    <div class="success">
+                        ✅ Test completato!<br>
+                        <strong>Reparti totali:</strong> ${deptList.length}<br>
+                        <strong>Reparti personalizzati:</strong> ${customDepts.length}<br>
+                        <strong>Reparti abilitati:</strong> ${enabledDepts.length}<br><br>
+                        <strong>Reparti personalizzati trovati:</strong><br>
+                        ${customDepts.map(d => `• ${d.name}`).join('<br>')}
+                    </div>
+                `;
+            } catch (error) {
+                test.innerHTML = `<div class="error">❌ Errore nel test: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-diagnosi all'avvio
+        window.onload = function() {
+            diagnoseProblem();
+        };
+    </script>
+</body>
+</html>

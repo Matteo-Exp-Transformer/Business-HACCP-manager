@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Reparti Magazzino B e Sala B</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .button { 
+            background: #007bff; 
+            color: white; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 10px 5px; 
+            font-size: 14px;
+        }
+        .button:hover { background: #0056b3; }
+        .button.success { background: #28a745; }
+        .button.warning { background: #ffc107; color: #000; }
+        .status { margin: 15px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+        .step { margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border-left: 4px solid #007bff; }
+        .step.completed { border-left-color: #28a745; background: #f8fff8; }
+        .step.error { border-left-color: #dc3545; background: #fff8f8; }
+        .departments-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin: 15px 0; }
+        .department-item { padding: 10px; background: white; border: 1px solid #ddd; border-radius: 5px; }
+        .department-item.custom { border-color: #28a745; background: #f8fff8; }
+        .department-item.standard { border-color: #007bff; background: #f0f8ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Test Reparti Magazzino B e Sala B</h1>
+        
+        <div class="test-section">
+            <h2>📋 Istruzioni</h2>
+            <div class="step">
+                <strong>1.</strong> Apri l'app HACCP su <a href="http://localhost:3001" target="_blank">localhost:3001</a>
+            </div>
+            <div class="step">
+                <strong>2.</strong> Clicca "Precompila" per caricare i dati di test
+            </div>
+            <div class="step">
+                <strong>3.</strong> Vai allo step 3 (Punti di Conservazione) 
+            </div>
+            <div class="step">
+                <strong>4.</strong> Clicca "Aggiungi Nuovo Punto di Conservazione"
+            </div>
+            <div class="step">
+                <strong>5.</strong> Nel dropdown "Luogo" dovresti vedere "Magazzino B" e "Sala B" come reparti personalizzati
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Verifica Dati Precompilati</h2>
+            <button class="button" onclick="checkPrecompiledData()">🔍 Verifica Dati</button>
+            <div id="check-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧹 Pulisci e Ricarica</h2>
+            <button class="button warning" onclick="cleanAndReload()">🧹 Pulisci e Ricarica</button>
+            <div id="cleanup-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>✅ Test Dropdown Reparti</h2>
+            <button class="button success" onclick="testDropdown()">✅ Test Dropdown</button>
+            <div id="dropdown-results"></div>
+        </div>
+    </div>
+
+    <script>
+        function checkPrecompiledData() {
+            const results = document.getElementById('check-results');
+            results.innerHTML = '<div class="info">🔍 Verificando dati precompilati...</div>';
+            
+            try {
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                
+                if (!onboardingData) {
+                    results.innerHTML = '<div class="error">❌ Nessun dato di onboarding trovato. Clicca "Precompila" nell\'app.</div>';
+                    return;
+                }
+                
+                const progress = JSON.parse(onboardingData);
+                const departments = progress.formData?.departments?.list || [];
+                
+                let report = '<div class="success">';
+                report += '<h3>✅ Dati Precompilati Trovati:</h3>';
+                report += `<p><strong>Reparti totali:</strong> ${departments.length}</p>`;
+                
+                const customDepts = departments.filter(d => d.isCustom);
+                const standardDepts = departments.filter(d => !d.isCustom);
+                
+                report += `<p><strong>Reparti personalizzati:</strong> ${customDepts.length}</p>`;
+                report += `<p><strong>Reparti standard:</strong> ${standardDepts.length}</p>`;
+                
+                if (customDepts.length > 0) {
+                    report += '<h4>🎯 Reparti Personalizzati:</h4>';
+                    report += '<div class="departments-list">';
+                    customDepts.forEach(dept => {
+                        report += `<div class="department-item custom">`;
+                        report += `<strong>${dept.name}</strong><br>`;
+                        report += `<small>ID: ${dept.id}</small><br>`;
+                        report += `<small>Custom: ${dept.isCustom}</small><br>`;
+                        report += `<small>Enabled: ${dept.enabled}</small>`;
+                        report += `</div>`;
+                    });
+                    report += '</div>';
+                }
+                
+                if (standardDepts.length > 0) {
+                    report += '<h4>📋 Reparti Standard:</h4>';
+                    report += '<div class="departments-list">';
+                    standardDepts.forEach(dept => {
+                        report += `<div class="department-item standard">`;
+                        report += `<strong>${dept.name}</strong><br>`;
+                        report += `<small>ID: ${dept.id}</small><br>`;
+                        report += `<small>Custom: ${dept.isCustom}</small><br>`;
+                        report += `<small>Enabled: ${dept.enabled}</small>`;
+                        report += `</div>`;
+                    });
+                    report += '</div>';
+                }
+                
+                // Verifica specifica per Magazzino B e Sala B
+                const magazzinoB = departments.find(d => d.name === 'Magazzino B');
+                const salaB = departments.find(d => d.name === 'Sala B');
+                
+                report += '<h4>🎯 Verifica Specifica:</h4>';
+                if (magazzinoB) {
+                    report += `<div class="step ${magazzinoB.isCustom ? 'completed' : 'error'}">`;
+                    report += `<strong>Magazzino B:</strong> ${magazzinoB.isCustom ? '✅ Personalizzato' : '❌ Non personalizzato'}<br>`;
+                    report += `<small>Enabled: ${magazzinoB.enabled}</small>`;
+                    report += `</div>`;
+                } else {
+                    report += '<div class="step error"><strong>Magazzino B:</strong> ❌ Non trovato</div>';
+                }
+                
+                if (salaB) {
+                    report += `<div class="step ${salaB.isCustom ? 'completed' : 'error'}">`;
+                    report += `<strong>Sala B:</strong> ${salaB.isCustom ? '✅ Personalizzato' : '❌ Non personalizzato'}<br>`;
+                    report += `<small>Enabled: ${salaB.enabled}</small>`;
+                    report += `</div>`;
+                } else {
+                    report += '<div class="step error"><strong>Sala B:</strong> ❌ Non trovato</div>';
+                }
+                
+                report += '</div>';
+                results.innerHTML = report;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nella verifica: ${error.message}</div>`;
+            }
+        }
+
+        function cleanAndReload() {
+            const results = document.getElementById('cleanup-results');
+            results.innerHTML = '<div class="info">🧹 Pulendo e ricaricando...</div>';
+            
+            try {
+                // Pulisci localStorage
+                localStorage.clear();
+                
+                // Crea dati di test corretti con Magazzino B e Sala B come personalizzati
+                const testData = {
+                    currentStep: 0,
+                    completedSteps: [0, 1, 2, 3, 4, 5],
+                    confirmedSteps: [0, 1, 2, 3, 4, 5],
+                    formData: {
+                        business: {
+                            companyName: 'Al Ritrovo SRL',
+                            address: 'Via centotrecento 1/1b Bologna 40128',
+                            vatNumber: '001255668899101',
+                            email: '000@gmail.com',
+                            phone: '0511234567'
+                        },
+                        departments: {
+                            list: [
+                                { id: 'cucina', name: 'Cucina', enabled: true, isCustom: false },
+                                { id: 'bancone', name: 'Bancone', enabled: true, isCustom: false },
+                                { id: 'sala', name: 'Sala', enabled: true, isCustom: false },
+                                { id: 'magazzino', name: 'Magazzino', enabled: true, isCustom: false },
+                                { id: 'magazzino-b', name: 'Magazzino B', enabled: true, isCustom: true },
+                                { id: 'sala-b', name: 'Sala B', enabled: true, isCustom: true }
+                            ]
+                        }
+                    },
+                    lastActivity: new Date().toISOString()
+                };
+                
+                // Salva dati
+                localStorage.setItem('haccp-onboarding-new', JSON.stringify(testData));
+                
+                results.innerHTML = `
+                    <div class="success">
+                        ✅ Dati puliti e ricaricati!<br><br>
+                        <strong>Reparti creati:</strong><br>
+                        • Cucina (standard)<br>
+                        • Bancone (standard)<br>
+                        • Sala (standard)<br>
+                        • Magazzino (standard)<br>
+                        • <strong>Magazzino B (personalizzato)</strong><br>
+                        • <strong>Sala B (personalizzato)</strong><br><br>
+                        <strong>Ora ricarica l'app per vedere i reparti personalizzati!</strong>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore: ${error.message}</div>`;
+            }
+        }
+
+        function testDropdown() {
+            const results = document.getElementById('dropdown-results');
+            results.innerHTML = '<div class="info">✅ Testando dropdown reparti...</div>';
+            
+            try {
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                
+                if (!onboardingData) {
+                    results.innerHTML = '<div class="error">❌ Nessun dato trovato. Esegui prima "Pulisci e Ricarica".</div>';
+                    return;
+                }
+                
+                const progress = JSON.parse(onboardingData);
+                const departments = progress.formData?.departments?.list || [];
+                
+                // Simula la logica del ConservationStep
+                const availableDepartments = departments.length > 0 ? 
+                    departments.filter(dept => dept && dept.enabled).map(dept => dept.name || dept) : 
+                    ['Cucina', 'Bancone', 'Sala', 'Magazzino'];
+                
+                let report = '<div class="success">';
+                report += '<h3>✅ Test Dropdown Completato!</h3>';
+                report += `<p><strong>Reparti disponibili nel dropdown:</strong> ${availableDepartments.length}</p>`;
+                
+                report += '<h4>📋 Lista Reparti nel Dropdown:</h4>';
+                report += '<div class="departments-list">';
+                availableDepartments.forEach(dept => {
+                    const isCustom = departments.find(d => d.name === dept)?.isCustom;
+                    report += `<div class="department-item ${isCustom ? 'custom' : 'standard'}">`;
+                    report += `<strong>${dept}</strong><br>`;
+                    report += `<small>${isCustom ? 'Personalizzato' : 'Standard'}</small>`;
+                    report += `</div>`;
+                });
+                report += '</div>';
+                
+                // Verifica specifica
+                const hasMagazzinoB = availableDepartments.includes('Magazzino B');
+                const hasSalaB = availableDepartments.includes('Sala B');
+                
+                report += '<h4>🎯 Verifica Specifica:</h4>';
+                report += `<div class="step ${hasMagazzinoB ? 'completed' : 'error'}">`;
+                report += `<strong>Magazzino B:</strong> ${hasMagazzinoB ? '✅ Presente nel dropdown' : '❌ Non presente'}`;
+                report += `</div>`;
+                
+                report += `<div class="step ${hasSalaB ? 'completed' : 'error'}">`;
+                report += `<strong>Sala B:</strong> ${hasSalaB ? '✅ Presente nel dropdown' : '❌ Non presente'}`;
+                report += `</div>`;
+                
+                report += '</div>';
+                results.innerHTML = report;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nel test: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-verifica all'avvio
+        window.onload = function() {
+            checkPrecompiledData();
+        };
+    </script>
+</body>
+</html>

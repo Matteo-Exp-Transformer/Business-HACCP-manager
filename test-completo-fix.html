@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Completo Fix HACCP</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .button { 
+            background: #007bff; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 10px; 
+        }
+        .button:hover { background: #0056b3; }
+        .status { margin: 20px 0; padding: 10px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .console-output { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            border-radius: 5px; 
+            padding: 10px; 
+            font-family: monospace; 
+            white-space: pre-wrap; 
+            max-height: 300px; 
+            overflow-y: auto; 
+        }
+        .step { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Test Completo Fix HACCP</h1>
+    
+    <div id="status" class="status info">
+        Stato: Inizializzazione...
+    </div>
+    
+    <div class="test-section">
+        <h3>📋 Test 1: Verifica App in Esecuzione</h3>
+        <p>Controlla se l'app è in esecuzione e accessibile</p>
+        <button class="button" onclick="testAppRunning()">Verifica App</button>
+        <div id="test1-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🏢 Test 2: Simulazione Reparti Personalizzati</h3>
+        <p>Simula l'aggiunta di reparti personalizzati e verifica che appaiano nello step 2</p>
+        <button class="button" onclick="testCustomDepartments()">Test Reparti Personalizzati</button>
+        <div id="test2-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🔍 Test 3: Verifica Errori Console</h3>
+        <p>Monitora e verifica gli errori della console</p>
+        <button class="button" onclick="testConsoleErrors()">Test Errori Console</button>
+        <div id="test3-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>🚀 Test 4: Test Completo Onboarding</h3>
+        <p>Esegue un test completo dell'onboarding con reparti personalizzati</p>
+        <button class="button" onclick="testCompleteOnboarding()">Test Completo</button>
+        <div id="test4-result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>📊 Console Output</h3>
+        <div id="console-output" class="console-output">Nessun output disponibile</div>
+    </div>
+    
+    <div id="output"></div>
+
+    <script>
+        let consoleErrors = [];
+        let consoleWarnings = [];
+        let consoleLogs = [];
+
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.textContent = `Stato: ${message}`;
+            status.className = `status ${type}`;
+        }
+
+        function log(message) {
+            const output = document.getElementById('output');
+            output.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
+        }
+
+        function updateConsoleOutput() {
+            const consoleDiv = document.getElementById('console-output');
+            let output = '';
+            
+            if (consoleErrors.length > 0) {
+                output += 'ERRORI:\n';
+                consoleErrors.forEach(error => {
+                    output += `❌ ${error}\n`;
+                });
+                output += '\n';
+            }
+            
+            if (consoleWarnings.length > 0) {
+                output += 'AVVISI:\n';
+                consoleWarnings.forEach(warning => {
+                    output += `⚠️ ${warning}\n`;
+                });
+                output += '\n';
+            }
+            
+            if (consoleLogs.length > 0) {
+                output += 'LOG:\n';
+                consoleLogs.forEach(log => {
+                    output += `ℹ️ ${log}\n`;
+                });
+            }
+            
+            if (output === '') {
+                output = 'Nessun output disponibile';
+            }
+            
+            consoleDiv.textContent = output;
+        }
+
+        function testAppRunning() {
+            try {
+                fetch('http://localhost:3000')
+                    .then(response => {
+                        if (response.ok) {
+                            document.getElementById('test1-result').innerHTML = `
+                                <div class="success">
+                                    ✅ App in esecuzione su localhost:3000<br>
+                                    Status: ${response.status} ${response.statusText}<br>
+                                    <strong>Prossimo step:</strong> Procedi con il Test 2
+                                </div>
+                            `;
+                            log('✅ App in esecuzione');
+                            updateStatus('App in esecuzione', 'success');
+                        } else {
+                            document.getElementById('test1-result').innerHTML = `
+                                <div class="error">
+                                    ❌ App risponde ma con errore<br>
+                                    Status: ${response.status} ${response.statusText}<br>
+                                    <strong>Soluzione:</strong> Riavvia l'app con npm run dev
+                                </div>
+                            `;
+                            log(`❌ App con errore: ${response.status}`);
+                            updateStatus('App con errore', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        document.getElementById('test1-result').innerHTML = `
+                            <div class="error">
+                                ❌ App non raggiungibile<br>
+                                Errore: ${error.message}<br>
+                                <strong>Soluzione:</strong> Avvia l'app con npm run dev
+                            </div>
+                        `;
+                        log(`❌ App non raggiungibile: ${error.message}`);
+                        updateStatus('App non raggiungibile', 'error');
+                    });
+            } catch (error) {
+                document.getElementById('test1-result').innerHTML = `
+                    <div class="error">
+                        ❌ Errore nel test: ${error.message}
+                    </div>
+                `;
+                log(`❌ Errore: ${error.message}`);
+                updateStatus('Errore nel test', 'error');
+            }
+        }
+
+        function testCustomDepartments() {
+            try {
+                // Simula i dati dell'onboarding con reparti personalizzati
+                const mockOnboardingData = {
+                    currentStep: 1, // Step 2 (Reparti)
+                    completedSteps: ['business'],
+                    confirmedSteps: [0],
+                    formData: {
+                        business: {
+                            companyName: "Test Pizzeria",
+                            address: "Via Test 123",
+                            email: "test@pizzeria.com",
+                            phone: "1234567890"
+                        },
+                        departments: {
+                            list: [
+                                { id: 'cucina', name: 'Cucina', enabled: true, isCustom: false },
+                                { id: 'bancone', name: 'Bancone', enabled: true, isCustom: false },
+                                { id: 'sala', name: 'Sala', enabled: true, isCustom: false },
+                                { id: 'magazzino', name: 'Magazzino', enabled: true, isCustom: false },
+                                { id: 'custom-1', name: 'Reparto Personalizzato 1', enabled: true, isCustom: true },
+                                { id: 'custom-2', name: 'Reparto Personalizzato 2', enabled: true, isCustom: true }
+                            ],
+                            enabledCount: 6
+                        },
+                        staff: {},
+                        conservation: {},
+                        tasks: {},
+                        inventory: {}
+                    },
+                    lastActivity: new Date().toISOString()
+                };
+                
+                // Salva i dati simulati nel localStorage
+                localStorage.setItem('haccp-onboarding-new', JSON.stringify(mockOnboardingData));
+                
+                // Verifica che i dati siano stati salvati correttamente
+                const savedData = JSON.parse(localStorage.getItem('haccp-onboarding-new'));
+                const departments = savedData.formData.departments.list;
+                const customDepartments = departments.filter(dept => dept.isCustom);
+                const enabledDepartments = departments.filter(dept => dept.enabled);
+                
+                // Simula la logica del componente ConservationStep
+                const availableDepartments = departments.length > 0 ? 
+                    departments.filter(dept => dept.enabled).map(dept => dept.name || dept) : 
+                    ['Cucina', 'Bancone', 'Sala', 'Magazzino'];
+                
+                document.getElementById('test2-result').innerHTML = `
+                    <div class="success">
+                        ✅ Test reparti personalizzati completato!<br>
+                        <div class="step">
+                            <strong>Reparti totali:</strong> ${departments.length}<br>
+                            <strong>Reparti attivi:</strong> ${enabledDepartments.length}<br>
+                            <strong>Reparti personalizzati:</strong> ${customDepartments.length}<br>
+                            <strong>Reparti disponibili per step 2:</strong> ${availableDepartments.join(', ')}
+                        </div>
+                        <div class="step">
+                            <strong>Verifica:</strong> I reparti personalizzati dovrebbero apparire nel dropdown "Luogo" dello step 3 (Punti di Conservazione)
+                        </div>
+                    </div>
+                `;
+                
+                log('✅ Test reparti personalizzati completato');
+                updateStatus('Test reparti completato', 'success');
+            } catch (error) {
+                document.getElementById('test2-result').innerHTML = `
+                    <div class="error">
+                        ❌ Errore nel test reparti: ${error.message}
+                    </div>
+                `;
+                log(`❌ Errore: ${error.message}`);
+                updateStatus('Errore nel test', 'error');
+            }
+        }
+
+        function testConsoleErrors() {
+            try {
+                // Intercetta errori globali
+                window.addEventListener('error', function(event) {
+                    consoleErrors.push(`${event.filename}:${event.lineno} - ${event.message}`);
+                    updateConsoleOutput();
+                });
+
+                window.addEventListener('unhandledrejection', function(event) {
+                    consoleErrors.push(`Promise rejection: ${event.reason}`);
+                    updateConsoleOutput();
+                });
+
+                // Test connessione a servizi
+                const tests = [
+                    { name: 'Localhost:3000', url: 'http://localhost:3000' },
+                    { name: 'Google Fonts', url: 'https://fonts.googleapis.com' }
+                ];
+                
+                let completedTests = 0;
+                let results = [];
+                
+                tests.forEach(test => {
+                    fetch(test.url)
+                        .then(response => {
+                            results.push(`✅ ${test.name}: OK (${response.status})`);
+                            completedTests++;
+                            if (completedTests === tests.length) {
+                                showConsoleTestResults(results);
+                            }
+                        })
+                        .catch(error => {
+                            results.push(`❌ ${test.name}: ${error.message}`);
+                            completedTests++;
+                            if (completedTests === tests.length) {
+                                showConsoleTestResults(results);
+                            }
+                        });
+                });
+                
+            } catch (error) {
+                document.getElementById('test3-result').innerHTML = `
+                    <div class="error">
+                        ❌ Errore nel test console: ${error.message}
+                    </div>
+                `;
+                log(`❌ Errore: ${error.message}`);
+            }
+        }
+
+        function showConsoleTestResults(results) {
+            const resultDiv = document.getElementById('test3-result');
+            resultDiv.innerHTML = `
+                <div class="info">
+                    <strong>Risultati Test Console:</strong><br>
+                    ${results.join('<br>')}<br>
+                    <div class="step">
+                        <strong>Monitoraggio attivo:</strong> Gli errori della console verranno mostrati qui sotto
+                    </div>
+                </div>
+            `;
+            log('✅ Test console completato');
+            updateStatus('Test console completato', 'success');
+        }
+
+        function testCompleteOnboarding() {
+            try {
+                // Apri l'app in una nuova finestra
+                const appUrl = 'http://localhost:3000';
+                const newWindow = window.open(appUrl, '_blank');
+                
+                if (newWindow) {
+                    document.getElementById('test4-result').innerHTML = `
+                        <div class="info">
+                            🚀 App aperta in nuova finestra<br>
+                            <div class="step">
+                                <strong>Istruzioni per il test completo:</strong><br>
+                                1. Vai allo step 2 (Reparti)<br>
+                                2. Aggiungi 2 reparti personalizzati (es. "Bar", "Terrazza")<br>
+                                3. Vai allo step 3 (Punti di Conservazione)<br>
+                                4. Verifica che i reparti personalizzati appaiano nel dropdown "Luogo"<br>
+                                5. Aggiungi un punto di conservazione con un reparto personalizzato<br>
+                                6. Vai allo step 4 (Inventario Prodotti)<br>
+                                7. Verifica che il punto di conservazione appaia nel dropdown "Posizione"
+                            </div>
+                            <div class="step">
+                                <strong>Se vedi errori nella console:</strong><br>
+                                - Copia e incolla gli errori qui sotto<br>
+                                - Controlla la tab "Network" per errori di rete<br>
+                                - Verifica che tutti i file siano caricati correttamente
+                            </div>
+                        </div>
+                    `;
+                    
+                    log('✅ Test completo avviato');
+                    updateStatus('Test completo avviato', 'success');
+                } else {
+                    throw new Error('Impossibile aprire la finestra (popup bloccati?)');
+                }
+            } catch (error) {
+                document.getElementById('test4-result').innerHTML = `
+                    <div class="error">
+                        ❌ Errore nell'apertura app: ${error.message}
+                    </div>
+                `;
+                log(`❌ Errore: ${error.message}`);
+                updateStatus('Errore nell\'apertura app', 'error');
+            }
+        }
+
+        // Intercetta console.log, warn, error
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+
+        console.log = function(...args) {
+            consoleLogs.push(args.join(' '));
+            updateConsoleOutput();
+            originalLog.apply(console, args);
+        };
+
+        console.warn = function(...args) {
+            consoleWarnings.push(args.join(' '));
+            updateConsoleOutput();
+            originalWarn.apply(console, args);
+        };
+
+        console.error = function(...args) {
+            consoleErrors.push(args.join(' '));
+            updateConsoleOutput();
+            originalError.apply(console, args);
+        };
+
+        // Inizializzazione
+        window.onload = function() {
+            updateStatus('Pronto per il test', 'success');
+            log('✅ Pagina di test caricata');
+            updateConsoleOutput();
+        };
+    </script>
+</body>
+</html>

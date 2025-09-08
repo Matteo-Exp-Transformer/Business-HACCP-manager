@@ -77,17 +77,8 @@ const DepartmentsStep = ({
   const enabledCount = departments.filter(dept => dept.enabled).length;
   const canProceed = enabledCount > 0; // Deve avere almeno 1 reparto attivo
 
-  // Aggiorna automaticamente il formData quando i reparti cambiano
-  useEffect(() => {
-    const enabledDepartments = departments.filter(dept => dept.enabled);
-    setFormData(prevFormData => ({ 
-      ...prevFormData, 
-      departments: { 
-        list: enabledDepartments, 
-        enabledCount: enabledDepartments.length
-      } 
-    }));
-  }, [departments]);
+  // RIMOSSO: useEffect che causava loop infinito
+  // updateFormData viene chiamato solo quando necessario (add/edit/delete)
 
   // Rimuoviamo la funzione handleConfirmData - non più necessaria
 

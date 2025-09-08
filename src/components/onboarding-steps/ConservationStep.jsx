@@ -30,15 +30,23 @@ const ConservationStep = ({
   const departments = formData.departments?.list || [];
   const staffMembers = formData.staff?.staffMembers || [];
   
-  // Se non ci sono dipartimenti, usa i mock per il test
-  const availableDepartments = departments.length > 0 ? departments.map(dept => dept.name || dept) : ['Cucina', 'Bancone', 'Sala', 'Magazzino'];
+  // Debug: log dei reparti per verificare il problema
+  console.log('🔍 ConservationStep - formData:', formData);
+  console.log('🔍 ConservationStep - departments:', departments);
+  
+  // Ottieni i reparti disponibili, includendo quelli personalizzati
+  const availableDepartments = departments.length > 0 ? 
+    departments.filter(dept => dept && dept.enabled).map(dept => dept.name || dept) : 
+    ['Cucina', 'Bancone', 'Sala', 'Magazzino'];
+  
+  console.log('🔍 ConservationStep - availableDepartments:', availableDepartments);
 
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
     if (formData.conservation?.points && formData.conservation.points.length > 0) {
-      // Calcola automaticamente la compliance per ogni punto se non è già presente
+      // Calcola SEMPRE la compliance per ogni punto quando i dati vengono caricati
       const pointsWithCompliance = formData.conservation.points.map(point => {
-        if (!point.compliance && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) {
+        if (point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) {
           return {
             ...point,
             compliance: checkHACCPCompliance(point.targetTemp, point.selectedCategories)

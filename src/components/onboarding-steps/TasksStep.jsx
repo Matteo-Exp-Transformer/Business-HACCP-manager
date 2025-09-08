@@ -78,19 +78,8 @@ const TasksStep = ({
   console.log(`📊 Temperature tasks count: ${temperatureTasksCount}, Total tasks: ${tasks.length}`);
   console.log('📋 All tasks:', tasks);
 
-  // Aggiorna automaticamente il formData quando le attività cambiano
-  useEffect(() => {
-    const updatedFormData = {
-      ...formData,
-      tasks: {
-        list: tasks,
-        count: tasks.length,
-        temperatureTasksCount,
-        conservationPointsCount
-      }
-    };
-    setFormData(updatedFormData);
-  }, [tasks, temperatureTasksCount, conservationPointsCount]);
+  // RIMOSSO: useEffect che causava loop infinito
+  // updateFormData viene chiamato solo quando necessario (add/edit/delete)
 
   const FREQUENCIES = [
     'Giornalmente',

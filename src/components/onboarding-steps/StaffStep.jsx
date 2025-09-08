@@ -35,14 +35,8 @@ const StaffStep = ({
     }
   }, [formData.staff]);
 
-  // Aggiorna automaticamente il formData quando lo staff cambia
-  useEffect(() => {
-    const updatedFormData = {
-      ...formData,
-      staff: { staffMembers }
-    };
-    setFormData(updatedFormData);
-  }, [staffMembers]);
+  // RIMOSSO: useEffect che causava loop infinito
+  // updateFormData viene chiamato solo quando necessario (add/edit/delete)
 
   const ROLES = [
     'Amministratore',

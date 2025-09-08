@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Step 4 - Inventario Prodotti</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .button { 
+            background: #007bff; 
+            color: white; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 10px 5px; 
+            font-size: 14px;
+        }
+        .button:hover { background: #0056b3; }
+        .button.success { background: #28a745; }
+        .button.warning { background: #ffc107; color: #000; }
+        .status { margin: 15px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-section { margin: 20px 0; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fafafa; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Debug Step 4 - Inventario Prodotti</h1>
+        
+        <div class="test-section">
+            <h2>📋 Istruzioni</h2>
+            <p>1. Apri l'app HACCP su <a href="http://localhost:3001" target="_blank">localhost:3001</a></p>
+            <p>2. Clicca "Precompila" per caricare i dati</p>
+            <p>3. Vai allo step 4 (Inventario Prodotti)</p>
+            <p>4. Apri la console del browser (F12) per vedere i log di debug</p>
+            <p>5. Aggiungi un prodotto e controlla i log</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Debug Dati Attuali</h2>
+            <button class="button" onclick="debugCurrentData()">🔍 Debug Dati</button>
+            <div id="debug-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Simula Aggiunta Prodotto</h2>
+            <button class="button success" onclick="simulateProductAddition()">🧪 Simula Aggiunta</button>
+            <div id="simulation-results"></div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔧 Fix Manuale</h2>
+            <button class="button warning" onclick="manualFix()">🔧 Fix Manuale</button>
+            <div id="fix-results"></div>
+        </div>
+    </div>
+
+    <script>
+        function debugCurrentData() {
+            const results = document.getElementById('debug-results');
+            results.innerHTML = '<div class="info">🔍 Analizzando dati attuali...</div>';
+            
+            try {
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                
+                if (!onboardingData) {
+                    results.innerHTML = '<div class="error">❌ Nessun dato di onboarding trovato.</div>';
+                    return;
+                }
+                
+                const progress = JSON.parse(onboardingData);
+                const formData = progress.formData || {};
+                
+                let report = '<div class="success">';
+                report += '<h3>🔍 Debug Dati Attuali:</h3>';
+                
+                // Debug formData completo
+                report += '<h4>📊 FormData Completo:</h4>';
+                report += '<pre>' + JSON.stringify(formData, null, 2) + '</pre>';
+                
+                // Debug specifico per products
+                const products = formData.products;
+                report += '<h4>📦 Dati Prodotti:</h4>';
+                if (products) {
+                    report += '<p><strong>Struttura products:</strong></p>';
+                    report += '<pre>' + JSON.stringify(products, null, 2) + '</pre>';
+                    
+                    const productsList = products.productsList || [];
+                    report += `<p><strong>productsList length:</strong> ${productsList.length}</p>`;
+                    
+                    if (productsList.length > 0) {
+                        report += '<p><strong>Prodotti trovati:</strong></p>';
+                        productsList.forEach((product, index) => {
+                            report += `<div style="margin: 10px 0; padding: 10px; background: #f8f9fa; border-radius: 5px;">`;
+                            report += `<strong>Prodotto ${index + 1}:</strong><br>`;
+                            report += `• Nome: ${product.name || 'N/A'}<br>`;
+                            report += `• Tipo: ${product.type || 'N/A'}<br>`;
+                            report += `• Scadenza: ${product.expiryDate || 'N/A'}<br>`;
+                            report += `• Posizione: ${product.position || 'N/A'}<br>`;
+                            report += `• ID: ${product.id || 'N/A'}<br>`;
+                            report += `</div>`;
+                        });
+                    } else {
+                        report += '<p><strong>❌ Nessun prodotto in productsList</strong></p>';
+                    }
+                } else {
+                    report += '<p><strong>❌ Nessun oggetto products in formData</strong></p>';
+                }
+                
+                report += '</div>';
+                results.innerHTML = report;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nel debug: ${error.message}</div>`;
+            }
+        }
+
+        function simulateProductAddition() {
+            const results = document.getElementById('simulation-results');
+            results.innerHTML = '<div class="info">🧪 Simulando aggiunta prodotto...</div>';
+            
+            try {
+                const onboardingData = localStorage.getItem('haccp-onboarding-new');
+                
+                if (!onboardingData) {
+                    results.innerHTML = '<div class="error">❌ Nessun dato di onboarding trovato.</div>';
+                    return;
+                }
+                
+                const progress = JSON.parse(onboardingData);
+                
+                // Assicurati che ci sia la struttura products
+                if (!progress.formData.products) {
+                    progress.formData.products = { productsList: [], count: 0 };
+                }
+                
+                // Aggiungi un prodotto di test
+                const newProduct = {
+                    id: Date.now(),
+                    name: 'Acqua nato 0,5L',
+                    type: 'Bevande',
+                    expiryDate: '2025-12-31',
+                    position: 'Frigo A',
+                    allergens: [],
+                    compliance: { compliant: true, message: 'Posizione conforme HACCP' }
+                };
+                
+                progress.formData.products.productsList.push(newProduct);
+                progress.formData.products.count = progress.formData.products.productsList.length;
+                
+                // Salva i dati aggiornati
+                localStorage.setItem('haccp-onboarding-new', JSON.stringify(progress));
+                
+                results.innerHTML = `
+                    <div class="success">
+                        ✅ Prodotto aggiunto con successo!<br><br>
+                        <strong>Prodotto aggiunto:</strong><br>
+                        • Nome: ${newProduct.name}<br>
+                        • Tipo: ${newProduct.type}<br>
+                        • Scadenza: ${newProduct.expiryDate}<br>
+                        • Posizione: ${newProduct.position}<br><br>
+                        <strong>Totale prodotti:</strong> ${progress.formData.products.count}<br><br>
+                        <strong>Ora prova a procedere al prossimo step nell'app!</strong>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nella simulazione: ${error.message}</div>`;
+            }
+        }
+
+        function manualFix() {
+            const results = document.getElementById('fix-results');
+            results.innerHTML = '<div class="info">🔧 Applicando fix manuale...</div>';
+            
+            try {
+                // Pulisci localStorage
+                localStorage.clear();
+                
+                // Crea dati completi e corretti
+                const completeData = {
+                    currentStep: 0,
+                    completedSteps: [0, 1, 2, 3, 4, 5],
+                    confirmedSteps: [0, 1, 2, 3, 4, 5],
+                    formData: {
+                        business: {
+                            companyName: 'Al Ritrovo SRL',
+                            address: 'Via centotrecento 1/1b Bologna 40128',
+                            vatNumber: '001255668899101',
+                            email: '000@gmail.com',
+                            phone: '0511234567'
+                        },
+                        departments: {
+                            list: [
+                                { id: 'cucina', name: 'Cucina', enabled: true, isCustom: false },
+                                { id: 'bancone', name: 'Bancone', enabled: true, isCustom: false },
+                                { id: 'sala', name: 'Sala', enabled: true, isCustom: false },
+                                { id: 'magazzino', name: 'Magazzino', enabled: true, isCustom: false },
+                                { id: 'magazzino-b', name: 'Magazzino B', enabled: true, isCustom: true },
+                                { id: 'sala-b', name: 'Sala B', enabled: true, isCustom: true }
+                            ],
+                            enabledCount: 6
+                        },
+                        staff: {
+                            staffMembers: [
+                                {
+                                    id: 'staff_001',
+                                    name: 'Matteo Cavallaro',
+                                    fullName: 'Matteo Cavallaro',
+                                    role: 'Amministratore',
+                                    categories: ['Amministratore'],
+                                    certification: 'HACCP Avanzato',
+                                    notes: 'Responsabile generale'
+                                }
+                            ]
+                        },
+                        conservation: {
+                            points: [
+                                {
+                                    id: 'conservation-1',
+                                    name: 'Frigo A',
+                                    location: 'Cucina',
+                                    targetTemp: 2,
+                                    selectedCategories: ['fresh_dairy', 'fresh_vegetables'],
+                                    compliance: { compliant: true, message: 'Conforme HACCP' }
+                                }
+                            ],
+                            count: 1
+                        },
+                        tasks: {
+                            list: [
+                                {
+                                    id: 'task_001',
+                                    name: 'Rilevamento temperatura Frigo A',
+                                    assignedRole: 'Amministratore',
+                                    assignedEmployee: 'Matteo Cavallaro',
+                                    frequency: 'Giornalmente',
+                                    priority: 'Alta',
+                                    notes: 'Controllo temperatura giornaliero'
+                                }
+                            ],
+                            count: 1
+                        },
+                        products: {
+                            productsList: [
+                                {
+                                    id: 'product_001',
+                                    name: 'Acqua nato 0,5L',
+                                    type: 'Bevande',
+                                    expiryDate: '2025-12-31',
+                                    position: 'Frigo A',
+                                    allergens: [],
+                                    compliance: { compliant: true, message: 'Posizione conforme HACCP' }
+                                }
+                            ],
+                            count: 1
+                        }
+                    },
+                    lastActivity: new Date().toISOString()
+                };
+                
+                // Salva dati completi
+                localStorage.setItem('haccp-onboarding-new', JSON.stringify(completeData));
+                
+                results.innerHTML = `
+                    <div class="success">
+                        ✅ Fix manuale applicato con successo!<br><br>
+                        <strong>Dati creati con prodotto precompilato:</strong><br>
+                        • Business Info: ✅<br>
+                        • Reparti: 6 (2 personalizzati)<br>
+                        • Staff: 1 membro<br>
+                        • Punti di Conservazione: 1<br>
+                        • Attività: 1<br>
+                        • <strong>Prodotti: 1 (precompilato)</strong><br><br>
+                        <strong>Ora ricarica l'app - lo step 4 dovrebbe essere già valido!</strong>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nel fix: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-debug all'avvio
+        window.onload = function() {
+            debugCurrentData();
+        };
+    </script>
+</body>
+</html>

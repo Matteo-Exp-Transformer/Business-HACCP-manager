@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fix LocalStorage - Pulizia Completa</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .button { 
+            background: #dc3545; 
+            color: white; 
+            padding: 12px 24px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 10px 5px; 
+            font-size: 14px;
+        }
+        .button:hover { background: #c82333; }
+        .button.success { background: #28a745; }
+        .status { margin: 15px 0; padding: 15px; border-radius: 5px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Fix LocalStorage - Pulizia Completa</h1>
+        
+        <div class="info">
+            <h3>⚠️ Problema Identificato</h3>
+            <p>Il localStorage contiene dati corrotti: <code>"[object Object]"</code> invece di JSON valido.</p>
+            <p>Questo causa errori di parsing e problemi nell'app.</p>
+        </div>
+
+        <div>
+            <button class="button" onclick="cleanLocalStorage()">🧹 Pulisci LocalStorage</button>
+            <button class="button success" onclick="createCleanData()">✅ Crea Dati Puliti</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function cleanLocalStorage() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">🧹 Pulendo localStorage...</div>';
+            
+            try {
+                // Mostra cosa c'è nel localStorage prima della pulizia
+                const keys = Object.keys(localStorage);
+                let report = '<div class="info">';
+                report += '<h3>🔍 Contenuto localStorage prima della pulizia:</h3>';
+                keys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    report += `<p><strong>${key}:</strong> ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}</p>`;
+                });
+                report += '</div>';
+                
+                // Pulisci tutto
+                localStorage.clear();
+                
+                report += '<div class="success">';
+                report += '<h3>✅ LocalStorage pulito con successo!</h3>';
+                report += '<p>Tutti i dati corrotti sono stati rimossi.</p>';
+                report += '<p><strong>Ora ricarica l\'app - dovrebbe funzionare senza errori!</strong></p>';
+                report += '</div>';
+                
+                results.innerHTML = report;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nella pulizia: ${error.message}</div>`;
+            }
+        }
+
+        function createCleanData() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="info">✅ Creando dati puliti...</div>';
+            
+            try {
+                // Pulisci tutto prima
+                localStorage.clear();
+                
+                // Crea dati completi e corretti
+                const cleanData = {
+                    currentStep: 0,
+                    completedSteps: [0, 1, 2, 3, 4, 5],
+                    confirmedSteps: [0, 1, 2, 3, 4, 5],
+                    formData: {
+                        business: {
+                            companyName: 'Al Ritrovo SRL',
+                            address: 'Via centotrecento 1/1b Bologna 40128',
+                            vatNumber: '001255668899101',
+                            email: '000@gmail.com',
+                            phone: '0511234567'
+                        },
+                        departments: {
+                            list: [
+                                { id: 'cucina', name: 'Cucina', enabled: true, isCustom: false },
+                                { id: 'bancone', name: 'Bancone', enabled: true, isCustom: false },
+                                { id: 'sala', name: 'Sala', enabled: true, isCustom: false },
+                                { id: 'magazzino', name: 'Magazzino', enabled: true, isCustom: false },
+                                { id: 'magazzino-b', name: 'Magazzino B', enabled: true, isCustom: true },
+                                { id: 'sala-b', name: 'Sala B', enabled: true, isCustom: true }
+                            ],
+                            enabledCount: 6
+                        },
+                        staff: {
+                            staffMembers: [
+                                {
+                                    id: 'staff_001',
+                                    name: 'Matteo Cavallaro',
+                                    fullName: 'Matteo Cavallaro',
+                                    role: 'Amministratore',
+                                    categories: ['Amministratore'],
+                                    certification: 'HACCP Avanzato',
+                                    notes: 'Responsabile generale'
+                                }
+                            ]
+                        },
+                        conservation: {
+                            points: [
+                                {
+                                    id: 'conservation-1',
+                                    name: 'Frigo A',
+                                    location: 'Cucina',
+                                    targetTemp: 2,
+                                    selectedCategories: ['fresh_dairy', 'fresh_produce', 'fresh_meat'],
+                                    compliance: { compliant: true, message: 'Conforme HACCP' }
+                                }
+                            ],
+                            count: 1
+                        },
+                        products: {
+                            productsList: [
+                                {
+                                    id: 'product_001',
+                                    name: 'Acqua nato 0,5L',
+                                    type: 'Bevande',
+                                    expiryDate: '2025-12-31',
+                                    position: 'Frigo A',
+                                    allergens: [],
+                                    compliance: { compliant: true, message: 'Posizione conforme HACCP' }
+                                }
+                            ],
+                            count: 1
+                        },
+                        tasks: {
+                            list: [
+                                {
+                                    id: 'task_001',
+                                    name: 'Rilevamento temperatura Frigo A',
+                                    assignedRole: 'Amministratore',
+                                    assignedEmployee: 'Matteo Cavallaro',
+                                    frequency: 'Giornalmente',
+                                    priority: 'Alta',
+                                    notes: 'Controllo temperatura giornaliero'
+                                }
+                            ],
+                            count: 1
+                        }
+                    },
+                    lastActivity: new Date().toISOString()
+                };
+                
+                // Salva dati puliti
+                localStorage.setItem('haccp-onboarding-new', JSON.stringify(cleanData));
+                
+                results.innerHTML = `
+                    <div class="success">
+                        ✅ Dati puliti creati con successo!<br><br>
+                        <strong>Tutti gli step sono precompilati e validi:</strong><br>
+                        • Step 0: Business Info ✅<br>
+                        • Step 1: Reparti (6) ✅<br>
+                        • Step 2: Staff (1) ✅<br>
+                        • Step 3: Punti di Conservazione (1) ✅<br>
+                        • Step 4: Inventario Prodotti (1) ✅<br>
+                        • Step 5: Attività (1) ✅<br><br>
+                        <strong>Ora ricarica l'app - dovrebbe funzionare perfettamente!</strong>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `<div class="error">❌ Errore nella creazione: ${error.message}</div>`;
+            }
+        }
+
+        // Auto-pulizia all'avvio
+        window.onload = function() {
+            cleanLocalStorage();
+        };
+    </script>
+</body>
+</html>

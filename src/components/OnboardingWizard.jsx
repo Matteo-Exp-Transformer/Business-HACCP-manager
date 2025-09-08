@@ -51,22 +51,25 @@ const validateHACCPCompliance = (targetTemp, selectedCategories) => {
       };
     }
     
-    // Controlla se la temperatura è nel range di almeno una categoria
-    let isInRange = false;
-    let isInToleranceRange = false;
+    // Controlla se la temperatura è nel range di TUTTE le categorie selezionate
+    let isInRange = true;
+    let isInToleranceRange = true;
     
     for (const categoryId of selectedCategories) {
       const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
       if (category) {
-        if (temp >= category.minTemp && temp <= category.maxTemp) {
-          isInRange = true;
-          break;
-        }
+        // Controlla se la temperatura è nel range di questa categoria
+        const categoryInRange = temp >= category.minTemp && temp <= category.maxTemp;
         const categoryMin = category.minTemp - tolerance;
         const categoryMax = category.maxTemp + tolerance;
-        if (temp >= categoryMin && temp <= categoryMax) {
-          isInToleranceRange = true;
-          break;
+        const categoryInToleranceRange = temp >= categoryMin && temp <= categoryMax;
+        
+        // Se anche una categoria non è soddisfatta, l'intera validazione fallisce
+        if (!categoryInRange) {
+          isInRange = false;
+        }
+        if (!categoryInToleranceRange) {
+          isInToleranceRange = false;
         }
       }
     }
@@ -292,7 +295,11 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              if (stepNumber === 3) { // Punti di Conservazione
            // ConservationStep salva come { points: [...], count: number }
            const conservationPoints = data.conservation?.points || [];
+           console.log('🔍 OnboardingWizard: Validating step 3 (Conservation)');
+           console.log('🔍 OnboardingWizard: data.conservation:', data.conservation);
+           console.log('🔍 OnboardingWizard: conservationPoints:', conservationPoints);
            if (conservationPoints.length === 0) {
+             console.log('❌ OnboardingWizard: No conservation points found, adding error');
              errors.conservation = "Devi aggiungere almeno un punto di conservazione";
            } else {
              conservationPoints.forEach((point, index) => {
@@ -412,7 +419,11 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              if (stepNumber === 5) { // Inventario Prodotti
            // InventoryStep salva come { products: [...], count: number }
            const productsList = data.products?.productsList || data.inventory?.products || [];
+           console.log('🔍 OnboardingWizard: Validating step 5 (Inventory)');
+           console.log('🔍 OnboardingWizard: data.products:', data.products);
+           console.log('🔍 OnboardingWizard: productsList:', productsList);
            if (productsList.length === 0) {
+             console.log('❌ OnboardingWizard: No products found, adding error');
              errors.inventory = "Devi aggiungere almeno un prodotto";
            } else {
              productsList.forEach((product, index) => {
@@ -481,7 +492,51 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
   // Controlla se uno step è valido per abilitare "Avanti"
   const isStepValid = (stepNumber) => {
     const errors = validateStep(stepNumber, formData);
-    return Object.keys(errors).length === 0;
+    const isValid = Object.keys(errors).length === 0;
+    
+    // Debug specifico per step 3 (Punti di Conservazione)
+    if (stepNumber === 3) {
+      console.log(`🔍 DEBUG PULSANTE AVANTI - Step 3 (Punti di Conservazione):`);
+      console.log(`🔍 errors:`, errors);
+      console.log(`🔍 errors.length:`, Object.keys(errors).length);
+      console.log(`🔍 isValid:`, isValid);
+      console.log(`🔍 formData.conservation:`, formData.conservation);
+      console.log(`🔍 conservation.points:`, formData.conservation?.points);
+      console.log(`🔍 conservation.count:`, formData.conservation?.count);
+      
+      // Mostra dettagli degli errori
+      if (Object.keys(errors).length > 0) {
+        console.log(`❌ ERRORI DETTAGLIATI:`);
+        Object.entries(errors).forEach(([key, value]) => {
+          console.log(`❌ ${key}: ${value}`);
+        });
+        
+        // Debug specifico per categorie
+        if (formData.conservation?.points?.[0]) {
+          const point = formData.conservation.points[0];
+          console.log(`🔍 PUNTO DI CONSERVAZIONE DETTAGLIATO:`);
+          console.log(`🔍 point.name:`, point.name);
+          console.log(`🔍 point.location:`, point.location);
+          console.log(`🔍 point.targetTemp:`, point.targetTemp);
+          console.log(`🔍 point.selectedCategories:`, point.selectedCategories);
+          console.log(`🔍 point.selectedCategories type:`, typeof point.selectedCategories);
+          console.log(`🔍 point.selectedCategories length:`, point.selectedCategories?.length);
+          
+          // Debug categorie valide
+          const validCategories = ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'frozen', 'deep_frozen', 'dry_goods', 'hot_holding', 'chilled_ready'];
+          console.log(`🔍 CATEGORIE VALIDE:`, validCategories);
+          console.log(`🔍 CATEGORIE SELEZIONATE:`, point.selectedCategories);
+          
+          // Controlla ogni categoria selezionata
+          point.selectedCategories.forEach((categoryId, index) => {
+            const isValid = validCategories.includes(categoryId);
+            console.log(`🔍 Categoria ${index}: "${categoryId}" - ${isValid ? 'VALIDA' : 'NON VALIDA'}`);
+          });
+        }
+      }
+    }
+    
+    return isValid;
   };
 
   // Controlla se uno step è valido per abilitare "Conferma Dati"
@@ -568,6 +623,16 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
         console.log(`❌ Step ${currentStep} non valido:`, errors);
         console.log(`❌ Errori dettagliati:`, Object.entries(errors).map(([key, value]) => `${key}: ${value}`));
         console.log(`❌ Errori completi:`, errors);
+        console.log(`🔍 FormData per step ${currentStep}:`, formData);
+        
+        // Debug specifico per step 3 (Punti di Conservazione)
+        if (currentStep === 3) {
+          console.log(`🔍 DEBUG STEP 3 (Punti di Conservazione):`);
+          console.log(`🔍 data.conservation:`, formData.conservation);
+          console.log(`🔍 conservation.points:`, formData.conservation?.points);
+          console.log(`🔍 conservation.count:`, formData.conservation?.count);
+        }
+        
         // Mostra errori all'utente
         alert(`Ci sono errori di validazione:\n${Object.values(errors).join('\n')}`);
       }
