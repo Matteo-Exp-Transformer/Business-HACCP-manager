@@ -29,7 +29,7 @@ Questo è un **Sistema di Gestione HACCP** (Hazard Analysis and Critical Control
 ## 📚 DOCUMENTAZIONE OBBLIGATORIA
 
 ### 📖 FILE DA LEGGERE PRIMA DI MODIFICARE
-1. **`HACCP_APP_DOCUMENTATION.md`** - Documentazione completa dell'applicazione
+1. **`CODE_STYLE_RULES.MD`** - Documentazione completa dell'applicazione
 2. **`EXAMPLES_USAGE.md`** - Esempi di utilizzo e casi d'uso
 3. **`IMPLEMENTAZIONE_COMPLETATA.md`** - Stato attuale delle funzionalità
 4. **`NUOVE_FUNZIONALITA_IMPLEMENTATE.md`** - Funzionalità recentemente aggiunte
@@ -56,6 +56,7 @@ Questo è un **Sistema di Gestione HACCP** (Hazard Analysis and Critical Control
 - Aver compreso il flusso di lavoro HACCP
 - Aver verificato l'impatto sulle funzionalità esistenti
 - Aver testato le modifiche in ambiente locale
+- Aver fatto delle domande per chiarire ogni aspetto
 
 ### 🔄 DOPO LE MODIFICHE
 1. **Aggiorna la documentazione** se necessario

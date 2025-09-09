@@ -1,5 +1,0 @@
-[33me7d0e268[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m fix: corregge errori JSX nel modal ordini - Aggiunge div mancante per chiusura corretta del form
-[33mb6daad4a[m feat: implementa filtri reparti e punti di conservazione nell'inventario
-[33m713fdffc[m Feature: Aggiunto StepNavigator per navigazione tra step onboarding - Utente può cliccare sui numeri degli step completati
-[33ma00b458b[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Clean: Rimosso codice di precompilazione dal branch main - Solo codice di produzione
-[33m66be767a[m[33m ([m[1;31morigin/main-precompilato-backup[m[33m, [m[1;31morigin/main-precompilato[m[33m, [m[1;31morigin/main-backup[m[33m)[m Fix: Risolti loop infiniti e problemi compliance InventoryStep - Debug completo

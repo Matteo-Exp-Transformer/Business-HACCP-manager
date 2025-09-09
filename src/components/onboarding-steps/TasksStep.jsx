@@ -3,6 +3,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Plus, X, ClipboardList, AlertTriangle } from 'lucide-react';
+import MaintenanceForm from '../MaintenanceForm';
 
 const TasksStep = ({ 
   formData, 
@@ -24,6 +25,10 @@ const TasksStep = ({
     assignedEmployee: '',
     frequency: ''
   });
+  
+  // Stati per il form di manutenzione
+  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [selectedConservationPoint, setSelectedConservationPoint] = useState(null);
 
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
@@ -175,6 +180,42 @@ const TasksStep = ({
   const handleDeleteTask = (id) => {
     setTasks(prev => prev.filter(task => task.id !== id));
   };
+
+  // Funzioni per gestire il form di manutenzione
+  const handleMaintenanceSave = async (maintenanceTasks) => {
+    try {
+      // Converte le attività di manutenzione nel formato delle tasks normali
+      const convertedTasks = maintenanceTasks.map(task => ({
+        id: task.id,
+        name: task.task_name,
+        assignedRole: task.assigned_role,
+        assignedCategory: task.assigned_category,
+        assignedStaffIds: task.assigned_staff_ids,
+        frequency: task.frequency,
+        taskType: 'maintenance',
+        maintenanceType: task.task_type,
+        conservationPointId: task.conservation_point_id,
+        conservationPointName: task.conservation_point_name,
+        createdAt: task.created_at
+      }));
+
+      // Aggiunge le nuove tasks alla lista esistente
+      setTasks(prev => [...prev, ...convertedTasks]);
+      
+      // Chiude il form
+      setShowMaintenanceForm(false);
+      setSelectedConservationPoint(null);
+      
+      console.log('✅ Manutenzione salvata:', convertedTasks);
+    } catch (error) {
+      console.error('❌ Errore durante il salvataggio della manutenzione:', error);
+    }
+  };
+
+  const handleMaintenanceCancel = () => {
+    setShowMaintenanceForm(false);
+    setSelectedConservationPoint(null);
+  };
   
   const canProceed = tasks.length > 0 && 
     tasks.every(task => task.name && task.assignedRole && task.frequency) &&
@@ -216,11 +257,8 @@ const TasksStep = ({
                     <span className="text-sm font-medium">{point.name}</span>
                     <Button
                       onClick={() => {
-                        setShowAddForm(true);
-                        setLocalFormData(prev => ({
-                          ...prev,
-                          name: getSuggestedTaskName(point)
-                        }));
+                        setSelectedConservationPoint(point);
+                        setShowMaintenanceForm(true);
                       }}
                       size="sm"
                       className="bg-yellow-600 hover:bg-yellow-700 text-white"
@@ -468,6 +506,15 @@ const TasksStep = ({
        )}
 
        {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
+
+       {/* Form di Manutenzione */}
+       <MaintenanceForm
+         conservationPoint={selectedConservationPoint}
+         staffMembers={formData.staff?.staffMembers || []}
+         onSave={handleMaintenanceSave}
+         onCancel={handleMaintenanceCancel}
+         isOpen={showMaintenanceForm}
+       />
     </div>
   );
 };

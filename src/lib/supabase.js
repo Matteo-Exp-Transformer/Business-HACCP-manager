@@ -37,7 +37,8 @@ export const TABLES = {
   CLEANING: 'cleaning',
   INVENTORY: 'inventory',
   PRODUCT_LABELS: 'product_labels',
-  ONBOARDING: 'onboarding'
+  ONBOARDING: 'onboarding',
+  MAINTENANCE_TASKS: 'maintenance_tasks'
 }
 
 // Company data structure

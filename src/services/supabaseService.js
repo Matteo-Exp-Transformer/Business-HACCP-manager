@@ -19,6 +19,9 @@
 
 import { supabase, TABLES, createCompanyStructure } from '../lib/supabase.js'
 
+// Importa anche l'URL per il controllo
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
+
 // Service class for Supabase operations
 class SupabaseService {
   constructor() {
@@ -363,6 +366,118 @@ class SupabaseService {
       return this.handleSuccess(data, 'getOnboarding')
     } catch (error) {
       return this.handleError(error, 'getOnboarding')
+    }
+  }
+
+  // ===== MAINTENANCE TASKS OPERATIONS =====
+  async saveMaintenanceTasks(maintenanceTasks) {
+    try {
+      // Controlla se Supabase è configurato correttamente
+      if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
+        console.warn('⚠️ Supabase non configurato, salvataggio in localStorage');
+        // Salva in localStorage come fallback
+        const existingTasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
+        const newTasks = maintenanceTasks.map(task => ({
+          ...task,
+          company_id: this.companyId,
+          updated_at: new Date().toISOString()
+        }));
+        const updatedTasks = [...existingTasks.filter(t => 
+          !maintenanceTasks.some(mt => mt.conservation_point_id === t.conservation_point_id)
+        ), ...newTasks];
+        localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(updatedTasks));
+        return this.handleSuccess(newTasks, 'saveMaintenanceTasks (localStorage)');
+      }
+
+      const { data, error } = await supabase
+        .from(TABLES.MAINTENANCE_TASKS)
+        .upsert(maintenanceTasks.map(task => ({
+          ...task,
+          company_id: this.companyId,
+          updated_at: new Date().toISOString()
+        })))
+        .select()
+
+      if (error) throw error
+      return this.handleSuccess(data, 'saveMaintenanceTasks')
+    } catch (error) {
+      return this.handleError(error, 'saveMaintenanceTasks')
+    }
+  }
+
+  async getMaintenanceTasks() {
+    try {
+      // Controlla se Supabase è configurato correttamente
+      if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
+        console.warn('⚠️ Supabase non configurato, caricamento da localStorage');
+        const tasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
+        const filteredTasks = tasks.filter(task => task.company_id === this.companyId);
+        return this.handleSuccess(filteredTasks, 'getMaintenanceTasks (localStorage)');
+      }
+
+      const { data, error } = await supabase
+        .from(TABLES.MAINTENANCE_TASKS)
+        .select('*')
+        .eq('company_id', this.companyId)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+      return this.handleSuccess(data || [], 'getMaintenanceTasks')
+    } catch (error) {
+      return this.handleError(error, 'getMaintenanceTasks')
+    }
+  }
+
+  async getMaintenanceTasksByConservationPoint(conservationPointId) {
+    try {
+      // Controlla se Supabase è configurato correttamente
+      if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
+        console.warn('⚠️ Supabase non configurato, caricamento da localStorage');
+        const tasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
+        const filteredTasks = tasks.filter(task => 
+          task.company_id === this.companyId && 
+          task.conservation_point_id === conservationPointId
+        );
+        return this.handleSuccess(filteredTasks, 'getMaintenanceTasksByConservationPoint (localStorage)');
+      }
+
+      const { data, error } = await supabase
+        .from(TABLES.MAINTENANCE_TASKS)
+        .select('*')
+        .eq('company_id', this.companyId)
+        .eq('conservation_point_id', conservationPointId)
+        .order('created_at', { ascending: true })
+
+      if (error) throw error
+      return this.handleSuccess(data || [], 'getMaintenanceTasksByConservationPoint')
+    } catch (error) {
+      return this.handleError(error, 'getMaintenanceTasksByConservationPoint')
+    }
+  }
+
+  async deleteMaintenanceTasksByConservationPoint(conservationPointId) {
+    try {
+      // Controlla se Supabase è configurato correttamente
+      if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
+        console.warn('⚠️ Supabase non configurato, eliminazione da localStorage');
+        const tasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
+        const filteredTasks = tasks.filter(task => 
+          !(task.company_id === this.companyId && task.conservation_point_id === conservationPointId)
+        );
+        localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(filteredTasks));
+        return this.handleSuccess(filteredTasks, 'deleteMaintenanceTasksByConservationPoint (localStorage)');
+      }
+
+      const { data, error } = await supabase
+        .from(TABLES.MAINTENANCE_TASKS)
+        .delete()
+        .eq('company_id', this.companyId)
+        .eq('conservation_point_id', conservationPointId)
+
+      if (error) throw error
+      return this.handleSuccess(data, 'deleteMaintenanceTasksByConservationPoint')
+    } catch (error) {
+      return this.handleError(error, 'deleteMaintenanceTasksByConservationPoint')
     }
   }
 

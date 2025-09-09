@@ -8,6 +8,12 @@ import { getConservationSuggestions, getOptimalTemperature } from '../utils/temp
 import TemperatureInput from './ui/TemperatureInput'
 import HelpOverlay from './HelpOverlay'
 import { CONSERVATION_POINT_RULES } from '../utils/haccpRules'
+import MaintenanceSection from './MaintenanceSection'
+import { 
+  MAINTENANCE_TASK_TYPES, 
+  validateMaintenanceConfig 
+} from '../utils/maintenanceConstants'
+import { supabaseService } from '../services/supabaseService'
 
 // Usa le categorie HACCP standardizzate
 const STORAGE_CATEGORIES = CONSERVATION_POINT_RULES.categories
@@ -25,7 +31,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     assignedRole: '',
     assignedTo: '',
     frequency: '',
-    selectedCategories: []
+    selectedCategories: [],
+    maintenanceData: {}
   })
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRefrigerator, setSelectedRefrigerator] = useState(null)
@@ -663,11 +670,33 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
 
 
 
-  const addRefrigerator = (e) => {
+  const addRefrigerator = async (e) => {
     e.preventDefault()
     
-    if (!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.assignedRole.trim() || !formData.frequency.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0) {
+    if (!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0) {
       return
+    }
+
+    // Validazione dati di manutenzione
+    if (formData.maintenanceData) {
+      const maintenanceErrors = {}
+      let hasMaintenanceErrors = false
+
+      Object.values(MAINTENANCE_TASK_TYPES).forEach(taskType => {
+        const taskData = formData.maintenanceData[taskType]
+        if (taskData) {
+          const validation = validateMaintenanceConfig(taskType, taskData)
+          if (!validation.isValid) {
+            maintenanceErrors[taskType] = validation.errors
+            hasMaintenanceErrors = true
+          }
+        }
+      })
+
+      if (hasMaintenanceErrors) {
+        alert('Configurazione manutenzione incompleta. Verifica che tutte e tre le attività (Rilevamento Temperatura, Sanificazione, Sbrinamento) abbiano frequenza, ruolo e categoria assegnati.')
+        return
+      }
     }
 
     // Check for duplicate name (only among currently active refrigerators)
@@ -724,31 +753,70 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       location: formData.location.trim(),
       dedicatedTo: formData.dedicatedTo.trim(),
       nextMaintenance: formData.nextMaintenance.trim(),
-      assignedRole: formData.assignedRole.trim(),
-      assignedTo: formData.assignedTo.trim(),
-      frequency: formData.frequency.trim(),
       selectedCategories: formData.selectedCategories || [],
+      maintenanceData: formData.maintenanceData || {},
       createdAt: new Date().toISOString(),
       createdBy: currentUser?.name || 'Unknown'
     }
 
     setRefrigerators([...refrigerators, newRefrigerator])
+    
+    // Salva le attività di manutenzione se presenti
+    if (formData.maintenanceData && Object.keys(formData.maintenanceData).length > 0) {
+      try {
+        const maintenanceTasks = Object.values(MAINTENANCE_TASK_TYPES).map(taskType => {
+          const taskData = formData.maintenanceData[taskType];
+          return {
+            id: `${newRefrigerator.id}_${taskType}_${Date.now()}`,
+            company_id: supabaseService.getCompanyId(),
+            conservation_point_id: newRefrigerator.id,
+            task_type: taskType,
+            frequency: taskData.frequency,
+            assigned_role: taskData.assigned_role,
+            assigned_category: taskData.assigned_category,
+            assigned_staff_ids: taskData.assigned_staff_ids || [],
+            is_active: true,
+            created_at: new Date().toISOString()
+          };
+        });
+
+        const result = await supabaseService.saveMaintenanceTasks(maintenanceTasks);
+        if (result.success) {
+          console.log('✅ Attività di manutenzione salvate:', result.data);
+        } else {
+          console.error('❌ Errore nel salvataggio manutenzione:', result.error);
+        }
+      } catch (error) {
+        console.error('❌ Errore durante il salvataggio delle attività di manutenzione:', error);
+      }
+    }
+    
     setFormData({
       name: '',
       setTemperature: '',
       location: '',
       dedicatedTo: '',
       nextMaintenance: '',
-      assignedRole: '',
-      assignedTo: '',
-      frequency: '',
-      selectedCategories: []
+      selectedCategories: [],
+      maintenanceData: {}
     })
     setShowAddModal(false)
   }
 
-  const deleteRefrigerator = (id) => {
+  const deleteRefrigerator = async (id) => {
     if (confirm('Sei sicuro di voler eliminare questo punto di conservazione?')) {
+      try {
+        // Elimina le attività di manutenzione associate
+        const result = await supabaseService.deleteMaintenanceTasksByConservationPoint(id);
+        if (result.success) {
+          console.log('✅ Attività di manutenzione eliminate per il punto:', id);
+        } else {
+          console.error('❌ Errore nell\'eliminazione manutenzione:', result.error);
+        }
+      } catch (error) {
+        console.error('❌ Errore durante l\'eliminazione delle attività di manutenzione:', error);
+      }
+      
       setRefrigerators(refrigerators.filter(ref => ref.id !== id))
     }
   }
@@ -777,19 +845,39 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       location: refrigerator.location || '',
       dedicatedTo: refrigerator.dedicatedTo || '',
       nextMaintenance: refrigerator.nextMaintenance || '',
-      assignedRole: refrigerator.assignedRole || '',
-      assignedTo: refrigerator.assignedTo || '',
-      frequency: refrigerator.frequency || '',
-      selectedCategories: refrigerator.selectedCategories || []
+      selectedCategories: refrigerator.selectedCategories || [],
+      maintenanceData: refrigerator.maintenanceData || {}
     })
     setShowEditModal(true)
   }
 
-  const updateRefrigerator = (e) => {
+  const updateRefrigerator = async (e) => {
     e.preventDefault()
     
-    if (!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.assignedRole.trim() || !formData.frequency.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0) {
+    if (!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0) {
       return
+    }
+
+    // Validazione dati di manutenzione
+    if (formData.maintenanceData) {
+      const maintenanceErrors = {}
+      let hasMaintenanceErrors = false
+
+      Object.values(MAINTENANCE_TASK_TYPES).forEach(taskType => {
+        const taskData = formData.maintenanceData[taskType]
+        if (taskData) {
+          const validation = validateMaintenanceConfig(taskType, taskData)
+          if (!validation.isValid) {
+            maintenanceErrors[taskType] = validation.errors
+            hasMaintenanceErrors = true
+          }
+        }
+      })
+
+      if (hasMaintenanceErrors) {
+        alert('Configurazione manutenzione incompleta. Verifica che tutte e tre le attività (Rilevamento Temperatura, Sanificazione, Sbrinamento) abbiano frequenza, ruolo e categoria assegnati.')
+        return
+      }
     }
 
     // Check for duplicate name (excluding the current refrigerator being edited)
@@ -846,10 +934,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       location: formData.location.trim(),
       dedicatedTo: formData.dedicatedTo.trim(),
       nextMaintenance: formData.nextMaintenance.trim(),
-      assignedRole: formData.assignedRole.trim(),
-      assignedTo: formData.assignedTo.trim(),
-      frequency: formData.frequency.trim(),
       selectedCategories: formData.selectedCategories || [],
+      maintenanceData: formData.maintenanceData || {},
       updatedAt: new Date().toISOString(),
       updatedBy: currentUser?.name || 'Unknown'
     }
@@ -858,16 +944,48 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       ref.id === editingRefrigerator.id ? updatedRefrigerator : ref
     ))
     
+    // Aggiorna le attività di manutenzione se presenti
+    if (formData.maintenanceData && Object.keys(formData.maintenanceData).length > 0) {
+      try {
+        // Prima elimina le attività esistenti per questo punto
+        await supabaseService.deleteMaintenanceTasksByConservationPoint(editingRefrigerator.id);
+        
+        // Poi crea le nuove attività
+        const maintenanceTasks = Object.values(MAINTENANCE_TASK_TYPES).map(taskType => {
+          const taskData = formData.maintenanceData[taskType];
+          return {
+            id: `${editingRefrigerator.id}_${taskType}_${Date.now()}`,
+            company_id: supabaseService.getCompanyId(),
+            conservation_point_id: editingRefrigerator.id,
+            task_type: taskType,
+            frequency: taskData.frequency,
+            assigned_role: taskData.assigned_role,
+            assigned_category: taskData.assigned_category,
+            assigned_staff_ids: taskData.assigned_staff_ids || [],
+            is_active: true,
+            created_at: new Date().toISOString()
+          };
+        });
+
+        const result = await supabaseService.saveMaintenanceTasks(maintenanceTasks);
+        if (result.success) {
+          console.log('✅ Attività di manutenzione aggiornate:', result.data);
+        } else {
+          console.error('❌ Errore nell\'aggiornamento manutenzione:', result.error);
+        }
+      } catch (error) {
+        console.error('❌ Errore durante l\'aggiornamento delle attività di manutenzione:', error);
+      }
+    }
+    
     setFormData({
       name: '',
       setTemperature: '',
       location: '',
       dedicatedTo: '',
       nextMaintenance: '',
-      assignedRole: '',
-      assignedTo: '',
-      frequency: '',
-      selectedCategories: []
+      selectedCategories: [],
+      maintenanceData: {}
     })
     setEditingRefrigerator(null)
     setShowEditModal(false)
@@ -1992,76 +2110,22 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               
 
               {/* Sezione Manutenzione */}
-              <div className="bg-orange-50 p-3 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Manutenzione</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="frequency" className="text-sm font-medium text-gray-700">Frequenza Rilevamento *</Label>
-                    <select
-                      id="frequency"
-                      value={formData.frequency}
-                      onChange={(e) => setFormData({...formData, frequency: e.target.value})}
-                      className="w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-1"
-                      required
-                    >
-                      <option value="">Seleziona frequenza</option>
-                      <option value="giornaliera">Giornaliera</option>
-                      <option value="settimanale">Settimanale</option>
-                      <option value="bisettimanale">Bisettimanale</option>
-                      <option value="mensile">Mensile</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="assignedRole" className="text-sm font-medium text-gray-700">Assegna rilevamento temperature a: *</Label>
-                    <select
-                      id="assignedRole"
-                      value={formData.assignedRole}
-                      onChange={(e) => setFormData({...formData, assignedRole: e.target.value, assignedTo: ''})}
-                      className="w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-1"
-                      required
-                    >
-                      <option value="">Seleziona categoria</option>
-                      <option value="Responsabile">Responsabile</option>
-                      <option value="Cuoco">Cuoco</option>
-                      <option value="Banconista">Banconista</option>
-                      <option value="Addetto">Addetto</option>
-                      <option value="Altro">Altro</option>
-                    </select>
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <Label htmlFor="assignedTo" className="text-sm font-medium text-gray-700">Dipendente Specifico (Opzionale)</Label>
-                    <select
-                      id="assignedTo"
-                      value={formData.assignedTo}
-                      onChange={(e) => setFormData({...formData, assignedTo: e.target.value})}
-                      className="w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-1"
-                      disabled={!formData.assignedRole}
-                    >
-                      <option value="">Seleziona dipendente</option>
-                      {staffMembers
-                        .filter(member => 
-                          formData.assignedRole ? 
-                            (formData.assignedRole === 'Altro' ? member.category === 'Altro' : member.role === formData.assignedRole) :
-                            true
-                        )
-                        .map(member => (
-                          <option key={member.id} value={member.name}>
-                            {member.name || 'Nome non disponibile'} - {member.role || 'Ruolo non disponibile'} ({member.category || 'Categoria non disponibile'})
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
+              <MaintenanceSection
+                conservationPointId={null} // Sarà generato al salvataggio
+                staffMembers={staffMembers}
+                onMaintenanceChange={(maintenanceData) => 
+                  setFormData({...formData, maintenanceData})
+                }
+                initialData={formData.maintenanceData}
+                isRequired={true}
+              />
               
               {/* Pulsanti di Azione */}
               <div className="flex gap-4 pt-6 border-t border-gray-200">
                 <Button 
                   type="submit" 
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3"
-                  disabled={!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.assignedRole.trim() || !formData.frequency.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0}
+                  disabled={!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0}
                 >
                   Aggiungi Punto di Conservazione
                 </Button>
@@ -2318,75 +2382,21 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               </div>
 
               {/* Sezione Manutenzione */}
-              <div className="bg-orange-50 p-3 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Manutenzione</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="edit-frequency" className="text-sm font-medium text-gray-700">Frequenza Rilevamento *</Label>
-                    <select
-                      id="edit-frequency"
-                      value={formData.frequency}
-                      onChange={(e) => setFormData({...formData, frequency: e.target.value})}
-                      className="w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-1"
-                      required
-                    >
-                      <option value="">Seleziona frequenza</option>
-                      <option value="giornaliera">Giornaliera</option>
-                      <option value="settimanale">Settimanale</option>
-                      <option value="bisettimanale">Bisettimanale</option>
-                      <option value="mensile">Mensile</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="edit-assignedRole" className="text-sm font-medium text-gray-700">Assegna rilevamento temperature a: *</Label>
-                    <select
-                      id="edit-assignedRole"
-                      value={formData.assignedRole}
-                      onChange={(e) => setFormData({...formData, assignedRole: e.target.value, assignedTo: ''})}
-                      className="w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-1"
-                      required
-                    >
-                      <option value="">Seleziona categoria</option>
-                      <option value="Responsabile">Responsabile</option>
-                      <option value="Cuoco">Cuoco</option>
-                      <option value="Banconista">Banconista</option>
-                      <option value="Addetto">Addetto</option>
-                      <option value="Altro">Altro</option>
-                    </select>
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <Label htmlFor="edit-assignedTo" className="text-sm font-medium text-gray-700">Dipendente Specifico (Opzionale)</Label>
-                    <select
-                      id="edit-assignedTo"
-                      value={formData.assignedTo}
-                      onChange={(e) => setFormData({...formData, assignedTo: e.target.value})}
-                      className="w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-1"
-                      disabled={!formData.assignedRole}
-                    >
-                      <option value="">Seleziona dipendente</option>
-                      {staffMembers
-                        .filter(member => 
-                          formData.assignedRole ? 
-                            (formData.assignedRole === 'Altro' ? member.category === 'Altro' : member.role === formData.assignedRole) :
-                            true
-                        )
-                        .map(member => (
-                          <option key={member.id} value={member.name}>
-                            {member.name || 'Nome non disponibile'} - {member.role || 'Ruolo non disponibile'} ({member.category || 'Categoria non disponibile'})
-                          </option>
-                        ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
+              <MaintenanceSection
+                conservationPointId={editingRefrigerator?.id}
+                staffMembers={staffMembers}
+                onMaintenanceChange={(maintenanceData) => 
+                  setFormData({...formData, maintenanceData})
+                }
+                initialData={formData.maintenanceData}
+                isRequired={true}
+              />
               
               <div className="flex gap-2 pt-4">
                 <Button 
                   type="submit" 
                   className="flex-1"
-                  disabled={!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.assignedRole.trim() || !formData.frequency.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0}
+                  disabled={!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0}
                 >
                   Aggiorna
                 </Button>
