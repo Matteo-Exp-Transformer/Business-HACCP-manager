@@ -333,10 +333,58 @@ function App() {
             id: 'staff_001',
             name: 'Matteo Cavallaro',
             fullName: 'Matteo Cavallaro',
-            role: 'Amministratore',
-            categories: ['Amministratore', 'Banconisti'],
+            role: 'Responsabile',
+            categories: ['Banconisti', 'Amministratore'],
             certification: 'HACCP Avanzato',
             notes: 'Responsabile generale',
+            addedDate: new Date().toLocaleDateString('it-IT'),
+            addedTime: new Date().toLocaleString('it-IT')
+          },
+          {
+            id: 'staff_002',
+            name: 'Fabrizio',
+            surname: 'Dettori',
+            fullName: 'Fabrizio Dettori',
+            role: 'Responsabile',
+            categories: ['Amministratore', 'Camerieri'],
+            certification: 'HACCP Base',
+            notes: 'Responsabile sala e amministrazione',
+            addedDate: new Date().toLocaleDateString('it-IT'),
+            addedTime: new Date().toLocaleString('it-IT')
+          },
+          {
+            id: 'staff_003',
+            name: 'Paolo',
+            surname: 'Dettori',
+            fullName: 'Paolo Dettori',
+            role: 'Amministratore',
+            categories: ['Amministratore', 'Cuochi'],
+            certification: 'HACCP Avanzato',
+            notes: 'Amministratore e responsabile cucina',
+            addedDate: new Date().toLocaleDateString('it-IT'),
+            addedTime: new Date().toLocaleString('it-IT')
+          },
+          {
+            id: 'staff_004',
+            name: 'Eddy',
+            surname: 'TheQueen',
+            fullName: 'Eddy TheQueen',
+            role: 'Dipendente',
+            categories: ['Banconisti'],
+            certification: 'HACCP Base',
+            notes: 'Addetto bancone',
+            addedDate: new Date().toLocaleDateString('it-IT'),
+            addedTime: new Date().toLocaleString('it-IT')
+          },
+          {
+            id: 'staff_005',
+            name: 'Elena',
+            surname: 'Guaitoli',
+            fullName: 'Elena Guaitoli',
+            role: 'Dipendente',
+            categories: ['Social & Media Manager', 'Banconisti'],
+            certification: 'HACCP Base',
+            notes: 'Social media e bancone',
             addedDate: new Date().toLocaleDateString('it-IT'),
             addedTime: new Date().toLocaleString('it-IT')
           }
@@ -412,7 +460,7 @@ function App() {
     console.log('✅ Dati di accesso precompilati: Admin / 0000')
     
     // Mostra conferma
-    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- Matteo Cavallaro (Admin)\n- Frigo A (2°C)\n- Task temperatura\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
+    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- Frigo A (2°C)\n- Task temperatura\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
   }
 
   // Funzione per resettare completamente l'onboarding
