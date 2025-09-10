@@ -161,6 +161,18 @@ const TasksStep = ({
 
   // Controlla se esistono TUTTE e 3 le attività obbligatorie per un punto di conservazione
   const hasTaskForConservationPoint = (point) => {
+    // Controlla prima nelle manutenzioni salvate nel database
+    const hasMaintenanceTasks = savedMaintenances.some(maintenanceGroup => 
+      maintenanceGroup.conservation_point_id === point.id &&
+      maintenanceGroup.tasks.length >= 3 // Deve avere tutte e 3 le manutenzioni obbligatorie
+    );
+    
+    if (hasMaintenanceTasks) {
+      console.log(`✅ Point ${point.id} (${point.name}) has maintenance tasks in database`);
+      return true;
+    }
+    
+    // Controlla nelle tasks esistenti (attività generiche)
     const pointTasks = tasks.filter(task => {
       const taskName = task.name.toLowerCase();
       const containsPointId = taskName.includes(point.id.toString());
@@ -254,12 +266,13 @@ const TasksStep = ({
       if (result.success) {
         console.log('✅ Manutenzioni salvate con successo');
         
-        // Ricarica le manutenzioni salvate
+        // Ricarica le manutenzioni salvate per aggiornare la lista
         await loadSavedMaintenances();
         
         // Chiudi il form
         setShowMaintenanceForm(false);
         setSelectedConservationPoint(null);
+        setExistingMaintenanceData(null);
         
         // Mostra messaggio di successo
         alert('Manutenzioni configurate con successo!');
