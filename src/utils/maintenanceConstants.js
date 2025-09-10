@@ -30,13 +30,11 @@ export const MAINTENANCE_FREQUENCIES = {
   [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: [
     { value: 'daily', label: 'Giornalmente' },
     { value: 'weekly', label: 'Settimanale' },
-    { value: 'monthly', label: 'Mensile' },
-    { value: 'custom_days', label: 'Giorni specifici' }
+    { value: 'monthly', label: 'Mensile' }
   ],
   [MAINTENANCE_TASK_TYPES.SANITIZATION]: [
     { value: 'daily', label: 'Giornalmente' },
-    { value: 'weekly', label: 'Settimanale' },
-    { value: 'custom_days', label: 'Giorni specifici' }
+    { value: 'weekly', label: 'Settimanale' }
   ],
   [MAINTENANCE_TASK_TYPES.DEFROSTING]: [
     { value: 'semiannual', label: 'Semestrale (ogni 6 mesi)' },
@@ -94,12 +92,12 @@ export const MAINTENANCE_VALIDATIONS = {
   [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
     requiredFields: ['frequency'],
     optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids', 'selected_days'],
-    frequencyOptions: MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING].map(f => f.value)
+    frequencyOptions: [...MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING].map(f => f.value), 'custom_days']
   },
   [MAINTENANCE_TASK_TYPES.SANITIZATION]: {
     requiredFields: ['frequency'],
     optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids', 'selected_days'],
-    frequencyOptions: MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.SANITIZATION].map(f => f.value)
+    frequencyOptions: [...MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.SANITIZATION].map(f => f.value), 'custom_days']
   },
   [MAINTENANCE_TASK_TYPES.DEFROSTING]: {
     requiredFields: ['frequency'],
