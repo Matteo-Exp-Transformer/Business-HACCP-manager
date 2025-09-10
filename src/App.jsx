@@ -447,18 +447,8 @@ function App() {
         count: 7
       },
       tasks: {
-        list: [
-          {
-            id: 'task_001',
-            name: 'Rilevamento temperatura Frigo A',
-            assignedRole: 'Amministratore',
-            assignedEmployee: 'Matteo Cavallaro',
-            frequency: 'Giornalmente',
-            priority: 'Alta',
-            notes: 'Controllo temperatura giornaliero del frigorifero principale'
-          }
-        ],
-        count: 1
+        list: [],
+        count: 0
       },
       products: {
         productsList: [
@@ -503,7 +493,7 @@ function App() {
     console.log('✅ Dati di accesso precompilati: Admin / 0000')
     
     // Mostra conferma
-    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- Task temperatura\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
+    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
   }
 
   // Funzione per resettare completamente l'onboarding
