@@ -558,7 +558,11 @@ const MaintenanceForm = ({
             </div>
             <p className="text-sm text-blue-700">
               Configura le tre attività di manutenzione obbligatorie per questo punto di conservazione.
-              Ogni attività deve avere frequenza, ruolo e categoria assegnati.
+              Ogni attività deve avere <strong>frequenza</strong> e <strong>almeno uno tra Ruolo o Dipendenti Specifici</strong> assegnati.
+              <br />
+              <span className="text-xs text-blue-600 mt-1 block">
+                💡 Per Sanificazione e Rilevamento Temperatura puoi selezionare giorni specifici della settimana.
+              </span>
             </p>
           </div>
         </div>
