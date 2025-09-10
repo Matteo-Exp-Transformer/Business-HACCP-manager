@@ -317,11 +317,11 @@ const MaintenanceForm = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Configura Manutenzione</h2>
-            <p className="text-sm text-gray-600 mt-1">
-              Punto di Conservazione: <span className="font-medium">{conservationPoint?.name}</span>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Configura Manutenzione</h1>
+            <p className="text-lg text-gray-700">
+              Punto di Conservazione: <span className="font-semibold text-blue-600">{conservationPoint?.name}</span>
             </p>
           </div>
           <Button
@@ -335,17 +335,6 @@ const MaintenanceForm = ({
         </div>
 
         <div className="space-y-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-blue-800">Manutenzione Obbligatoria</h3>
-            </div>
-            <p className="text-sm text-blue-700">
-              Configura le tre attività di manutenzione obbligatorie per questo punto di conservazione.
-              Ogni attività deve avere frequenza, ruolo e categoria assegnati.
-            </p>
-          </div>
-
           {/* Rilevamento Temperatura */}
           {renderMaintenanceTask(MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING)}
 
@@ -355,17 +344,15 @@ const MaintenanceForm = ({
           {/* Sbrinamento */}
           {renderMaintenanceTask(MAINTENANCE_TASK_TYPES.DEFROSTING)}
 
-          {/* Validazione finale */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          {/* Messaggio informativo spostato in basso */}
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-5 h-5 text-yellow-600" />
-              <span className="text-sm font-medium text-yellow-800">
-                Validazione Critica: Attività di Manutenzione
-              </span>
+              <AlertTriangle className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-blue-800">Manutenzione Obbligatoria</h3>
             </div>
-            <p className="text-sm text-yellow-700">
-              Tutte e tre le attività di manutenzione (Rilevamento Temperatura, Sanificazione, Sbrinamento) 
-              devono essere configurate per completare l'assegnazione delle mansioni.
+            <p className="text-sm text-blue-700">
+              Configura le tre attività di manutenzione obbligatorie per questo punto di conservazione.
+              Ogni attività deve avere frequenza, ruolo e categoria assegnati.
             </p>
           </div>
         </div>
