@@ -432,26 +432,26 @@ const TasksStep = ({
                           <div className="space-y-1 text-gray-600">
                             <div className="flex items-center">
                               <span className="font-medium w-20">Frequenza:</span> 
-                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
                                 {formatFrequencyLabel(task.frequency, task.selected_days)}
                               </span>
                             </div>
                             {task.assigned_role && (
                               <div className="flex items-center">
                                 <span className="font-medium w-20">Ruolo:</span> 
-                                <span className="text-gray-700 font-medium">{task.assigned_role}</span>
+                                <span className="text-gray-700 font-semibold text-sm">{task.assigned_role}</span>
                               </div>
                             )}
                             {task.assigned_category && (
                               <div className="flex items-center">
                                 <span className="font-medium w-20">Categoria:</span> 
-                                <span className="text-gray-700 font-medium">{task.assigned_category}</span>
+                                <span className="text-gray-700 font-semibold text-sm">{task.assigned_category}</span>
                               </div>
                             )}
                             {task.assigned_staff_ids && task.assigned_staff_ids.length > 0 && (
                               <div className="flex items-center">
                                 <span className="font-medium w-20">Dipendenti:</span> 
-                                <span className="text-blue-600 font-medium">
+                                <span className="text-gray-700 font-semibold text-sm">
                                   {task.assigned_staff_ids.length} selezionati
                                 </span>
                               </div>
