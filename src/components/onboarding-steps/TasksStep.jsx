@@ -427,37 +427,35 @@ const TasksStep = ({
                     
                     <div className="space-y-3">
                       {maintenanceGroup.tasks.map(task => (
-                        <div key={task.id} className="bg-white rounded-lg p-3 border border-yellow-200">
-                          <div className="text-sm">
-                            <span className="font-semibold text-gray-800">{task.task_name}:</span>
-                            <div className="mt-1 space-y-1 text-gray-600">
-                              <div>
-                                <span className="font-medium">Frequenza:</span> 
-                                <span className="ml-2 px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
-                                  {formatFrequencyLabel(task.frequency, task.selected_days)}
+                        <div key={task.id} className="text-sm">
+                          <div className="font-semibold text-gray-800 mb-2">{task.task_name}:</div>
+                          <div className="space-y-1 text-gray-600">
+                            <div className="flex items-center">
+                              <span className="font-medium w-20">Frequenza:</span> 
+                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
+                                {formatFrequencyLabel(task.frequency, task.selected_days)}
+                              </span>
+                            </div>
+                            {task.assigned_role && (
+                              <div className="flex items-center">
+                                <span className="font-medium w-20">Ruolo:</span> 
+                                <span className="text-gray-700 font-medium">{task.assigned_role}</span>
+                              </div>
+                            )}
+                            {task.assigned_category && (
+                              <div className="flex items-center">
+                                <span className="font-medium w-20">Categoria:</span> 
+                                <span className="text-gray-700 font-medium">{task.assigned_category}</span>
+                              </div>
+                            )}
+                            {task.assigned_staff_ids && task.assigned_staff_ids.length > 0 && (
+                              <div className="flex items-center">
+                                <span className="font-medium w-20">Dipendenti:</span> 
+                                <span className="text-blue-600 font-medium">
+                                  {task.assigned_staff_ids.length} selezionati
                                 </span>
                               </div>
-                              {task.assigned_role && (
-                                <div>
-                                  <span className="font-medium">Ruolo:</span> 
-                                  <span className="ml-2 text-gray-700">{task.assigned_role}</span>
-                                </div>
-                              )}
-                              {task.assigned_category && (
-                                <div>
-                                  <span className="font-medium">Categoria:</span> 
-                                  <span className="ml-2 text-gray-700">{task.assigned_category}</span>
-                                </div>
-                              )}
-                              {task.assigned_staff_ids && task.assigned_staff_ids.length > 0 && (
-                                <div>
-                                  <span className="font-medium">Dipendenti:</span> 
-                                  <span className="ml-2 text-blue-600">
-                                    {task.assigned_staff_ids.length} selezionati
-                                  </span>
-                                </div>
-                              )}
-                            </div>
+                            )}
                           </div>
                         </div>
                       ))}
