@@ -200,7 +200,7 @@ export const CONSERVATION_POINT_RULES = {
       minTemp: -20,
       maxTemp: -16,
       description: 'Tutti i prodotti surgelati',
-      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'hot_holding']
+      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'hot_holding', 'fresh_beverages']
     },
     {
       id: 'deep_frozen',
@@ -208,7 +208,7 @@ export const CONSERVATION_POINT_RULES = {
       minTemp: -25,
       maxTemp: -18,
       description: 'Prodotti ultra surgelati (es. gelati)',
-      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'hot_holding']
+      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'hot_holding', 'fresh_beverages']
     },
     {
       id: 'dry_goods',
@@ -224,7 +224,7 @@ export const CONSERVATION_POINT_RULES = {
       minTemp: 60,
       maxTemp: 70,
       description: 'Piatti pronti caldi, mantenuti a temperatura',
-      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'frozen', 'deep_frozen']
+      incompatibleWith: ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'frozen', 'deep_frozen', 'fresh_beverages']
     },
     {
       id: 'chilled_ready',
@@ -232,6 +232,14 @@ export const CONSERVATION_POINT_RULES = {
       minTemp: 2,
       maxTemp: 8,
       description: 'Piatti pronti freddi, insalate pronte',
+      incompatibleWith: ['frozen', 'deep_frozen', 'hot_holding']
+    },
+    {
+      id: 'fresh_beverages',
+      name: 'Bevande Fresche',
+      minTemp: 3,
+      maxTemp: 10,
+      description: 'Bibite, succhi, acqua, bevande fresche',
       incompatibleWith: ['frozen', 'deep_frozen', 'hot_holding']
     }
   ],

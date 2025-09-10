@@ -331,7 +331,8 @@ function App() {
         staffMembers: [
           {
             id: 'staff_001',
-            name: 'Matteo Cavallaro',
+            name: 'Matteo',
+            surname: 'Cavallaro',
             fullName: 'Matteo Cavallaro',
             role: 'Responsabile',
             categories: ['Banconisti', 'Amministratore'],

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Validazioni Staff</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Validazioni Staff - Dati Precompilati</h1>
+    
+    <div id="test-results"></div>
+    
+    <script>
+        // Dati precompilati dall'App.jsx
+        const precompiledStaff = [
+            {
+                id: 'staff_001',
+                name: 'Matteo',
+                surname: 'Cavallaro',
+                fullName: 'Matteo Cavallaro',
+                role: 'Responsabile',
+                categories: ['Banconisti', 'Amministratore'],
+                certification: 'HACCP Avanzato',
+                notes: 'Responsabile generale',
+                addedDate: new Date().toLocaleDateString('it-IT'),
+                addedTime: new Date().toLocaleString('it-IT')
+            },
+            {
+                id: 'staff_002',
+                name: 'Fabrizio',
+                surname: 'Dettori',
+                fullName: 'Fabrizio Dettori',
+                role: 'Responsabile',
+                categories: ['Amministratore', 'Camerieri'],
+                certification: 'HACCP Base',
+                notes: 'Responsabile sala e amministrazione',
+                addedDate: new Date().toLocaleDateString('it-IT'),
+                addedTime: new Date().toLocaleString('it-IT')
+            },
+            {
+                id: 'staff_003',
+                name: 'Paolo',
+                surname: 'Dettori',
+                fullName: 'Paolo Dettori',
+                role: 'Amministratore',
+                categories: ['Amministratore', 'Cuochi'],
+                certification: 'HACCP Avanzato',
+                notes: 'Amministratore e responsabile cucina',
+                addedDate: new Date().toLocaleDateString('it-IT'),
+                addedTime: new Date().toLocaleString('it-IT')
+            },
+            {
+                id: 'staff_004',
+                name: 'Eddy',
+                surname: 'TheQueen',
+                fullName: 'Eddy TheQueen',
+                role: 'Dipendente',
+                categories: ['Banconisti'],
+                certification: 'HACCP Base',
+                notes: 'Addetto bancone',
+                addedDate: new Date().toLocaleDateString('it-IT'),
+                addedTime: new Date().toLocaleString('it-IT')
+            },
+            {
+                id: 'staff_005',
+                name: 'Elena',
+                surname: 'Guaitoli',
+                fullName: 'Elena Guaitoli',
+                role: 'Dipendente',
+                categories: ['Social & Media Manager', 'Banconisti'],
+                certification: 'HACCP Base',
+                notes: 'Social media e bancone',
+                addedDate: new Date().toLocaleDateString('it-IT'),
+                addedTime: new Date().toLocaleString('it-IT')
+            }
+        ];
+
+        // Regole di validazione dall'OnboardingWizard.jsx
+        const validRoles = ['Amministratore', 'Responsabile', 'Dipendente', 'Collaboratore Occasionale / Part-time'];
+        const validCategories = ['Cuochi', 'Banconisti', 'Camerieri', 'Social & Media Manager', 'Amministratore', 'Altro'];
+
+        // Funzione di validazione
+        function validateStaffMember(member, index) {
+            const errors = [];
+            
+            // Validazione fullName
+            if (!member.fullName?.trim()) {
+                errors.push(`Nome obbligatorio`);
+            } else if (member.fullName.trim().length < 3) {
+                errors.push(`Nome deve essere di almeno 3 caratteri`);
+            }
+            
+            // Validazione role
+            if (!member.role) {
+                errors.push(`Ruolo obbligatorio`);
+            } else if (!validRoles.includes(member.role)) {
+                errors.push(`Ruolo non valido - seleziona un ruolo valido`);
+            }
+            
+            // Validazione categories
+            const memberCategories = member.categories && member.categories.length > 0 ? member.categories : (member.category ? [member.category] : []);
+            if (memberCategories.length === 0) {
+                errors.push(`Categoria obbligatoria`);
+            } else {
+                memberCategories.forEach(category => {
+                    if (!validCategories.includes(category)) {
+                        errors.push(`Categoria non valida - seleziona una categoria valida`);
+                    }
+                });
+            }
+            
+            return {
+                isValid: errors.length === 0,
+                errors: errors
+            };
+        }
+
+        // Esegui test
+        function runTests() {
+            const resultsDiv = document.getElementById('test-results');
+            let allValid = true;
+            
+            resultsDiv.innerHTML = '<div class="info">🔄 Eseguendo test di validazione...</div>';
+            
+            precompiledStaff.forEach((member, index) => {
+                const validation = validateStaffMember(member, index);
+                const resultClass = validation.isValid ? 'success' : 'error';
+                const statusIcon = validation.isValid ? '✅' : '❌';
+                
+                if (!validation.isValid) allValid = false;
+                
+                const memberDiv = document.createElement('div');
+                memberDiv.className = `test-result ${resultClass}`;
+                memberDiv.innerHTML = `
+                    <h3>${statusIcon} ${member.fullName}</h3>
+                    <p><strong>Ruolo:</strong> ${member.role}</p>
+                    <p><strong>Categorie:</strong> ${member.categories.join(', ')}</p>
+                    ${validation.errors.length > 0 ? 
+                        `<p><strong>Errori:</strong></p><ul>${validation.errors.map(error => `<li>${error}</li>`).join('')}</ul>` : 
+                        '<p><strong>✅ Tutte le validazioni superate!</strong></p>'
+                    }
+                `;
+                resultsDiv.appendChild(memberDiv);
+            });
+            
+            // Risultato finale
+            const finalDiv = document.createElement('div');
+            finalDiv.className = `test-result ${allValid ? 'success' : 'error'}`;
+            finalDiv.innerHTML = `
+                <h2>${allValid ? '🎉 TUTTI I TEST SUPERATI!' : '⚠️ ALCUNI TEST FALLITI'}</h2>
+                <p>${allValid ? 
+                    'Tutti i membri dello staff precompilati soddisfano i requisiti di validazione.' : 
+                    'Alcuni membri dello staff non soddisfano i requisiti di validazione.'
+                }</p>
+            `;
+            resultsDiv.appendChild(finalDiv);
+        }
+
+        // Esegui test al caricamento
+        runTests();
+    </script>
+</body>
+</html>

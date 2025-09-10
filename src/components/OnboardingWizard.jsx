@@ -330,7 +330,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                  errors[`conservation_${index}_categories`] = "Categorie prodotti obbligatorie";
                } else {
                  // Controlla che le categorie selezionate siano valide
-                 const validCategories = ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'frozen', 'deep_frozen', 'dry_goods', 'hot_holding', 'chilled_ready'];
+                 const validCategories = ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'frozen', 'deep_frozen', 'dry_goods', 'hot_holding', 'chilled_ready', 'fresh_beverages'];
                  point.selectedCategories.forEach(categoryId => {
                    if (!validCategories.includes(categoryId)) {
                      errors[`conservation_${index}_categories`] = "Categoria non valida - seleziona categorie valide";
@@ -523,7 +523,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
           console.log(`🔍 point.selectedCategories length:`, point.selectedCategories?.length);
           
           // Debug categorie valide
-          const validCategories = ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'frozen', 'deep_frozen', 'dry_goods', 'hot_holding', 'chilled_ready'];
+          const validCategories = ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'frozen', 'deep_frozen', 'dry_goods', 'hot_holding', 'chilled_ready', 'fresh_beverages'];
           console.log(`🔍 CATEGORIE VALIDE:`, validCategories);
           console.log(`🔍 CATEGORIE SELEZIONATE:`, point.selectedCategories);
           
