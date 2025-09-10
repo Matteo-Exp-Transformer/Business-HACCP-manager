@@ -80,6 +80,8 @@ const MaintenanceForm = ({
 
   // Aggiorna un campo specifico per un tipo di attività
   const updateMaintenanceField = (taskType, field, value) => {
+    console.log(`🔄 updateMaintenanceField: ${taskType}.${field} = ${value}`);
+    
     setMaintenanceData(prev => ({
       ...prev,
       [taskType]: {
@@ -113,35 +115,34 @@ const MaintenanceForm = ({
     const role = taskData.assigned_role;
     const category = taskData.assigned_category;
 
-    console.log('🔍 getFilteredStaff Debug:', {
-      taskType,
-      role,
-      category,
-      staffMembers: staffMembers.length,
-      staffMembersData: staffMembers
-    });
+    // Solo log quando ruolo e categoria sono selezionati
+    if (role && category) {
+      console.log('🔍 getFilteredStaff Debug:', {
+        taskType,
+        role,
+        category,
+        staffMembers: staffMembers.length
+      });
 
-    if (!role || !category) {
-      console.log('⚠️ Ruolo o categoria mancanti:', { role, category });
-      return [];
+      const filtered = staffMembers.filter(member => {
+        const roleMatch = member.role === role;
+        const categoryMatch = member.categories && member.categories.includes(category);
+        
+        console.log(`🔍 Member ${member.name} ${member.surname}:`, {
+          memberRole: member.role,
+          memberCategories: member.categories,
+          roleMatch,
+          categoryMatch
+        });
+        
+        return roleMatch && categoryMatch;
+      });
+
+      console.log('✅ Filtered staff:', filtered);
+      return filtered;
     }
 
-    const filtered = staffMembers.filter(member => {
-      const roleMatch = member.role === role;
-      const categoryMatch = member.categories && member.categories.includes(category);
-      
-      console.log(`🔍 Member ${member.name} ${member.surname}:`, {
-        memberRole: member.role,
-        memberCategories: member.categories,
-        roleMatch,
-        categoryMatch
-      });
-      
-      return roleMatch && categoryMatch;
-    });
-
-    console.log('✅ Filtered staff:', filtered);
-    return filtered;
+    return [];
   };
 
   // Valida la configurazione di manutenzione
