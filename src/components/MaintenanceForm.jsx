@@ -12,7 +12,7 @@ import {
   getTaskTypeDisplayName
 } from '../utils/maintenanceConstants';
 
-// Funzioni helper per estrarre ruoli e categorie dai dati dello staff
+// Funzioni helper per filtri progressivi
 const getAvailableRoles = (staffMembers) => {
   if (!staffMembers || staffMembers.length === 0) return [];
   
@@ -23,14 +23,53 @@ const getAvailableRoles = (staffMembers) => {
   }));
 };
 
-const getAvailableCategories = (staffMembers) => {
+const getAvailableCategories = (staffMembers, selectedRole = null) => {
   if (!staffMembers || staffMembers.length === 0) return [];
   
-  const categories = [...new Set(staffMembers.flatMap(member => member.categories || []).filter(Boolean))];
+  let filteredMembers = staffMembers;
+  
+  // Se è selezionato un ruolo, filtra solo i membri con quel ruolo
+  if (selectedRole) {
+    const normalizedSelectedRole = selectedRole.toLowerCase().replace(/\s+/g, '_');
+    filteredMembers = staffMembers.filter(member => {
+      const memberRole = member.role?.toLowerCase().replace(/\s+/g, '_');
+      return memberRole === normalizedSelectedRole;
+    });
+  }
+  
+  const categories = [...new Set(filteredMembers.flatMap(member => member.categories || []).filter(Boolean))];
   return categories.map(cat => ({ 
     value: cat.toLowerCase().replace(/\s+/g, '_'), 
     label: cat 
   }));
+};
+
+const getAvailableStaff = (staffMembers, selectedRole = null, selectedCategory = null) => {
+  if (!staffMembers || staffMembers.length === 0) return [];
+  
+  let filteredMembers = staffMembers;
+  
+  // Filtra per ruolo se selezionato
+  if (selectedRole) {
+    const normalizedSelectedRole = selectedRole.toLowerCase().replace(/\s+/g, '_');
+    filteredMembers = filteredMembers.filter(member => {
+      const memberRole = member.role?.toLowerCase().replace(/\s+/g, '_');
+      return memberRole === normalizedSelectedRole;
+    });
+  }
+  
+  // Filtra per categoria se selezionata
+  if (selectedCategory) {
+    const normalizedSelectedCategory = selectedCategory.toLowerCase().replace(/\s+/g, '_');
+    filteredMembers = filteredMembers.filter(member => {
+      return member.categories && member.categories.some(cat => {
+        const memberCat = cat?.toLowerCase().replace(/\s+/g, '_');
+        return memberCat === normalizedSelectedCategory;
+      });
+    });
+  }
+  
+  return filteredMembers;
 };
 
 const MaintenanceForm = ({ 
@@ -64,15 +103,9 @@ const MaintenanceForm = ({
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Estrai ruoli e categorie dai dati dello staff
-  const availableRoles = getAvailableRoles(staffMembers);
-  const availableCategories = getAvailableCategories(staffMembers);
-
   // Log per debug
   console.log('🔍 MaintenanceForm - Available data:', {
-    staffMembers: staffMembers.length,
-    availableRoles,
-    availableCategories
+    staffMembers: staffMembers.length
   });
 
   // Reset form quando si apre
@@ -108,17 +141,29 @@ const MaintenanceForm = ({
     }
   }, [isOpen, conservationPoint, staffMembers]);
 
-  // Aggiorna un campo specifico per un tipo di attività
+  // Aggiorna un campo specifico per un tipo di attività con reset automatico
   const updateMaintenanceField = (taskType, field, value) => {
     console.log(`🔄 updateMaintenanceField: ${taskType}.${field} = ${value}`);
     
-    setMaintenanceData(prev => ({
-      ...prev,
-      [taskType]: {
-        ...prev[taskType],
-        [field]: value
+    setMaintenanceData(prev => {
+      const currentTask = prev[taskType];
+      const newTask = { ...currentTask, [field]: value };
+      
+      // Reset automatico basato sul campo modificato
+      if (field === 'assigned_role') {
+        // Se cambia il ruolo, reset categoria e dipendenti
+        newTask.assigned_category = '';
+        newTask.assigned_staff_ids = [];
+      } else if (field === 'assigned_category') {
+        // Se cambia la categoria, reset dipendenti
+        newTask.assigned_staff_ids = [];
       }
-    }));
+      
+      return {
+        ...prev,
+        [taskType]: newTask
+      };
+    });
   };
 
   // Gestisce la selezione/deselezione di dipendenti specifici
@@ -145,45 +190,18 @@ const MaintenanceForm = ({
     const role = taskData.assigned_role;
     const category = taskData.assigned_category;
 
-    // Solo log quando ruolo e categoria sono selezionati
-    if (role && category) {
-      console.log('🔍 getFilteredStaff Debug:', {
-        taskType,
-        role,
-        category,
-        staffMembers: staffMembers.length
-      });
+    // Usa la nuova funzione helper
+    const filtered = getAvailableStaff(staffMembers, role, category);
+    
+    console.log('🔍 getFilteredStaff Debug:', {
+      taskType,
+      role,
+      category,
+      filteredCount: filtered.length,
+      filtered: filtered.map(m => `${m.name} ${m.surname}`)
+    });
 
-      const filtered = staffMembers.filter(member => {
-        // Confronto ruoli: normalizza entrambi i valori
-        const memberRole = member.role?.toLowerCase().replace(/\s+/g, '_');
-        const selectedRole = role?.toLowerCase().replace(/\s+/g, '_');
-        const roleMatch = memberRole === selectedRole;
-        
-        // Confronto categorie: normalizza entrambi i valori
-        const categoryMatch = member.categories && member.categories.some(cat => {
-          const memberCat = cat?.toLowerCase().replace(/\s+/g, '_');
-          const selectedCat = category?.toLowerCase().replace(/\s+/g, '_');
-          return memberCat === selectedCat;
-        });
-        
-        console.log(`🔍 Member ${member.name} ${member.surname}:`, {
-          memberRole: member.role,
-          memberCategories: member.categories,
-          roleMatch,
-          categoryMatch,
-          normalizedRole: { member: memberRole, selected: selectedRole },
-          normalizedCategory: { member: member.categories?.map(c => c?.toLowerCase().replace(/\s+/g, '_')), selected: selectedCat }
-        });
-        
-        return roleMatch && categoryMatch;
-      });
-
-      console.log('✅ Filtered staff:', filtered);
-      return filtered;
-    }
-
-    return [];
+    return filtered;
   };
 
   // Valida la configurazione di manutenzione
@@ -255,8 +273,12 @@ const MaintenanceForm = ({
   const renderMaintenanceTask = (taskType) => {
     const taskData = maintenanceData[taskType];
     const taskErrors = validationErrors[taskType] || [];
-    const filteredStaff = getFilteredStaff(taskType);
     const frequencies = getFrequenciesForTaskType(taskType);
+    
+    // Filtri progressivi
+    const availableRoles = getAvailableRoles(staffMembers);
+    const availableCategories = getAvailableCategories(staffMembers, taskData.assigned_role);
+    const filteredStaff = getFilteredStaff(taskType);
 
     return (
       <div key={taskType} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -314,9 +336,12 @@ const MaintenanceForm = ({
               id={`${taskType}-role`}
               value={taskData.assigned_role}
               onChange={(e) => updateMaintenanceField(taskType, 'assigned_role', e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={!taskData.frequency}
+              className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                !taskData.frequency ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
             >
-              <option value="">Seleziona ruolo</option>
+              <option value="">{taskData.frequency ? 'Seleziona ruolo' : 'Prima seleziona frequenza'}</option>
               {availableRoles.map(role => (
                 <option key={role.value} value={role.value}>
                   {role.label}
@@ -334,9 +359,12 @@ const MaintenanceForm = ({
               id={`${taskType}-category`}
               value={taskData.assigned_category}
               onChange={(e) => updateMaintenanceField(taskType, 'assigned_category', e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              disabled={!taskData.assigned_role}
+              className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                !taskData.assigned_role ? 'bg-gray-100 cursor-not-allowed' : ''
+              }`}
             >
-              <option value="">Seleziona categoria</option>
+              <option value="">{taskData.assigned_role ? 'Seleziona categoria' : 'Prima seleziona ruolo'}</option>
               {availableCategories.map(category => (
                 <option key={category.value} value={category.value}>
                   {category.label}
