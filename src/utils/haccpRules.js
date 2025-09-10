@@ -237,7 +237,7 @@ export const CONSERVATION_POINT_RULES = {
     {
       id: 'fresh_beverages',
       name: 'Bevande Fresche',
-      minTemp: 3,
+      minTemp: 2,
       maxTemp: 10,
       description: 'Bibite, succhi, acqua, bevande fresche',
       incompatibleWith: ['frozen', 'deep_frozen', 'hot_holding']
