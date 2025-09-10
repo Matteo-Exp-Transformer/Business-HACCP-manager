@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
-import { Plus, X, ClipboardList, AlertTriangle } from 'lucide-react';
+import { Plus, X, ClipboardList, AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import MaintenanceForm from '../MaintenanceForm';
+import { supabaseService } from '../../services/supabaseService';
 
 const TasksStep = ({ 
   formData, 
@@ -29,6 +30,10 @@ const TasksStep = ({
   // Stati per il form di manutenzione
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
   const [selectedConservationPoint, setSelectedConservationPoint] = useState(null);
+  
+  // Stati per le manutenzioni salvate
+  const [savedMaintenances, setSavedMaintenances] = useState([]);
+  const [loadingMaintenances, setLoadingMaintenances] = useState(false);
 
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
@@ -45,6 +50,41 @@ const TasksStep = ({
       console.log('⚠️ Nessun task trovato in formData.tasks');
     }
   }, [formData.tasks]);
+
+  // Carica le manutenzioni salvate
+  const loadSavedMaintenances = async () => {
+    setLoadingMaintenances(true);
+    try {
+      const result = await supabaseService.getMaintenanceTasks();
+      if (result.success) {
+        // Raggruppa per punto di conservazione
+        const groupedMaintenances = result.data.reduce((acc, maintenance) => {
+          const pointId = maintenance.conservation_point_id;
+          if (!acc[pointId]) {
+            acc[pointId] = {
+              conservation_point_id: pointId,
+              conservation_point_name: maintenance.conservation_point_name,
+              tasks: []
+            };
+          }
+          acc[pointId].tasks.push(maintenance);
+          return acc;
+        }, {});
+        
+        setSavedMaintenances(Object.values(groupedMaintenances));
+        console.log('✅ Manutenzioni caricate:', Object.values(groupedMaintenances));
+      }
+    } catch (error) {
+      console.error('❌ Errore nel caricamento manutenzioni:', error);
+    } finally {
+      setLoadingMaintenances(false);
+    }
+  };
+
+  // Carica manutenzioni quando il componente si monta
+  useEffect(() => {
+    loadSavedMaintenances();
+  }, []);
 
   // Precompila il form quando viene aperto
   useEffect(() => {
@@ -204,37 +244,103 @@ const TasksStep = ({
   // Funzioni per gestire il form di manutenzione
   const handleMaintenanceSave = async (maintenanceTasks) => {
     try {
-      // Converte le attività di manutenzione nel formato delle tasks normali
-      const convertedTasks = maintenanceTasks.map(task => ({
-        id: task.id,
-        name: task.task_name,
-        assignedRole: task.assigned_role,
-        assignedCategory: task.assigned_category,
-        assignedStaffIds: task.assigned_staff_ids,
-        frequency: task.frequency,
-        taskType: 'maintenance',
-        maintenanceType: task.task_type,
-        conservationPointId: task.conservation_point_id,
-        conservationPointName: task.conservation_point_name,
-        createdAt: task.created_at
-      }));
-
-      // Aggiunge le nuove tasks alla lista esistente
-      setTasks(prev => [...prev, ...convertedTasks]);
+      console.log('💾 Salvataggio manutenzioni:', maintenanceTasks);
       
-      // Chiude il form
-      setShowMaintenanceForm(false);
-      setSelectedConservationPoint(null);
+      // Salva le manutenzioni tramite il servizio
+      const result = await supabaseService.saveMaintenanceTasks(maintenanceTasks);
       
-      console.log('✅ Manutenzione salvata:', convertedTasks);
+      if (result.success) {
+        console.log('✅ Manutenzioni salvate con successo');
+        
+        // Ricarica le manutenzioni salvate
+        await loadSavedMaintenances();
+        
+        // Chiudi il form
+        setShowMaintenanceForm(false);
+        setSelectedConservationPoint(null);
+        
+        // Mostra messaggio di successo
+        alert('Manutenzioni configurate con successo!');
+      } else {
+        console.error('❌ Errore nel salvataggio:', result.error);
+        alert('Errore nel salvataggio delle manutenzioni');
+      }
     } catch (error) {
-      console.error('❌ Errore durante il salvataggio della manutenzione:', error);
+      console.error('❌ Errore durante il salvataggio:', error);
+      alert('Errore durante il salvataggio delle manutenzioni');
     }
   };
 
   const handleMaintenanceCancel = () => {
     setShowMaintenanceForm(false);
     setSelectedConservationPoint(null);
+  };
+
+  // Gestisce la modifica delle manutenzioni
+  const handleEditMaintenance = (maintenanceGroup) => {
+    setSelectedConservationPoint({
+      id: maintenanceGroup.conservation_point_id,
+      name: maintenanceGroup.conservation_point_name
+    });
+    setShowMaintenanceForm(true);
+  };
+
+  // Gestisce l'eliminazione delle manutenzioni
+  const handleDeleteMaintenance = async (maintenanceGroup) => {
+    const confirmMessage = `Sei sicuro di voler eliminare tutte le manutenzioni per "${maintenanceGroup.conservation_point_name}"?\n\nQuesta azione non può essere annullata.`;
+    
+    if (window.confirm(confirmMessage)) {
+      try {
+        const result = await supabaseService.deleteMaintenanceTasksByConservationPoint(maintenanceGroup.conservation_point_id);
+        
+        if (result.success) {
+          console.log('✅ Manutenzioni eliminate con successo');
+          
+          // Ricarica le manutenzioni salvate
+          await loadSavedMaintenances();
+          
+          alert('Manutenzioni eliminate con successo!');
+        } else {
+          console.error('❌ Errore nell\'eliminazione:', result.error);
+          alert('Errore nell\'eliminazione delle manutenzioni');
+        }
+      } catch (error) {
+        console.error('❌ Errore durante l\'eliminazione:', error);
+        alert('Errore durante l\'eliminazione delle manutenzioni');
+      }
+    }
+  };
+
+  // Formatta le etichette delle frequenze
+  const formatFrequencyLabel = (frequency, selectedDays = []) => {
+    switch (frequency) {
+      case 'daily':
+        return 'Giornalmente';
+      case 'weekly':
+        return 'Settimanale';
+      case 'monthly':
+        return 'Mensile';
+      case 'semiannual':
+        return 'Semestrale';
+      case 'annual':
+        return 'Annuale';
+      case 'custom_days':
+        if (selectedDays && selectedDays.length > 0) {
+          const dayNames = {
+            monday: 'Lunedì',
+            tuesday: 'Martedì',
+            wednesday: 'Mercoledì',
+            thursday: 'Giovedì',
+            friday: 'Venerdì',
+            saturday: 'Sabato',
+            sunday: 'Domenica'
+          };
+          return selectedDays.map(day => dayNames[day]).join(', ');
+        }
+        return 'Giorni specifici';
+      default:
+        return frequency;
+    }
   };
   
   const canProceed = tasks.length > 0 && 
@@ -308,54 +414,111 @@ const TasksStep = ({
           </Button>
         </div>
 
-        {tasks.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <ClipboardList className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p>Nessuna attività configurata</p>
-            <p className="text-sm">Clicca "Aggiungi Nuova Attività" per iniziare</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {tasks.map(task => (
-              <div key={task.id} className="border rounded-lg p-4 bg-gray-50">
+        {/* Manutenzioni Salvate */}
+        {savedMaintenances.length > 0 && (
+          <div className="space-y-3 mb-6">
+            {savedMaintenances.map(maintenanceGroup => (
+              <div key={maintenanceGroup.conservation_point_id} className="border rounded-lg p-4 bg-yellow-50 border-yellow-200">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-4 mb-2">
-                      <h5 className="font-medium">{task.name}</h5>
-                      <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
-                        {task.frequency}
-                      </span>
+                    <h5 className="font-medium text-yellow-900 mb-3">
+                      Attività di Manutenzione ({maintenanceGroup.conservation_point_name})
+                    </h5>
+                    
+                    <div className="space-y-2">
+                      {maintenanceGroup.tasks.map(task => (
+                        <div key={task.id} className="flex items-center gap-4 text-sm">
+                          <span className="font-medium text-gray-700">{task.task_name}:</span>
+                          <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                            {formatFrequencyLabel(task.frequency, task.selected_days)}
+                          </span>
+                          {task.assigned_role && (
+                            <span className="text-gray-600">Ruolo: {task.assigned_role}</span>
+                          )}
+                          {task.assigned_staff_ids && task.assigned_staff_ids.length > 0 && (
+                            <span className="text-blue-600">
+                              Dipendenti: {task.assigned_staff_ids.length}
+                            </span>
+                          )}
+                        </div>
+                      ))}
                     </div>
-                    
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium">Assegnato a:</span> {task.assignedRole}
-                      {task.assignedEmployee && (
-                        <span className="ml-2 text-blue-600">({task.assignedEmployee})</span>
-                      )}
-                    </div>
-                    
-                    
-                    {task.name.toLowerCase().includes('rilevamento temperature') && (
-                      <div className="mt-2 text-sm text-blue-600">
-                        🌡️ Attività di monitoraggio temperature
-                      </div>
-                    )}
                   </div>
                   
                   <div className="flex gap-2">
                     <Button
-                      onClick={() => handleDeleteTask(task.id)}
+                      onClick={() => handleEditMaintenance(maintenanceGroup)}
+                      variant="outline"
+                      size="sm"
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      onClick={() => handleDeleteMaintenance(maintenanceGroup)}
                       variant="outline"
                       size="sm"
                       className="text-red-600 hover:text-red-700"
                     >
-                      <X className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+        )}
+
+        {/* Attività Generiche */}
+        {tasks.length === 0 && savedMaintenances.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <ClipboardList className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+            <p>Nessuna attività configurata</p>
+            <p className="text-sm">Clicca "Aggiungi Nuova Attività" per iniziare</p>
+          </div>
+        ) : (
+          tasks.length > 0 && (
+            <div className="space-y-3">
+              {tasks.map(task => (
+                <div key={task.id} className="border rounded-lg p-4 bg-gray-50">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-4 mb-2">
+                        <h5 className="font-medium">{task.name}</h5>
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                          {formatFrequencyLabel(task.frequency)}
+                        </span>
+                      </div>
+                      
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Assegnato a:</span> {task.assignedRole}
+                        {task.assignedEmployee && (
+                          <span className="ml-2 text-blue-600">({task.assignedEmployee})</span>
+                        )}
+                      </div>
+                      
+                      {task.name.toLowerCase().includes('rilevamento temperature') && (
+                        <div className="mt-2 text-sm text-blue-600">
+                          🌡️ Attività di monitoraggio temperature
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => handleDeleteTask(task.id)}
+                        variant="outline"
+                        size="sm"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
         )}
       </div>
 
