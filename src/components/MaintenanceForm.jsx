@@ -384,15 +384,18 @@ const MaintenanceForm = ({
               </Label>
               {/* Checkbox per giorni personalizzati - solo per Sanificazione e Rilevamento Temperatura */}
               {(taskType === MAINTENANCE_TASK_TYPES.SANITIZATION || taskType === MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING) && (
-                <label className="flex items-center space-x-2 text-sm text-gray-600">
+                <div className="flex items-center space-x-2 text-sm text-gray-600">
                   <input
                     type="checkbox"
+                    id={`${taskType}-custom-days`}
                     checked={useCustomDays[taskType]}
                     onChange={() => toggleCustomDays(taskType)}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span>Seleziona giorni della settimana</span>
-                </label>
+                  <label htmlFor={`${taskType}-custom-days`} className="cursor-pointer">
+                    Seleziona giorni della settimana
+                  </label>
+                </div>
               )}
             </div>
             
@@ -402,14 +405,14 @@ const MaintenanceForm = ({
                 <div className="text-sm text-gray-600 mb-2">Seleziona i giorni:</div>
                 <div className="grid grid-cols-2 gap-2">
                   {WEEKDAYS.map(day => (
-                    <label key={day.value} className="flex items-center space-x-2 text-sm">
+                    <label key={day.value} className="flex items-center space-x-2 text-base">
                       <input
                         type="checkbox"
                         checked={taskData.selected_days?.includes(day.value) || false}
                         onChange={() => toggleDay(taskType, day.value)}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-gray-700">{day.label}</span>
+                      <span className="text-gray-700 font-medium">{day.label}</span>
                     </label>
                   ))}
                 </div>
