@@ -317,13 +317,14 @@ const MaintenanceForm = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Configura Manutenzione</h1>
-            <p className="text-2xl text-gray-700">
-              Punto di Conservazione: <span className="font-bold text-blue-600">{conservationPoint?.name}</span>
-            </p>
-          </div>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Configura Manutenzione</h1>
+          <p className="text-2xl text-gray-700">
+            Punto di Conservazione: <span className="font-bold text-blue-600">{conservationPoint?.name}</span>
+          </p>
+        </div>
+        
+        <div className="absolute top-4 right-4">
           <Button
             onClick={onCancel}
             variant="outline"
