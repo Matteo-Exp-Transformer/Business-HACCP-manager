@@ -432,7 +432,7 @@ const TasksStep = ({
                           <div className="space-y-1 text-gray-600">
                             <div className="flex items-center">
                               <span className="font-medium w-20">Frequenza:</span> 
-                              <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
+                              <span className="text-gray-700 font-semibold text-sm">
                                 {formatFrequencyLabel(task.frequency, task.selected_days)}
                               </span>
                             </div>
