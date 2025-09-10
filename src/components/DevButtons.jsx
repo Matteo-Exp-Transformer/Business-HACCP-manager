@@ -7,20 +7,7 @@ const DevButtons = ({
   onResetOnboarding, 
   isDevMode = false 
 }) => {
-  // Mostra sempre i pulsanti di sviluppo se:
-  // 1. Siamo in modalità sviluppo (NODE_ENV === 'development')
-  // 2. Siamo su un URL di preview (contiene 'vercel.app' o 'netlify.app')
-  // 3. C'è un parametro URL ?dev=1
-  // 4. Siamo in modalità dev tramite localStorage
-  const isPreviewDeployment = window.location.hostname.includes('vercel.app') || 
-                             window.location.hostname.includes('netlify.app') ||
-                             window.location.hostname.includes('preview');
-  
-  const hasDevParam = new URLSearchParams(window.location.search).get('dev') === '1';
-  
-  const shouldShowDevButtons = isDevMode || isPreviewDeployment || hasDevParam;
-  
-  if (!shouldShowDevButtons) return null;
+  if (!isDevMode) return null;
 
   return (
     <div className="flex gap-2">

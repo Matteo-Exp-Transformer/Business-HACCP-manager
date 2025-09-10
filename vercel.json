@@ -4,11 +4,8 @@
       "main-precompilato": true
     }
   },
-  "buildCommand": "NODE_ENV=development npm run build",
+  "buildCommand": "npm run build",
   "outputDirectory": "docs",
-  "env": {
-    "NODE_ENV": "development"
-  },
   "framework": "vite",
   "rewrites": [
     {
