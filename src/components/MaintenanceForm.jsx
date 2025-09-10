@@ -7,12 +7,31 @@ import {
   MAINTENANCE_TASK_TYPES, 
   MAINTENANCE_TASK_NAMES,
   MAINTENANCE_FREQUENCIES,
-  MAINTENANCE_ROLES,
-  MAINTENANCE_CATEGORIES,
   validateMaintenanceConfig,
   getFrequenciesForTaskType,
   getTaskTypeDisplayName
 } from '../utils/maintenanceConstants';
+
+// Funzioni helper per estrarre ruoli e categorie dai dati dello staff
+const getAvailableRoles = (staffMembers) => {
+  if (!staffMembers || staffMembers.length === 0) return [];
+  
+  const roles = [...new Set(staffMembers.map(member => member.role).filter(Boolean))];
+  return roles.map(role => ({ 
+    value: role.toLowerCase().replace(/\s+/g, '_'), 
+    label: role 
+  }));
+};
+
+const getAvailableCategories = (staffMembers) => {
+  if (!staffMembers || staffMembers.length === 0) return [];
+  
+  const categories = [...new Set(staffMembers.flatMap(member => member.categories || []).filter(Boolean))];
+  return categories.map(cat => ({ 
+    value: cat.toLowerCase().replace(/\s+/g, '_'), 
+    label: cat 
+  }));
+};
 
 const MaintenanceForm = ({ 
   conservationPoint,
@@ -44,6 +63,17 @@ const MaintenanceForm = ({
 
   const [validationErrors, setValidationErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Estrai ruoli e categorie dai dati dello staff
+  const availableRoles = getAvailableRoles(staffMembers);
+  const availableCategories = getAvailableCategories(staffMembers);
+
+  // Log per debug
+  console.log('🔍 MaintenanceForm - Available data:', {
+    staffMembers: staffMembers.length,
+    availableRoles,
+    availableCategories
+  });
 
   // Reset form quando si apre
   useEffect(() => {
@@ -125,18 +155,15 @@ const MaintenanceForm = ({
       });
 
       const filtered = staffMembers.filter(member => {
-        const roleMatch = member.role?.toLowerCase() === role?.toLowerCase();
+        // Confronto ruoli: normalizza entrambi i valori
+        const memberRole = member.role?.toLowerCase().replace(/\s+/g, '_');
+        const selectedRole = role?.toLowerCase().replace(/\s+/g, '_');
+        const roleMatch = memberRole === selectedRole;
         
-        // Gestione speciale per "Social & Media Manager" che ha valori diversi
+        // Confronto categorie: normalizza entrambi i valori
         const categoryMatch = member.categories && member.categories.some(cat => {
-          const memberCat = cat?.toLowerCase();
-          const selectedCat = category?.toLowerCase();
-          
-          // Mappatura speciale per Social & Media Manager
-          if (selectedCat === 'social_media_manager' && memberCat === 'social & media manager') {
-            return true;
-          }
-          
+          const memberCat = cat?.toLowerCase().replace(/\s+/g, '_');
+          const selectedCat = category?.toLowerCase().replace(/\s+/g, '_');
           return memberCat === selectedCat;
         });
         
@@ -144,7 +171,9 @@ const MaintenanceForm = ({
           memberRole: member.role,
           memberCategories: member.categories,
           roleMatch,
-          categoryMatch
+          categoryMatch,
+          normalizedRole: { member: memberRole, selected: selectedRole },
+          normalizedCategory: { member: member.categories?.map(c => c?.toLowerCase().replace(/\s+/g, '_')), selected: selectedCat }
         });
         
         return roleMatch && categoryMatch;
@@ -288,7 +317,7 @@ const MaintenanceForm = ({
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Seleziona ruolo</option>
-              {MAINTENANCE_ROLES.map(role => (
+              {availableRoles.map(role => (
                 <option key={role.value} value={role.value}>
                   {role.label}
                 </option>
@@ -308,7 +337,7 @@ const MaintenanceForm = ({
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Seleziona categoria</option>
-              {MAINTENANCE_CATEGORIES.map(category => (
+              {availableCategories.map(category => (
                 <option key={category.value} value={category.value}>
                   {category.label}
                 </option>
