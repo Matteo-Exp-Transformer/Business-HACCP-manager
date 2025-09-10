@@ -92,6 +92,23 @@ vercel
 
 ---
 
+## **🤖 CI/CD: Prebuild e deploy di `main` su Vercel**
+
+Per pubblicare automaticamente il branch `main` come deploy precompilato (prebuilt):
+
+1. Imposta i segreti nel repository GitHub (Settings → Secrets and variables → Actions):
+   - `VERCEL_TOKEN`
+   - `VERCEL_ORG_ID`
+   - `VERCEL_PROJECT_ID`
+
+2. Il workflow `.github/workflows/deploy-vercel-main.yml` esegue:
+   - `vercel build --prod` per creare l'artifact precompilato
+   - `vercel deploy --prebuilt --prod --yes` per pubblicarlo in produzione
+
+Assicurati che `vercel.json` sia allineato alla tua build (es. `outputDirectory: "docs"`) e che il progetto su Vercel punti a questo repository.
+
+---
+
 ## **✅ Vantaggi Vercel CLI**
 
 - ✅ **No Git** richiesto
