@@ -51,6 +51,9 @@ import { initializeDataSchemas, initializeDevModeIfRequested } from './utils/dat
 import DevModeBanner from './components/DevModeBanner'
 import OnboardingWizard from './components/OnboardingWizard'
 import BottomSheetGuide from './components/BottomSheetGuide'
+import HeaderButtons from './components/HeaderButtons'
+import DevButtons from './components/DevButtons'
+import DataButtons from './components/DataButtons'
 import { shouldBypassOnboarding } from './utils/devMode'
 // import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
@@ -1435,126 +1438,25 @@ function App() {
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2">
-            {/* Prima riga: Pulsanti principali */}
-            <div className="flex gap-2">
-              {/* Pulsante Reset App - Solo in modalità sviluppo */}
-              {process.env.NODE_ENV === 'development' && (
-                <Button
-                  onClick={resetApp}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  title="Reset completo dell'app (solo sviluppo)"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  <span className="hidden sm:inline">Reset App</span>
-                  <span className="sm:hidden">Reset</span>
-                </Button>
-              )}
-              
-              {/* Pulsante Riapri Onboarding - Sempre visibile */}
-              <Button
-                onClick={() => setShowOnboarding(true)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                title="Riapri l'onboarding"
-              >
-                <Users className="h-4 w-4" />
-                <span className="hidden sm:inline">Riapri Onboarding</span>
-                <span className="sm:hidden">Onboarding</span>
-              </Button>
-            </div>
+            {/* Pulsanti principali */}
+            <HeaderButtons
+              onResetApp={resetApp}
+              onOpenOnboarding={() => setShowOnboarding(true)}
+              showResetApp={process.env.NODE_ENV === 'development'}
+            />
             
-            {/* Seconda riga: Pulsanti di sviluppo (solo su mobile) */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="flex gap-2 sm:hidden">
-                <Button
-                  onClick={prefillOnboarding}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50 flex-1"
-                  title="Precompila onboarding con dati di test"
-                >
-                  <Users className="h-4 w-4" />
-                  Precompila
-                </Button>
-                
-                <Button
-                  onClick={resetOnboarding}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 flex-1"
-                  title="Reset completo onboarding e app"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Reset
-                </Button>
-              </div>
-            )}
+            {/* Pulsanti di sviluppo - Sempre visibili se in dev mode */}
+            <DevButtons
+              onPrefillOnboarding={prefillOnboarding}
+              onResetOnboarding={resetOnboarding}
+              isDevMode={process.env.NODE_ENV === 'development'}
+            />
             
-            {/* Pulsanti di sviluppo su desktop (nascosti su mobile) */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="hidden sm:flex gap-2">
-                <Button
-                  onClick={prefillOnboarding}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-                  title="Precompila onboarding con dati di test"
-                >
-                  <Users className="h-4 w-4" />
-                  Precompila
-                </Button>
-                
-                <Button
-                  onClick={resetOnboarding}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                  title="Reset completo onboarding e app"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                  Reset Onboarding
-                </Button>
-              </div>
-            )}
-            
-            {/* Pulsanti Esporta/Importa */}
-            <div className="flex gap-2">
-              <Button
-                onClick={exportData}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Esporta</span>
-                <span className="sm:hidden">Export</span>
-              </Button>
-              
-              <label className="cursor-pointer">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                  asChild
-                >
-                  <span className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    <span className="hidden sm:inline">Importa</span>
-                    <span className="sm:hidden">Import</span>
-                  </span>
-                </Button>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={importData}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
+            {/* Pulsanti dati */}
+            <DataButtons
+              onExportData={exportData}
+              onImportData={importData}
+            />
           </div>
         </div>
 
