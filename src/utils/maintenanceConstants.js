@@ -56,6 +56,7 @@ export const MAINTENANCE_CATEGORIES = [
   { value: 'cuochi', label: 'Cuochi' },
   { value: 'banconisti', label: 'Banconisti' },
   { value: 'camerieri', label: 'Camerieri' },
+  { value: 'social_media_manager', label: 'Social & Media Manager' },
   { value: 'altro', label: 'Altro' }
 ]
 

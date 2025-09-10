@@ -126,9 +126,19 @@ const MaintenanceForm = ({
 
       const filtered = staffMembers.filter(member => {
         const roleMatch = member.role?.toLowerCase() === role?.toLowerCase();
-        const categoryMatch = member.categories && member.categories.some(cat => 
-          cat?.toLowerCase() === category?.toLowerCase()
-        );
+        
+        // Gestione speciale per "Social & Media Manager" che ha valori diversi
+        const categoryMatch = member.categories && member.categories.some(cat => {
+          const memberCat = cat?.toLowerCase();
+          const selectedCat = category?.toLowerCase();
+          
+          // Mappatura speciale per Social & Media Manager
+          if (selectedCat === 'social_media_manager' && memberCat === 'social & media manager') {
+            return true;
+          }
+          
+          return memberCat === selectedCat;
+        });
         
         console.log(`🔍 Member ${member.name} ${member.surname}:`, {
           memberRole: member.role,
