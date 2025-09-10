@@ -230,14 +230,17 @@ const MaintenanceForm = ({
     setMaintenanceData(prev => {
       const currentDays = prev[taskType].selected_days || [];
       const isSelected = currentDays.includes(dayValue);
+      const newDays = isSelected 
+        ? currentDays.filter(day => day !== dayValue)
+        : [...currentDays, dayValue];
       
       return {
         ...prev,
         [taskType]: {
           ...prev[taskType],
-          selected_days: isSelected 
-            ? currentDays.filter(day => day !== dayValue)
-            : [...currentDays, dayValue]
+          selected_days: newDays,
+          // Imposta frequency a 'custom_days' quando si selezionano giorni
+          frequency: newDays.length > 0 ? 'custom_days' : ''
         }
       };
     });
@@ -393,29 +396,45 @@ const MaintenanceForm = ({
               )}
             </div>
             
-            <select
-              id={`${taskType}-frequency`}
-              value={taskData.frequency}
-              onChange={(e) => updateMaintenanceField(taskType, 'frequency', e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Seleziona frequenza</option>
-              {useCustomDays[taskType] ? (
-                // Mostra giorni della settimana se checkbox abilitata
-                WEEKDAYS.map(day => (
-                  <option key={day.value} value={day.value}>
-                    {day.label}
-                  </option>
-                ))
-              ) : (
-                // Mostra frequenze standard se checkbox disabilitata
-                frequencies.map(freq => (
+            {useCustomDays[taskType] ? (
+              // Mostra checkbox per giorni della settimana se modalità personalizzata abilitata
+              <div className="mt-1 border border-gray-300 rounded-md p-3 bg-gray-50">
+                <div className="text-sm text-gray-600 mb-2">Seleziona i giorni:</div>
+                <div className="grid grid-cols-2 gap-2">
+                  {WEEKDAYS.map(day => (
+                    <label key={day.value} className="flex items-center space-x-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={taskData.selected_days?.includes(day.value) || false}
+                        onChange={() => toggleDay(taskType, day.value)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-gray-700">{day.label}</span>
+                    </label>
+                  ))}
+                </div>
+                {taskData.selected_days && taskData.selected_days.length > 0 && (
+                  <div className="mt-2 text-xs text-blue-600">
+                    Giorni selezionati: {taskData.selected_days.length}
+                  </div>
+                )}
+              </div>
+            ) : (
+              // Mostra dropdown standard se modalità personalizzata disabilitata
+              <select
+                id={`${taskType}-frequency`}
+                value={taskData.frequency}
+                onChange={(e) => updateMaintenanceField(taskType, 'frequency', e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Seleziona frequenza</option>
+                {frequencies.map(freq => (
                   <option key={freq.value} value={freq.value}>
                     {freq.label}
                   </option>
-                ))
-              )}
-            </select>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Ruolo */}

@@ -30,11 +30,13 @@ export const MAINTENANCE_FREQUENCIES = {
   [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: [
     { value: 'daily', label: 'Giornalmente' },
     { value: 'weekly', label: 'Settimanale' },
-    { value: 'monthly', label: 'Mensile' }
+    { value: 'monthly', label: 'Mensile' },
+    { value: 'custom_days', label: 'Giorni specifici' }
   ],
   [MAINTENANCE_TASK_TYPES.SANITIZATION]: [
     { value: 'daily', label: 'Giornalmente' },
-    { value: 'weekly', label: 'Settimanale' }
+    { value: 'weekly', label: 'Settimanale' },
+    { value: 'custom_days', label: 'Giorni specifici' }
   ],
   [MAINTENANCE_TASK_TYPES.DEFROSTING]: [
     { value: 'semiannual', label: 'Semestrale (ogni 6 mesi)' },
