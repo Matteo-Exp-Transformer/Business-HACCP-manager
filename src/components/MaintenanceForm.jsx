@@ -48,6 +48,12 @@ const MaintenanceForm = ({
   // Reset form quando si apre
   useEffect(() => {
     if (isOpen) {
+      console.log('🔍 MaintenanceForm opened with data:', {
+        conservationPoint,
+        staffMembers: staffMembers.length,
+        staffMembersData: staffMembers
+      });
+      
       setMaintenanceData({
         [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
           frequency: '',
@@ -70,7 +76,7 @@ const MaintenanceForm = ({
       });
       setValidationErrors({});
     }
-  }, [isOpen, conservationPoint]);
+  }, [isOpen, conservationPoint, staffMembers]);
 
   // Aggiorna un campo specifico per un tipo di attività
   const updateMaintenanceField = (taskType, field, value) => {
@@ -107,13 +113,35 @@ const MaintenanceForm = ({
     const role = taskData.assigned_role;
     const category = taskData.assigned_category;
 
-    if (!role || !category) return [];
+    console.log('🔍 getFilteredStaff Debug:', {
+      taskType,
+      role,
+      category,
+      staffMembers: staffMembers.length,
+      staffMembersData: staffMembers
+    });
 
-    return staffMembers.filter(member => 
-      member.role === role && 
-      member.categories && 
-      member.categories.includes(category)
-    );
+    if (!role || !category) {
+      console.log('⚠️ Ruolo o categoria mancanti:', { role, category });
+      return [];
+    }
+
+    const filtered = staffMembers.filter(member => {
+      const roleMatch = member.role === role;
+      const categoryMatch = member.categories && member.categories.includes(category);
+      
+      console.log(`🔍 Member ${member.name} ${member.surname}:`, {
+        memberRole: member.role,
+        memberCategories: member.categories,
+        roleMatch,
+        categoryMatch
+      });
+      
+      return roleMatch && categoryMatch;
+    });
+
+    console.log('✅ Filtered staff:', filtered);
+    return filtered;
   };
 
   // Valida la configurazione di manutenzione
