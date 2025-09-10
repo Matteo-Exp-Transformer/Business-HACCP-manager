@@ -117,23 +117,43 @@ const TasksStep = ({
     return points;
   };
 
-  // Controlla se esiste già una mansione per un punto di conservazione
+  // Controlla se esistono TUTTE e 3 le attività obbligatorie per un punto di conservazione
   const hasTaskForConservationPoint = (point) => {
-    return tasks.some(task => {
+    const pointTasks = tasks.filter(task => {
       const taskName = task.name.toLowerCase();
-      const isTemperatureTask = taskName.includes('rilevamento temperature') || 
-                               taskName.includes('rilevamento temperatura') ||
-                               taskName.includes('temperature') ||
-                               taskName.includes('temperatura') ||
-                               taskName.includes('monitoraggio');
-      
-      // Cerca sia l'ID che il nome del punto
       const containsPointId = taskName.includes(point.id.toString());
       const containsPointName = taskName.includes(point.name.toLowerCase());
-      
-      console.log(`🔍 Checking point ${point.id} (${point.name}): task="${task.name}", isTemperatureTask=${isTemperatureTask}, containsPointId=${containsPointId}, containsPointName=${containsPointName}`);
-      return isTemperatureTask && (containsPointId || containsPointName);
+      return containsPointId || containsPointName;
     });
+    
+    // Controlla che esistano tutte e 3 le attività obbligatorie
+    const hasTemperatureTask = pointTasks.some(task => {
+      const taskName = task.name.toLowerCase();
+      return taskName.includes('rilevamento temperature') || 
+             taskName.includes('rilevamento temperatura') ||
+             taskName.includes('temperature') ||
+             taskName.includes('temperatura') ||
+             taskName.includes('monitoraggio');
+    });
+    
+    const hasSanitizationTask = pointTasks.some(task => {
+      const taskName = task.name.toLowerCase();
+      return taskName.includes('sanificazione') || 
+             taskName.includes('sanitizzazione') ||
+             taskName.includes('pulizia');
+    });
+    
+    const hasDefrostingTask = pointTasks.some(task => {
+      const taskName = task.name.toLowerCase();
+      return taskName.includes('sbrinamento') || 
+             taskName.includes('sbrinare') ||
+             taskName.includes('defrosting');
+    });
+    
+    console.log(`🔍 Checking point ${point.id} (${point.name}): hasTemperatureTask=${hasTemperatureTask}, hasSanitizationTask=${hasSanitizationTask}, hasDefrostingTask=${hasDefrostingTask}`);
+    
+    // Restituisce true solo se esistono TUTTE e 3 le attività
+    return hasTemperatureTask && hasSanitizationTask && hasDefrostingTask;
   };
 
   // Validazione: X temperature tasks per X conservation points
@@ -249,7 +269,7 @@ const TasksStep = ({
                 <h4 className="font-medium text-yellow-900">Punti di Conservazione senza Mansioni</h4>
               </div>
               <p className="text-sm text-yellow-800 mb-3">
-                I seguenti punti di conservazione necessitano di mansioni di rilevamento temperature:
+                I seguenti punti di conservazione necessitano delle 3 mansioni obbligatorie (Rilevamento Temperatura, Sanificazione, Sbrinamento):
               </p>
               <div className="space-y-2">
                 {missingTasks.map(point => (
@@ -474,7 +494,7 @@ const TasksStep = ({
               <span className={`font-medium ${
                 temperatureTasksCount >= conservationPointsCount ? 'text-green-900' : 'text-red-900'
               }`}>
-                Validazione Critica: Attività Monitoraggio Temperature
+                Validazione Critica: Attività Manutenzione Complete
               </span>
             </div>
             <div className="mt-2 text-sm">
@@ -484,8 +504,8 @@ const TasksStep = ({
               </p>
               <p className={temperatureTasksCount >= conservationPointsCount ? 'text-green-800' : 'text-red-800'}>
                 {temperatureTasksCount >= conservationPointsCount 
-                  ? '✅ Requisito soddisfatto! Ogni punto ha la sua attività di monitoraggio.'
-                  : '⚠️ Devi creare almeno 1 attività di monitoraggio temperature per ogni punto di conservazione.'
+                  ? '✅ Requisito soddisfatto! Ogni punto ha le 3 attività obbligatorie (Rilevamento Temperatura, Sanificazione, Sbrinamento).'
+                  : '❌ Devi creare le 3 attività obbligatorie (Rilevamento Temperatura, Sanificazione, Sbrinamento) per ogni punto di conservazione.'
                 }
               </p>
             </div>
