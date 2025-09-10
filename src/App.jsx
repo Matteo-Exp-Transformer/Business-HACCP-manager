@@ -400,9 +400,51 @@ function App() {
             targetTemp: 2,
             selectedCategories: ['fresh_dairy', 'fresh_produce', 'fresh_meat']
             // La compliance verrà calcolata automaticamente dal componente
+          },
+          {
+            id: 'conservation-2',
+            name: 'Frigo Bancone 1',
+            location: 'Bancone',
+            targetTemp: 6,
+            selectedCategories: ['fresh_beverages', 'chilled_ready']
+          },
+          {
+            id: 'conservation-3',
+            name: 'Frigo Bancone 2',
+            location: 'Bancone',
+            targetTemp: 5,
+            selectedCategories: ['fresh_beverages', 'chilled_ready']
+          },
+          {
+            id: 'conservation-4',
+            name: 'Frigo Bancone 3',
+            location: 'Bancone',
+            targetTemp: 5,
+            selectedCategories: ['fresh_beverages', 'chilled_ready']
+          },
+          {
+            id: 'conservation-5',
+            name: 'Frigo B',
+            location: 'Cucina',
+            targetTemp: -18,
+            selectedCategories: ['frozen']
+          },
+          {
+            id: 'conservation-6',
+            name: 'Frigo C',
+            location: 'Cucina',
+            targetTemp: -22,
+            selectedCategories: ['deep_frozen']
+          },
+          {
+            id: 'conservation-7',
+            name: 'Frigo D',
+            location: 'Cucina',
+            targetTemp: -18,
+            selectedCategories: ['frozen']
           }
         ],
-        count: 1
+        count: 7
       },
       tasks: {
         list: [
@@ -461,7 +503,7 @@ function App() {
     console.log('✅ Dati di accesso precompilati: Admin / 0000')
     
     // Mostra conferma
-    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- Frigo A (2°C)\n- Task temperatura\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
+    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- Task temperatura\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
   }
 
   // Funzione per resettare completamente l'onboarding
