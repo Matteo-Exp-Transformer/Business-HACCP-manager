@@ -125,8 +125,10 @@ const MaintenanceForm = ({
       });
 
       const filtered = staffMembers.filter(member => {
-        const roleMatch = member.role === role;
-        const categoryMatch = member.categories && member.categories.includes(category);
+        const roleMatch = member.role?.toLowerCase() === role?.toLowerCase();
+        const categoryMatch = member.categories && member.categories.some(cat => 
+          cat?.toLowerCase() === category?.toLowerCase()
+        );
         
         console.log(`🔍 Member ${member.name} ${member.surname}:`, {
           memberRole: member.role,
