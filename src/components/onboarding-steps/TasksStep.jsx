@@ -342,6 +342,16 @@ const TasksStep = ({
         return frequency;
     }
   };
+
+  // Ottiene i nomi dei dipendenti selezionati
+  const getSelectedStaffNames = (staffIds) => {
+    if (!staffIds || staffIds.length === 0) return '';
+    
+    const staffMembers = formData.staff?.staffMembers || [];
+    const selectedStaff = staffMembers.filter(staff => staffIds.includes(staff.id));
+    
+    return selectedStaff.map(staff => `${staff.name} ${staff.surname}`).join(', ');
+  };
   
   const canProceed = tasks.length > 0 && 
     tasks.every(task => task.name && task.assignedRole && task.frequency) &&
@@ -421,9 +431,9 @@ const TasksStep = ({
               <div key={maintenanceGroup.conservation_point_id} className="border rounded-lg p-4 bg-yellow-50 border-yellow-200">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h5 className="font-medium text-yellow-900 mb-3">
+                    <h4 className="text-xl font-bold text-yellow-900 mb-4">
                       Attività di Manutenzione ({maintenanceGroup.conservation_point_name})
-                    </h5>
+                    </h4>
                     
                     <div className="space-y-3">
                       {maintenanceGroup.tasks.map(task => (
@@ -452,7 +462,7 @@ const TasksStep = ({
                               <div className="flex items-center">
                                 <span className="font-semibold">Dipendenti:</span> 
                                 <span className="ml-1 text-gray-700 font-semibold">
-                                  {task.assigned_staff_ids.length} selezionati
+                                  {getSelectedStaffNames(task.assigned_staff_ids)}
                                 </span>
                               </div>
                             )}
