@@ -1,4 +1,9 @@
 {
+  "git": {
+    "deploymentEnabled": {
+      "main-precompilato": true
+    }
+  },
   "buildCommand": "npm run build",
   "outputDirectory": "docs",
   "framework": "vite",
