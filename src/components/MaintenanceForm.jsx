@@ -7,6 +7,7 @@ import {
   MAINTENANCE_TASK_TYPES, 
   MAINTENANCE_TASK_NAMES,
   MAINTENANCE_FREQUENCIES,
+  WEEKDAYS,
   validateMaintenanceConfig,
   getFrequenciesForTaskType,
   getTaskTypeDisplayName
@@ -82,22 +83,32 @@ const MaintenanceForm = ({
   const [maintenanceData, setMaintenanceData] = useState({
     [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
       frequency: '',
+      selected_days: [],
       assigned_role: '',
       assigned_category: '',
       assigned_staff_ids: []
     },
     [MAINTENANCE_TASK_TYPES.SANITIZATION]: {
       frequency: '',
+      selected_days: [],
       assigned_role: '',
       assigned_category: '',
       assigned_staff_ids: []
     },
     [MAINTENANCE_TASK_TYPES.DEFROSTING]: {
       frequency: '',
+      selected_days: [],
       assigned_role: '',
       assigned_category: '',
       assigned_staff_ids: []
     }
+  });
+
+  // Stato per controllare se usare giorni personalizzati per ogni attività
+  const [useCustomDays, setUseCustomDays] = useState({
+    [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: false,
+    [MAINTENANCE_TASK_TYPES.SANITIZATION]: false,
+    [MAINTENANCE_TASK_TYPES.DEFROSTING]: false
   });
 
   const [validationErrors, setValidationErrors] = useState({});
@@ -120,22 +131,31 @@ const MaintenanceForm = ({
       setMaintenanceData({
         [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
           frequency: '',
+          selected_days: [],
           assigned_role: '',
           assigned_category: '',
           assigned_staff_ids: []
         },
         [MAINTENANCE_TASK_TYPES.SANITIZATION]: {
           frequency: '',
+          selected_days: [],
           assigned_role: '',
           assigned_category: '',
           assigned_staff_ids: []
         },
         [MAINTENANCE_TASK_TYPES.DEFROSTING]: {
           frequency: '',
+          selected_days: [],
           assigned_role: '',
           assigned_category: '',
           assigned_staff_ids: []
         }
+      });
+
+      setUseCustomDays({
+        [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: false,
+        [MAINTENANCE_TASK_TYPES.SANITIZATION]: false,
+        [MAINTENANCE_TASK_TYPES.DEFROSTING]: false
       });
       setValidationErrors({});
     }
@@ -150,7 +170,10 @@ const MaintenanceForm = ({
       const newTask = { ...currentTask, [field]: value };
       
       // Reset automatico basato sul campo modificato
-      if (field === 'assigned_role') {
+      if (field === 'frequency') {
+        // Se cambia la frequenza, reset giorni selezionati
+        newTask.selected_days = [];
+      } else if (field === 'assigned_role') {
         // Se cambia il ruolo, reset categoria e dipendenti
         newTask.assigned_category = '';
         newTask.assigned_staff_ids = [];
@@ -179,6 +202,42 @@ const MaintenanceForm = ({
         [taskType]: {
           ...prev[taskType],
           assigned_staff_ids: newStaff
+        }
+      };
+    });
+  };
+
+  // Gestisce il toggle per usare giorni personalizzati
+  const toggleCustomDays = (taskType) => {
+    setUseCustomDays(prev => ({
+      ...prev,
+      [taskType]: !prev[taskType]
+    }));
+
+    // Reset frequenza e giorni quando si cambia modalità
+    setMaintenanceData(prev => ({
+      ...prev,
+      [taskType]: {
+        ...prev[taskType],
+        frequency: '',
+        selected_days: []
+      }
+    }));
+  };
+
+  // Gestisce la selezione/deselezione dei giorni della settimana
+  const toggleDay = (taskType, dayValue) => {
+    setMaintenanceData(prev => {
+      const currentDays = prev[taskType].selected_days || [];
+      const isSelected = currentDays.includes(dayValue);
+      
+      return {
+        ...prev,
+        [taskType]: {
+          ...prev[taskType],
+          selected_days: isSelected 
+            ? currentDays.filter(day => day !== dayValue)
+            : [...currentDays, dayValue]
         }
       };
     });
@@ -245,6 +304,7 @@ const MaintenanceForm = ({
           task_type: taskType,
           task_name: getTaskTypeDisplayName(taskType),
           frequency: taskData.frequency,
+          selected_days: taskData.selected_days || [],
           assigned_role: taskData.assigned_role,
           assigned_category: taskData.assigned_category,
           assigned_staff_ids: taskData.assigned_staff_ids || [],
@@ -315,9 +375,24 @@ const MaintenanceForm = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Frequenza */}
           <div>
-            <Label htmlFor={`${taskType}-frequency`} className="text-sm font-medium text-gray-700">
-              Frequenza *
-            </Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label htmlFor={`${taskType}-frequency`} className="text-sm font-medium text-gray-700">
+                Frequenza *
+              </Label>
+              {/* Checkbox per giorni personalizzati - solo per Sanificazione e Rilevamento Temperatura */}
+              {(taskType === MAINTENANCE_TASK_TYPES.SANITIZATION || taskType === MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING) && (
+                <label className="flex items-center space-x-2 text-sm text-gray-600">
+                  <input
+                    type="checkbox"
+                    checked={useCustomDays[taskType]}
+                    onChange={() => toggleCustomDays(taskType)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Seleziona giorni della settimana</span>
+                </label>
+              )}
+            </div>
+            
             <select
               id={`${taskType}-frequency`}
               value={taskData.frequency}
@@ -325,11 +400,21 @@ const MaintenanceForm = ({
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
               <option value="">Seleziona frequenza</option>
-              {frequencies.map(freq => (
-                <option key={freq.value} value={freq.value}>
-                  {freq.label}
-                </option>
-              ))}
+              {useCustomDays[taskType] ? (
+                // Mostra giorni della settimana se checkbox abilitata
+                WEEKDAYS.map(day => (
+                  <option key={day.value} value={day.value}>
+                    {day.label}
+                  </option>
+                ))
+              ) : (
+                // Mostra frequenze standard se checkbox disabilitata
+                frequencies.map(freq => (
+                  <option key={freq.value} value={freq.value}>
+                    {freq.label}
+                  </option>
+                ))
+              )}
             </select>
           </div>
 
@@ -342,12 +427,9 @@ const MaintenanceForm = ({
               id={`${taskType}-role`}
               value={taskData.assigned_role}
               onChange={(e) => updateMaintenanceField(taskType, 'assigned_role', e.target.value)}
-              disabled={!taskData.frequency}
-              className={`mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                !taskData.frequency ? 'bg-gray-100 cursor-not-allowed' : ''
-              }`}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              <option value="">{taskData.frequency ? 'Seleziona ruolo' : 'Prima seleziona frequenza'}</option>
+              <option value="">Seleziona ruolo</option>
               {availableRoles.map(role => (
                 <option key={role.value} value={role.value}>
                   {role.label}

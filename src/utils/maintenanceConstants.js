@@ -42,6 +42,17 @@ export const MAINTENANCE_FREQUENCIES = {
   ]
 }
 
+// Giorni della settimana per frequenze personalizzate
+export const WEEKDAYS = [
+  { value: 'monday', label: 'Lunedì' },
+  { value: 'tuesday', label: 'Martedì' },
+  { value: 'wednesday', label: 'Mercoledì' },
+  { value: 'thursday', label: 'Giovedì' },
+  { value: 'friday', label: 'Venerdì' },
+  { value: 'saturday', label: 'Sabato' },
+  { value: 'sunday', label: 'Domenica' }
+]
+
 // Ruoli disponibili per assegnazione manutenzione
 export const MAINTENANCE_ROLES = [
   { value: 'amministratore', label: 'Amministratore' },
@@ -67,6 +78,7 @@ export const MAINTENANCE_TASK_SCHEMA = {
   conservation_point_id: 'string',
   task_type: 'string', // temperature_monitoring, sanitization, defrosting
   frequency: 'string', // daily, weekly, monthly, semiannual, annual
+  selected_days: ['string'], // array di giorni selezionati (solo se custom_days)
   assigned_role: 'string', // ruolo assegnato
   assigned_category: 'string', // categoria assegnata
   assigned_staff_ids: ['string'], // array di ID dipendenti specifici
@@ -79,17 +91,17 @@ export const MAINTENANCE_TASK_SCHEMA = {
 export const MAINTENANCE_VALIDATIONS = {
   [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
     requiredFields: ['frequency'],
-    optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids'],
+    optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids', 'selected_days'],
     frequencyOptions: MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING].map(f => f.value)
   },
   [MAINTENANCE_TASK_TYPES.SANITIZATION]: {
     requiredFields: ['frequency'],
-    optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids'],
+    optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids', 'selected_days'],
     frequencyOptions: MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.SANITIZATION].map(f => f.value)
   },
   [MAINTENANCE_TASK_TYPES.DEFROSTING]: {
     requiredFields: ['frequency'],
-    optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids'],
+    optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids', 'selected_days'],
     frequencyOptions: MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.DEFROSTING].map(f => f.value)
   }
 }
@@ -109,6 +121,13 @@ export const validateMaintenanceConfig = (taskType, config) => {
   // Controlla frequenza valida
   if (config.frequency && !validation.frequencyOptions.includes(config.frequency)) {
     errors.push(`Frequenza non valida per ${MAINTENANCE_TASK_NAMES[taskType]}`)
+  }
+  
+  // Controlla giorni selezionati se frequenza è custom_days
+  if (config.frequency === 'custom_days') {
+    if (!config.selected_days || config.selected_days.length === 0) {
+      errors.push(`Devi selezionare almeno un giorno per ${MAINTENANCE_TASK_NAMES[taskType]}`)
+    }
   }
   
   // Nuova logica: almeno uno tra Ruolo o Dipendenti Specifici deve essere selezionato
@@ -146,6 +165,7 @@ export default {
   MAINTENANCE_TASK_TYPES,
   MAINTENANCE_TASK_NAMES,
   MAINTENANCE_FREQUENCIES,
+  WEEKDAYS,
   MAINTENANCE_ROLES,
   MAINTENANCE_CATEGORIES,
   MAINTENANCE_TASK_SCHEMA,
