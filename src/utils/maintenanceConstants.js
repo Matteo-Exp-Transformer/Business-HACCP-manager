@@ -78,18 +78,18 @@ export const MAINTENANCE_TASK_SCHEMA = {
 // Validazioni per ogni tipo di attività
 export const MAINTENANCE_VALIDATIONS = {
   [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
-    requiredFields: ['frequency', 'assigned_role', 'assigned_category'],
-    optionalFields: ['assigned_staff_ids'],
+    requiredFields: ['frequency'],
+    optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids'],
     frequencyOptions: MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING].map(f => f.value)
   },
   [MAINTENANCE_TASK_TYPES.SANITIZATION]: {
-    requiredFields: ['frequency', 'assigned_role', 'assigned_category'],
-    optionalFields: ['assigned_staff_ids'],
+    requiredFields: ['frequency'],
+    optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids'],
     frequencyOptions: MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.SANITIZATION].map(f => f.value)
   },
   [MAINTENANCE_TASK_TYPES.DEFROSTING]: {
-    requiredFields: ['frequency', 'assigned_role', 'assigned_category'],
-    optionalFields: ['assigned_staff_ids'],
+    requiredFields: ['frequency'],
+    optionalFields: ['assigned_role', 'assigned_category', 'assigned_staff_ids'],
     frequencyOptions: MAINTENANCE_FREQUENCIES[MAINTENANCE_TASK_TYPES.DEFROSTING].map(f => f.value)
   }
 }
@@ -99,7 +99,7 @@ export const validateMaintenanceConfig = (taskType, config) => {
   const validation = MAINTENANCE_VALIDATIONS[taskType]
   const errors = []
   
-  // Controlla campi obbligatori
+  // Controlla campi obbligatori (solo frequenza)
   validation.requiredFields.forEach(field => {
     if (!config[field] || (Array.isArray(config[field]) && config[field].length === 0)) {
       errors.push(`${field} è obbligatorio per ${MAINTENANCE_TASK_NAMES[taskType]}`)
@@ -109,6 +109,14 @@ export const validateMaintenanceConfig = (taskType, config) => {
   // Controlla frequenza valida
   if (config.frequency && !validation.frequencyOptions.includes(config.frequency)) {
     errors.push(`Frequenza non valida per ${MAINTENANCE_TASK_NAMES[taskType]}`)
+  }
+  
+  // Nuova logica: almeno uno tra Ruolo o Dipendenti Specifici deve essere selezionato
+  const hasRole = !!config.assigned_role
+  const hasStaff = config.assigned_staff_ids && config.assigned_staff_ids.length > 0
+  
+  if (!hasRole && !hasStaff) {
+    errors.push(`Devi selezionare almeno Ruolo o Dipendenti Specifici per ${MAINTENANCE_TASK_NAMES[taskType]}`)
   }
   
   return {

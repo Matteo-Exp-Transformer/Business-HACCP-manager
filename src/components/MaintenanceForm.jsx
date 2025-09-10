@@ -190,7 +190,13 @@ const MaintenanceForm = ({
     const role = taskData.assigned_role;
     const category = taskData.assigned_category;
 
-    // Usa la nuova funzione helper
+    // Se non sono selezionati ruolo e categoria, mostra tutti i dipendenti
+    if (!role && !category) {
+      console.log('🔍 getFilteredStaff Debug: Mostrando tutti i dipendenti');
+      return staffMembers;
+    }
+
+    // Usa la nuova funzione helper per filtrare
     const filtered = getAvailableStaff(staffMembers, role, category);
     
     console.log('🔍 getFilteredStaff Debug:', {
@@ -353,7 +359,7 @@ const MaintenanceForm = ({
           {/* Categoria */}
           <div>
             <Label htmlFor={`${taskType}-category`} className="text-sm font-medium text-gray-700">
-              Categoria *
+              Categoria (Opzionale)
             </Label>
             <select
               id={`${taskType}-category`}
@@ -376,7 +382,7 @@ const MaintenanceForm = ({
           {/* Dipendenti Specifici (Opzionale) */}
           <div>
             <Label className="text-sm font-medium text-gray-700">
-              Dipendenti Specifici (Opzionale)
+              Dipendenti Specifici *
             </Label>
             {filteredStaff.length > 0 ? (
               <div className="mt-2 max-h-32 overflow-y-auto border border-gray-200 rounded-md p-2 bg-white">
@@ -399,7 +405,7 @@ const MaintenanceForm = ({
                 <p className="text-sm text-gray-500">
                   {taskData.assigned_role && taskData.assigned_category 
                     ? 'Nessun dipendente trovato per la combinazione ruolo/categoria selezionata'
-                    : 'Seleziona prima ruolo e categoria per vedere i dipendenti disponibili'
+                    : 'Seleziona ruolo e categoria per filtrare i dipendenti, oppure seleziona direttamente i dipendenti'
                   }
                 </p>
               </div>
