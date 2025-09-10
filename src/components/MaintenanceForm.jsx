@@ -320,8 +320,8 @@ const MaintenanceForm = ({
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Configura Manutenzione</h1>
-            <p className="text-lg text-gray-700">
-              Punto di Conservazione: <span className="font-semibold text-blue-600">{conservationPoint?.name}</span>
+            <p className="text-2xl text-gray-700">
+              Punto di Conservazione: <span className="font-bold text-blue-600">{conservationPoint?.name}</span>
             </p>
           </div>
           <Button
