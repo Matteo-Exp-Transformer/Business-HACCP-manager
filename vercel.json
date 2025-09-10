@@ -4,6 +4,7 @@
       "main-precompilato": true
     }
   },
+  // Deploy configuration for main-precompilato branch
   "buildCommand": "npm run build",
   "outputDirectory": "docs",
   "framework": "vite",
