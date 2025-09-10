@@ -1,11 +1,5 @@
-  backup-05-09[m
-  gh-pages[m
-  main[m
-  main-backup[m
-* [32mmain-precompilato[m
-  main-precompilato-backup[m
-  [31mremotes/origin/HEAD[m -> origin/main
-  [31mremotes/origin/main[m
-  [31mremotes/origin/main-backup[m
-  [31mremotes/origin/main-precompilato[m
-  [31mremotes/origin/main-precompilato-backup[m
+[33m9ffc6f2e[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain-precompilato-backup[m[33m, [m[1;32mmain-precompilato[m[33m)[m Temp commit before merge
+[33m5abff4a1[m Rimuove punti conservazione da 'senza mansioni' dopo salvataggio - Aggiorna hasTaskForConservationPoint per controllare manutenzioni salvate - Punto scompare dalla lista dopo aver salvato manutenzioni - Ricarica automatica lista dopo salvataggio - Logica intelligente per verificare completamento manutenzioni
+[33m04e550e6[m Implementa precompilamento form modifica manutenzione - Form si apre con dati esistenti quando si clicca Modifica - Carica frequenza, ruoli, categorie, dipendenti salvati - Imposta checkbox giorni personalizzati correttamente - Migliora UX per modifica manutenzioni esistenti
+[33ma634df29[m Migliora titolo e visualizzazione dipendenti - Ingrandisce titolo scheda manutenzione (text-xl font-bold) - Mostra nomi completi dipendenti invece di 'X selezionati' - Aggiunge funzione getSelectedStaffNames - Layout più leggibile e informativo
+[33me382584a[m Migliora layout manutenzioni orizzontale - Ingrandisce testo da text-sm a text-base - Dispone Frequenza, Ruolo, Categoria, Dipendenti orizzontalmente - Usa flex-wrap per responsive - Font-bold per titoli attività - Layout più compatto e leggibile
