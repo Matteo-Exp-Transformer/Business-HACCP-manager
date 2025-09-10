@@ -5,6 +5,7 @@ import { Label } from '../ui/Label';
 import { Plus, X, ClipboardList, AlertTriangle, Edit, Trash2 } from 'lucide-react';
 import MaintenanceForm from '../MaintenanceForm';
 import { supabaseService } from '../../services/supabaseService';
+import { MAINTENANCE_TASK_TYPES } from '../../utils/maintenanceConstants';
 
 const TasksStep = ({ 
   formData, 
@@ -30,6 +31,7 @@ const TasksStep = ({
   // Stati per il form di manutenzione
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
   const [selectedConservationPoint, setSelectedConservationPoint] = useState(null);
+  const [existingMaintenanceData, setExistingMaintenanceData] = useState(null);
   
   // Stati per le manutenzioni salvate
   const [savedMaintenances, setSavedMaintenances] = useState([]);
@@ -274,6 +276,7 @@ const TasksStep = ({
   const handleMaintenanceCancel = () => {
     setShowMaintenanceForm(false);
     setSelectedConservationPoint(null);
+    setExistingMaintenanceData(null);
   };
 
   // Gestisce la modifica delle manutenzioni
@@ -282,6 +285,29 @@ const TasksStep = ({
       id: maintenanceGroup.conservation_point_id,
       name: maintenanceGroup.conservation_point_name
     });
+    
+    // Prepara i dati esistenti per il form
+    const existingData = {
+      [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {},
+      [MAINTENANCE_TASK_TYPES.SANITIZATION]: {},
+      [MAINTENANCE_TASK_TYPES.DEFROSTING]: {}
+    };
+    
+    // Popola i dati esistenti per ogni tipo di attività
+    maintenanceGroup.tasks.forEach(task => {
+      const taskType = task.task_type;
+      if (existingData[taskType]) {
+        existingData[taskType] = {
+          frequency: task.frequency,
+          selected_days: task.selected_days || [],
+          assigned_role: task.assigned_role || '',
+          assigned_category: task.assigned_category || '',
+          assigned_staff_ids: task.assigned_staff_ids || []
+        };
+      }
+    });
+    
+    setExistingMaintenanceData(existingData);
     setShowMaintenanceForm(true);
   };
 
@@ -724,6 +750,7 @@ const TasksStep = ({
          onSave={handleMaintenanceSave}
          onCancel={handleMaintenanceCancel}
          isOpen={showMaintenanceForm}
+         existingData={existingMaintenanceData}
        />
     </div>
   );

@@ -78,7 +78,8 @@ const MaintenanceForm = ({
   staffMembers = [],
   onSave,
   onCancel,
-  isOpen = false
+  isOpen = false,
+  existingData = null
 }) => {
   const [maintenanceData, setMaintenanceData] = useState({
     [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
@@ -125,41 +126,58 @@ const MaintenanceForm = ({
       console.log('🔍 MaintenanceForm opened with data:', {
         conservationPoint,
         staffMembers: staffMembers.length,
-        staffMembersData: staffMembers
+        staffMembersData: staffMembers,
+        existingData
       });
       
-      setMaintenanceData({
-        [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
-          frequency: '',
-          selected_days: [],
-          assigned_role: '',
-          assigned_category: '',
-          assigned_staff_ids: []
-        },
-        [MAINTENANCE_TASK_TYPES.SANITIZATION]: {
-          frequency: '',
-          selected_days: [],
-          assigned_role: '',
-          assigned_category: '',
-          assigned_staff_ids: []
-        },
-        [MAINTENANCE_TASK_TYPES.DEFROSTING]: {
-          frequency: '',
-          selected_days: [],
-          assigned_role: '',
-          assigned_category: '',
-          assigned_staff_ids: []
-        }
-      });
+      if (existingData) {
+        // Carica dati esistenti per modifica
+        console.log('📝 Caricamento dati esistenti per modifica');
+        setMaintenanceData(existingData);
+        
+        // Imposta useCustomDays basato sui dati esistenti
+        setUseCustomDays({
+          [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: existingData[MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]?.frequency === 'custom_days',
+          [MAINTENANCE_TASK_TYPES.SANITIZATION]: existingData[MAINTENANCE_TASK_TYPES.SANITIZATION]?.frequency === 'custom_days',
+          [MAINTENANCE_TASK_TYPES.DEFROSTING]: false // Sbrinamento non supporta giorni personalizzati
+        });
+      } else {
+        // Reset per nuovo punto di conservazione
+        console.log('🆕 Reset per nuovo punto di conservazione');
+        setMaintenanceData({
+          [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
+            frequency: '',
+            selected_days: [],
+            assigned_role: '',
+            assigned_category: '',
+            assigned_staff_ids: []
+          },
+          [MAINTENANCE_TASK_TYPES.SANITIZATION]: {
+            frequency: '',
+            selected_days: [],
+            assigned_role: '',
+            assigned_category: '',
+            assigned_staff_ids: []
+          },
+          [MAINTENANCE_TASK_TYPES.DEFROSTING]: {
+            frequency: '',
+            selected_days: [],
+            assigned_role: '',
+            assigned_category: '',
+            assigned_staff_ids: []
+          }
+        });
 
-      setUseCustomDays({
-        [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: false,
-        [MAINTENANCE_TASK_TYPES.SANITIZATION]: false,
-        [MAINTENANCE_TASK_TYPES.DEFROSTING]: false
-      });
+        setUseCustomDays({
+          [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: false,
+          [MAINTENANCE_TASK_TYPES.SANITIZATION]: false,
+          [MAINTENANCE_TASK_TYPES.DEFROSTING]: false
+        });
+      }
+      
       setValidationErrors({});
     }
-  }, [isOpen, conservationPoint, staffMembers]);
+  }, [isOpen, conservationPoint, staffMembers, existingData]);
 
   // Aggiorna un campo specifico per un tipo di attività con reset automatico
   const updateMaintenanceField = (taskType, field, value) => {
