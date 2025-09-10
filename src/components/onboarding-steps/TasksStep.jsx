@@ -427,31 +427,31 @@ const TasksStep = ({
                     
                     <div className="space-y-3">
                       {maintenanceGroup.tasks.map(task => (
-                        <div key={task.id} className="text-sm">
-                          <div className="font-semibold text-gray-800 mb-2">{task.task_name}:</div>
-                          <div className="space-y-1 text-gray-600">
+                        <div key={task.id} className="text-base">
+                          <div className="font-bold text-gray-800 mb-2">{task.task_name}:</div>
+                          <div className="flex flex-wrap items-center gap-4 text-gray-600">
                             <div className="flex items-center">
-                              <span className="font-medium w-20">Frequenza:</span> 
-                              <span className="text-gray-700 font-semibold text-sm">
+                              <span className="font-semibold">Frequenza:</span> 
+                              <span className="ml-1 text-gray-700 font-semibold">
                                 {formatFrequencyLabel(task.frequency, task.selected_days)}
                               </span>
                             </div>
                             {task.assigned_role && (
                               <div className="flex items-center">
-                                <span className="font-medium w-20">Ruolo:</span> 
-                                <span className="text-gray-700 font-semibold text-sm">{task.assigned_role}</span>
+                                <span className="font-semibold">Ruolo:</span> 
+                                <span className="ml-1 text-gray-700 font-semibold">{task.assigned_role}</span>
                               </div>
                             )}
                             {task.assigned_category && (
                               <div className="flex items-center">
-                                <span className="font-medium w-20">Categoria:</span> 
-                                <span className="text-gray-700 font-semibold text-sm">{task.assigned_category}</span>
+                                <span className="font-semibold">Categoria:</span> 
+                                <span className="ml-1 text-gray-700 font-semibold">{task.assigned_category}</span>
                               </div>
                             )}
                             {task.assigned_staff_ids && task.assigned_staff_ids.length > 0 && (
                               <div className="flex items-center">
-                                <span className="font-medium w-20">Dipendenti:</span> 
-                                <span className="text-gray-700 font-semibold text-sm">
+                                <span className="font-semibold">Dipendenti:</span> 
+                                <span className="ml-1 text-gray-700 font-semibold">
                                   {task.assigned_staff_ids.length} selezionati
                                 </span>
                               </div>
