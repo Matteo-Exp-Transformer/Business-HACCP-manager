@@ -482,11 +482,326 @@ function App() {
     localStorage.setItem('haccp-users', JSON.stringify([adminUser]))
     localStorage.setItem('haccp-current-user', JSON.stringify(adminUser))
     
+    // Aggiungi dati manutenzioni precompilati
+    const maintenanceTasks = [
+      // Frigo A
+      {
+        id: 'conservation-1_temperature_monitoring_001',
+        conservation_point_id: 'conservation-1',
+        conservation_point_name: 'Frigo A',
+        task_type: 'temperature_monitoring',
+        task_name: 'Rilevamento Temperatura',
+        frequency: 'Mensile',
+        selected_days: [],
+        assigned_role: 'Responsabile',
+        assigned_category: 'Banconisti',
+        assigned_staff_ids: ['staff_001'], // Matteo Cavallaro
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-1_sanitization_001',
+        conservation_point_id: 'conservation-1',
+        conservation_point_name: 'Frigo A',
+        task_type: 'sanitization',
+        task_name: 'Sanificazione',
+        frequency: 'Giorni specifici',
+        selected_days: ['tuesday', 'thursday'], // Martedì e Giovedì
+        assigned_role: 'Amministratore',
+        assigned_category: 'Cuochi',
+        assigned_staff_ids: ['staff_003'], // Paolo Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-1_defrosting_001',
+        conservation_point_id: 'conservation-1',
+        conservation_point_name: 'Frigo A',
+        task_type: 'defrosting',
+        task_name: 'Sbrinamento',
+        frequency: 'Semestrale (ogni 6 mesi)',
+        selected_days: [],
+        assigned_role: 'Responsabile',
+        assigned_category: 'Amministratore',
+        assigned_staff_ids: ['staff_002'], // Fabrizio Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      
+      // Frigo Bancone 1
+      {
+        id: 'conservation-2_temperature_monitoring_001',
+        conservation_point_id: 'conservation-2',
+        conservation_point_name: 'Frigo Bancone 1',
+        task_type: 'temperature_monitoring',
+        task_name: 'Rilevamento Temperatura',
+        frequency: 'Mensile',
+        selected_days: [],
+        assigned_role: 'Dipendente',
+        assigned_category: 'Banconisti',
+        assigned_staff_ids: ['staff_004'], // Eddy TheQueen
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-2_sanitization_001',
+        conservation_point_id: 'conservation-2',
+        conservation_point_name: 'Frigo Bancone 1',
+        task_type: 'sanitization',
+        task_name: 'Sanificazione',
+        frequency: 'Giorni specifici',
+        selected_days: ['monday', 'wednesday'], // Lunedì e Mercoledì
+        assigned_role: 'Dipendente',
+        assigned_category: 'Social & Media Manager',
+        assigned_staff_ids: ['staff_005'], // Elena Guaitoli
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-2_defrosting_001',
+        conservation_point_id: 'conservation-2',
+        conservation_point_name: 'Frigo Bancone 1',
+        task_type: 'defrosting',
+        task_name: 'Sbrinamento',
+        frequency: 'Annuale',
+        selected_days: [],
+        assigned_role: 'Dipendente',
+        assigned_category: 'Banconisti',
+        assigned_staff_ids: ['staff_004'], // Eddy TheQueen
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      
+      // Frigo Bancone 2
+      {
+        id: 'conservation-3_temperature_monitoring_001',
+        conservation_point_id: 'conservation-3',
+        conservation_point_name: 'Frigo Bancone 2',
+        task_type: 'temperature_monitoring',
+        task_name: 'Rilevamento Temperatura',
+        frequency: 'Mensile',
+        selected_days: [],
+        assigned_role: 'Responsabile',
+        assigned_category: 'Banconisti',
+        assigned_staff_ids: ['staff_001'], // Matteo Cavallaro
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-3_sanitization_001',
+        conservation_point_id: 'conservation-3',
+        conservation_point_name: 'Frigo Bancone 2',
+        task_type: 'sanitization',
+        task_name: 'Sanificazione',
+        frequency: 'Giorni specifici',
+        selected_days: ['friday'], // Venerdì
+        assigned_role: 'Dipendente',
+        assigned_category: 'Banconisti',
+        assigned_staff_ids: ['staff_004'], // Eddy TheQueen
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-3_defrosting_001',
+        conservation_point_id: 'conservation-3',
+        conservation_point_name: 'Frigo Bancone 2',
+        task_type: 'defrosting',
+        task_name: 'Sbrinamento',
+        frequency: 'Annuale',
+        selected_days: [],
+        assigned_role: 'Dipendente',
+        assigned_category: 'Social & Media Manager',
+        assigned_staff_ids: ['staff_005'], // Elena Guaitoli
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      
+      // Frigo Bancone 3
+      {
+        id: 'conservation-4_temperature_monitoring_001',
+        conservation_point_id: 'conservation-4',
+        conservation_point_name: 'Frigo Bancone 3',
+        task_type: 'temperature_monitoring',
+        task_name: 'Rilevamento Temperatura',
+        frequency: 'Mensile',
+        selected_days: [],
+        assigned_role: 'Dipendente',
+        assigned_category: 'Social & Media Manager',
+        assigned_staff_ids: ['staff_005'], // Elena Guaitoli
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-4_sanitization_001',
+        conservation_point_id: 'conservation-4',
+        conservation_point_name: 'Frigo Bancone 3',
+        task_type: 'sanitization',
+        task_name: 'Sanificazione',
+        frequency: 'Giorni specifici',
+        selected_days: ['thursday'], // Giovedì
+        assigned_role: 'Responsabile',
+        assigned_category: 'Banconisti',
+        assigned_staff_ids: ['staff_001'], // Matteo Cavallaro
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-4_defrosting_001',
+        conservation_point_id: 'conservation-4',
+        conservation_point_name: 'Frigo Bancone 3',
+        task_type: 'defrosting',
+        task_name: 'Sbrinamento',
+        frequency: 'Annuale',
+        selected_days: [],
+        assigned_role: 'Dipendente',
+        assigned_category: 'Banconisti',
+        assigned_staff_ids: ['staff_004'], // Eddy TheQueen
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      
+      // Frigo B
+      {
+        id: 'conservation-5_temperature_monitoring_001',
+        conservation_point_id: 'conservation-5',
+        conservation_point_name: 'Frigo B',
+        task_type: 'temperature_monitoring',
+        task_name: 'Rilevamento Temperatura',
+        frequency: 'Giorni specifici',
+        selected_days: ['monday'], // Lunedì
+        assigned_role: 'Amministratore',
+        assigned_category: 'Cuochi',
+        assigned_staff_ids: ['staff_003'], // Paolo Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-5_sanitization_001',
+        conservation_point_id: 'conservation-5',
+        conservation_point_name: 'Frigo B',
+        task_type: 'sanitization',
+        task_name: 'Sanificazione',
+        frequency: 'Giorni specifici',
+        selected_days: ['monday', 'thursday'], // Lunedì e Giovedì
+        assigned_role: 'Amministratore',
+        assigned_category: 'Cuochi',
+        assigned_staff_ids: ['staff_003'], // Paolo Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-5_defrosting_001',
+        conservation_point_id: 'conservation-5',
+        conservation_point_name: 'Frigo B',
+        task_type: 'defrosting',
+        task_name: 'Sbrinamento',
+        frequency: 'Semestrale (ogni 6 mesi)',
+        selected_days: [],
+        assigned_role: 'Responsabile',
+        assigned_category: 'Amministratore',
+        assigned_staff_ids: ['staff_002'], // Fabrizio Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      
+      // Frigo C
+      {
+        id: 'conservation-6_temperature_monitoring_001',
+        conservation_point_id: 'conservation-6',
+        conservation_point_name: 'Frigo C',
+        task_type: 'temperature_monitoring',
+        task_name: 'Rilevamento Temperatura',
+        frequency: 'Mensile',
+        selected_days: [],
+        assigned_role: 'Amministratore',
+        assigned_category: 'Cuochi',
+        assigned_staff_ids: ['staff_003'], // Paolo Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-6_sanitization_001',
+        conservation_point_id: 'conservation-6',
+        conservation_point_name: 'Frigo C',
+        task_type: 'sanitization',
+        task_name: 'Sanificazione',
+        frequency: 'Giorni specifici',
+        selected_days: ['wednesday'], // Mercoledì
+        assigned_role: 'Responsabile',
+        assigned_category: 'Amministratore',
+        assigned_staff_ids: ['staff_002'], // Fabrizio Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-6_defrosting_001',
+        conservation_point_id: 'conservation-6',
+        conservation_point_name: 'Frigo C',
+        task_type: 'defrosting',
+        task_name: 'Sbrinamento',
+        frequency: 'Semestrale (ogni 6 mesi)',
+        selected_days: [],
+        assigned_role: 'Amministratore',
+        assigned_category: 'Cuochi',
+        assigned_staff_ids: ['staff_003'], // Paolo Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      
+      // Frigo D
+      {
+        id: 'conservation-7_temperature_monitoring_001',
+        conservation_point_id: 'conservation-7',
+        conservation_point_name: 'Frigo D',
+        task_type: 'temperature_monitoring',
+        task_name: 'Rilevamento Temperatura',
+        frequency: 'Mensile',
+        selected_days: [],
+        assigned_role: 'Amministratore',
+        assigned_category: 'Cuochi',
+        assigned_staff_ids: ['staff_003'], // Paolo Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-7_sanitization_001',
+        conservation_point_id: 'conservation-7',
+        conservation_point_name: 'Frigo D',
+        task_type: 'sanitization',
+        task_name: 'Sanificazione',
+        frequency: 'Settimanale',
+        selected_days: [],
+        assigned_role: 'Dipendente',
+        assigned_category: 'Social & Media Manager',
+        assigned_staff_ids: ['staff_005'], // Elena Guaitoli
+        is_active: true,
+        created_at: new Date().toISOString()
+      },
+      {
+        id: 'conservation-7_defrosting_001',
+        conservation_point_id: 'conservation-7',
+        conservation_point_name: 'Frigo D',
+        task_type: 'defrosting',
+        task_name: 'Sbrinamento',
+        frequency: 'Annuale',
+        selected_days: [],
+        assigned_role: 'Responsabile',
+        assigned_category: 'Amministratore',
+        assigned_staff_ids: ['staff_002'], // Fabrizio Dettori
+        is_active: true,
+        created_at: new Date().toISOString()
+      }
+    ];
+    
+    // Salva le manutenzioni precompilate
+    localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(maintenanceTasks));
+    
     console.log('✅ Onboarding precompilato con i tuoi dati')
     console.log('✅ Dati di accesso precompilati: Admin / 0000')
+    console.log('✅ Manutenzioni precompilate: 21 attività per 7 punti di conservazione')
     
     // Mostra conferma
-    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
+    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- 21 Attività di manutenzione preconfigurate\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
   }
 
   // Funzione per resettare completamente l'onboarding
@@ -505,6 +820,7 @@ function App() {
       localStorage.removeItem('haccp-users')
       localStorage.removeItem('haccp-temperatures')
       localStorage.removeItem('haccp-product-labels')
+      localStorage.removeItem('haccp-maintenance-tasks')
       
       // Reset degli stati dell'app
       setDepartments([])
