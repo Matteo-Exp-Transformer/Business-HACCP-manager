@@ -127,7 +127,9 @@ const TasksStep = ({
 
   // Calcola i contatori per la validazione
   const conservationPointsCount = formData.conservation?.count || 0;
-  const temperatureTasksCount = tasks.filter(task => {
+  
+  // Conta i task generici di temperatura
+  const genericTemperatureTasks = tasks.filter(task => {
     const taskName = task.name.toLowerCase();
     const isTemperatureTask = taskName.includes('rilevamento temperature') || 
                              taskName.includes('rilevamento temperatura') ||
@@ -138,7 +140,17 @@ const TasksStep = ({
     return isTemperatureTask;
   }).length;
   
+  // Conta le manutenzioni di temperatura
+  const maintenanceTemperatureTasks = savedMaintenances.flatMap(group => group.tasks).filter(task => 
+    task.task_type === 'temperature_monitoring'
+  ).length;
+  
+  // Totale task di temperatura (generici + manutenzioni)
+  const temperatureTasksCount = genericTemperatureTasks + maintenanceTemperatureTasks;
+  
   console.log(`📊 Temperature tasks count: ${temperatureTasksCount}, Total tasks: ${tasks.length}`);
+  console.log(`🌡️ Generic temperature tasks: ${genericTemperatureTasks}`);
+  console.log(`🌡️ Maintenance temperature tasks: ${maintenanceTemperatureTasks}`);
   console.log('📋 All tasks:', tasks);
 
   // RIMOSSO: useEffect che causava loop infinito
