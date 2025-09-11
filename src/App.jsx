@@ -793,8 +793,14 @@ function App() {
       }
     ];
     
+    // Aggiungi company_id a tutti i task
+    const maintenanceTasksWithCompanyId = maintenanceTasks.map(task => ({
+      ...task,
+      company_id: 'demo-pizzeria'
+    }));
+    
     // Salva le manutenzioni precompilate
-    localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(maintenanceTasks));
+    localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(maintenanceTasksWithCompanyId));
     
     console.log('✅ Onboarding precompilato con i tuoi dati')
     console.log('✅ Dati di accesso precompilati: Admin / 0000')
