@@ -154,8 +154,16 @@ const TasksStep = ({
   console.log(`🌡️ Maintenance temperature tasks: ${maintenanceTemperatureTasks}`);
   console.log('📋 All tasks:', tasks);
 
-  // RIMOSSO: useEffect che causava loop infinito
-  // updateFormData viene chiamato solo quando necessario (add/edit/delete)
+  // Aggiorna formData quando cambiano i tasks locali
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      tasks: {
+        list: tasks,
+        count: tasks.length
+      }
+    }));
+  }, [tasks, setFormData]);
 
   const FREQUENCIES = [
     'Giornalmente',
