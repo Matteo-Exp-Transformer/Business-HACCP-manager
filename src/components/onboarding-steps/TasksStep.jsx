@@ -654,7 +654,7 @@ const TasksStep = ({
                 id="name"
                 value={localFormData.name}
                 onChange={(e) => setLocalFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder={getSuggestedTaskName()}
+                placeholder=""
                 className="mt-1"
               />
               <p className="text-xs text-gray-500 mt-1">
