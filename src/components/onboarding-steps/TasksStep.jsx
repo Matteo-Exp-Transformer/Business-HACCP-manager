@@ -88,6 +88,14 @@ const TasksStep = ({
     loadSavedMaintenances();
   }, []);
 
+  // Ricarica manutenzioni quando i dati dell'onboarding cambiano
+  useEffect(() => {
+    if (formData.conservation?.points?.length > 0) {
+      console.log('🔄 Ricaricamento manutenzioni per punti di conservazione...');
+      loadSavedMaintenances();
+    }
+  }, [formData.conservation?.points]);
+
   // Precompila il form quando viene aperto
   useEffect(() => {
     if (showAddForm) {
@@ -161,6 +169,9 @@ const TasksStep = ({
 
   // Controlla se esistono TUTTE e 3 le attività obbligatorie per un punto di conservazione
   const hasTaskForConservationPoint = (point) => {
+    console.log(`🔍 Checking point ${point.id} (${point.name}) for maintenance tasks...`);
+    console.log(`📋 Saved maintenances:`, savedMaintenances);
+    
     // Controlla prima nelle manutenzioni salvate nel database
     const hasMaintenanceTasks = savedMaintenances.some(maintenanceGroup => 
       maintenanceGroup.conservation_point_id === point.id &&
@@ -171,6 +182,8 @@ const TasksStep = ({
       console.log(`✅ Point ${point.id} (${point.name}) has maintenance tasks in database`);
       return true;
     }
+    
+    console.log(`❌ Point ${point.id} (${point.name}) has NO maintenance tasks in database`);
     
     // Controlla nelle tasks esistenti (attività generiche)
     const pointTasks = tasks.filter(task => {
