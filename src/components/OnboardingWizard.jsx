@@ -519,6 +519,25 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
     const errors = validateStep(stepNumber, formData);
     const isValid = Object.keys(errors).length === 0;
     
+    // Debug specifico per step 4 (Mansioni e Attività)
+    if (stepNumber === 4) {
+      console.log(`🔍 DEBUG PULSANTE AVANTI - Step 4 (Mansioni e Attività):`);
+      console.log(`🔍 errors:`, errors);
+      console.log(`🔍 errors.length:`, Object.keys(errors).length);
+      console.log(`🔍 isValid:`, isValid);
+      console.log(`🔍 formData.tasks:`, formData.tasks);
+      console.log(`🔍 formData.savedMaintenances:`, formData.savedMaintenances);
+      console.log(`🔍 formData.conservation:`, formData.conservation);
+      
+      // Mostra dettagli degli errori
+      if (Object.keys(errors).length > 0) {
+        console.log(`❌ ERRORI DETTAGLIATI STEP 4:`);
+        Object.entries(errors).forEach(([key, value]) => {
+          console.log(`❌ ${key}: ${value}`);
+        });
+      }
+    }
+    
     // Debug specifico per step 3 (Punti di Conservazione)
     if (stepNumber === 3) {
       console.log(`🔍 DEBUG PULSANTE AVANTI - Step 3 (Punti di Conservazione):`);
