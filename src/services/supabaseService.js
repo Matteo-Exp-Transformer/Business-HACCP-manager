@@ -411,7 +411,10 @@ class SupabaseService {
       if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
         console.warn('⚠️ Supabase non configurato, caricamento da localStorage');
         const tasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
+        console.log('🔍 Tasks raw from localStorage:', tasks.length, 'task');
+        console.log('🔍 Company ID corrente:', this.companyId);
         const filteredTasks = tasks.filter(task => task.company_id === this.companyId);
+        console.log('🔍 Tasks filtrati per company_id:', filteredTasks.length, 'task');
         return this.handleSuccess(filteredTasks, 'getMaintenanceTasks (localStorage)');
       }
 

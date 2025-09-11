@@ -805,6 +805,8 @@ function App() {
     console.log('✅ Onboarding precompilato con i tuoi dati')
     console.log('✅ Dati di accesso precompilati: Admin / 0000')
     console.log('✅ Manutenzioni precompilate: 21 attività per 7 punti di conservazione')
+    console.log('💾 Manutenzioni salvate in localStorage:', maintenanceTasksWithCompanyId.length, 'task')
+    console.log('🔍 Verifica localStorage:', JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]').length, 'task trovati')
     
     // Mostra conferma
     alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- 21 Attività di manutenzione preconfigurate\n- Acqua nato 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
