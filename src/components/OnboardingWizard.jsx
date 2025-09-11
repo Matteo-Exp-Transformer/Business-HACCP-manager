@@ -361,22 +361,45 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
          }
     
             if (stepNumber === 4) { // Mansioni e Attività
-          // TasksStep salva come { list: [...], count: number } + savedMaintenances
+          // Nuova logica di validazione: 2 requisiti obbligatori (come TasksStep)
           const tasksList = data.tasks?.list || [];
           const savedMaintenances = data.savedMaintenances || [];
-          const maintenanceTasksCount = savedMaintenances.reduce((total, group) => total + group.tasks.length, 0);
+          const conservationPoints = data.conservation?.points || [];
           
           console.log('🔍 OnboardingWizard Step 4 Validation:');
           console.log('📋 tasksList:', tasksList.length, 'tasks');
           console.log('📋 savedMaintenances:', savedMaintenances.length, 'groups');
-          console.log('📋 maintenanceTasksCount:', maintenanceTasksCount);
-          console.log('📋 totalTasks:', tasksList.length + maintenanceTasksCount);
+          console.log('📋 conservationPoints:', conservationPoints.length);
+          
+          // Validazione 1: Tutte le manutenzioni obbligatorie per i punti di conservazione
+          const temperatureMaintenances = savedMaintenances.flatMap(group => group.tasks).filter(task => 
+            task.task_type === 'temperature_monitoring'
+          );
+          const hasAllMaintenanceTasks = temperatureMaintenances.length >= conservationPoints.length;
+          
+          // Validazione 2: Almeno 1 attività generale registrata
+          const hasGeneralTasks = tasksList.length > 0;
+          
+          console.log('🌡️ Maintenance validation:');
+          console.log('📋 temperatureMaintenances:', temperatureMaintenances.length);
+          console.log('📋 conservationPoints:', conservationPoints.length);
+          console.log('📋 hasAllMaintenanceTasks:', hasAllMaintenanceTasks);
+          console.log('📋 hasGeneralTasks:', hasGeneralTasks);
+          
+          // Validazione completa: entrambi i requisiti devono essere soddisfatti
+          if (!hasAllMaintenanceTasks && !hasGeneralTasks) {
+            errors.tasks = "Devi configurare le manutenzioni per tutti i punti di conservazione e aggiungere almeno un'attività generale";
+          } else if (!hasAllMaintenanceTasks) {
+            errors.tasks = "Devi configurare le manutenzioni per tutti i punti di conservazione";
+          } else if (!hasGeneralTasks) {
+            errors.tasks = "Devi aggiungere almeno un'attività generale";
+          } else {
+            // Entrambi i requisiti soddisfatti - nessun errore
+            console.log('✅ Step 4 validation passed!');
+          }
            
-           const totalTasks = tasksList.length + maintenanceTasksCount;
-           
-           if (totalTasks === 0) {
-             errors.tasks = "Devi aggiungere almeno un'attività o configurare le manutenzioni";
-           } else {
+           // Validazione dettagliata delle attività generali (se presenti)
+           if (tasksList.length > 0) {
              tasksList.forEach((task, index) => {
                if (!task.name?.trim()) {
                  errors[`task_${index}_name`] = "Nome attività obbligatorio";
@@ -397,33 +420,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                }
              });
              
-             // Controlla che ci siano abbastanza attività di monitoraggio temperature
-             const conservationPoints = data.conservation?.points || [];
-             const temperatureTasks = tasksList.filter(task => {
-               const taskName = task.name.toLowerCase();
-               return taskName.includes('rilevamento temperature') || 
-                      taskName.includes('rilevamento temperatura') ||
-                      taskName.includes('temperature') ||
-                      taskName.includes('temperatura') ||
-                      taskName.includes('monitoraggio');
-             });
-             
-             // Conta anche le manutenzioni di monitoraggio temperature
-             const temperatureMaintenances = savedMaintenances.flatMap(group => group.tasks).filter(task => 
-               task.task_type === 'temperature_monitoring'
-             );
-             
-             const totalTemperatureTasks = temperatureTasks.length + temperatureMaintenances.length;
-             
-             console.log('🌡️ Temperature validation:');
-             console.log('📋 conservationPoints:', conservationPoints.length);
-             console.log('📋 temperatureTasks (generic):', temperatureTasks.length);
-             console.log('📋 temperatureMaintenances:', temperatureMaintenances.length);
-             console.log('📋 totalTemperatureTasks:', totalTemperatureTasks);
-             
-             if (totalTemperatureTasks < conservationPoints.length) {
-               errors.temperatureTasks = `Devi creare almeno ${conservationPoints.length} attività di monitoraggio temperature (una per ogni punto di conservazione)`;
-             }
+             // La validazione delle temperature è già gestita sopra con hasAllMaintenanceTasks
              
              // Controllo assegnazione a membri dello staff rimosso - non più obbligatorio
              
