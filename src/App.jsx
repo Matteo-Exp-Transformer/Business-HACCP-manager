@@ -440,8 +440,16 @@ function App() {
         count: 7
       },
       tasks: {
-        list: [],
-        count: 0
+        list: [
+          {
+            id: 'task_001',
+            name: 'Carico Frigoriferi Bancone',
+            assignedRole: 'Banconisti',
+            assignedEmployee: null,
+            frequency: 'Giornalmente'
+          }
+        ],
+        count: 1
       },
       products: {
         productsList: [
@@ -810,7 +818,7 @@ function App() {
     console.log('🔍 Verifica localStorage:', JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]').length, 'task trovati')
     
     // Mostra conferma
-    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- 21 Attività di manutenzione preconfigurate\n- Acqua nat 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
+    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- 21 Attività di manutenzione preconfigurate\n- 1 Attività generica (Carico Frigoriferi Bancone)\n- Acqua nat 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
   }
 
   // Funzione per resettare completamente l'onboarding

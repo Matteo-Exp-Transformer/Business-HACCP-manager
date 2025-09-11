@@ -684,7 +684,7 @@ const TasksStep = ({
             </div>
             
             <div>
-              <Label htmlFor="assignedRole">Assegna rilevamento temperature a: *</Label>
+              <Label htmlFor="assignedRole">Assegna Mansione a: *</Label>
               <select
                 id="assignedRole"
                 value={localFormData.assignedRole}
