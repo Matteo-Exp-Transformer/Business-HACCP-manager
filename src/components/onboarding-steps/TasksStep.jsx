@@ -657,7 +657,7 @@ const TasksStep = ({
                 placeholder=""
                 className="mt-1"
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-sm text-gray-500 mt-1">
                 Suggerimento: {getSuggestedTaskName()}
               </p>
             </div>
@@ -679,7 +679,7 @@ const TasksStep = ({
                 <option value="Dipendente">Dipendente</option>
               </select>
               {!localFormData.assignedRole && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="text-sm text-red-500 mt-1">
                   ⚠️ Seleziona una categoria per procedere
                 </p>
               )}

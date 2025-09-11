@@ -172,7 +172,7 @@ const BusinessInfoStep = ({
               <MapPin className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 mt-1">
             💡 Clicca il pulsante GPS per rilevare automaticamente la tua posizione e compilare l'indirizzo
           </p>
           {formData.business?.address && (
@@ -182,7 +182,7 @@ const BusinessInfoStep = ({
                 <div className="text-yellow-600 mt-0.5">⚠️</div>
                 <div className="text-sm text-yellow-800">
                   <p className="font-medium">Verifica il numero civico!</p>
-                  <p className="text-xs mt-1">
+                  <p className="text-sm mt-1">
                     La geolocalizzazione ha un margine di errore di 5-15 metri. 
                     Controlla che il numero civico sia corretto e modificalo se necessario.
                   </p>

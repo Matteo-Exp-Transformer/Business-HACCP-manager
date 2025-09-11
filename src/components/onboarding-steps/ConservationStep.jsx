@@ -491,7 +491,7 @@ const ConservationStep = ({
                        return suggestion ? (
                          <div className="mt-2">
                            <span className="text-gray-600 text-sm">Suggerimenti:</span>
-                           <div className="mt-1 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                           <div className="mt-1 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-700">
                              {suggestion}
                            </div>
                          </div>
@@ -674,10 +674,10 @@ const ConservationStep = ({
                    );
                  })}
                </div>
-               <p className="text-xs text-gray-500 mt-1">
+               <p className="text-sm text-gray-500 mt-1">
                  Seleziona le categorie di prodotti che verranno conservate in questo punto
                </p>
-               <div className="mt-2 p-3 bg-gray-50 rounded text-xs border">
+               <div className="mt-2 p-3 bg-gray-50 rounded text-sm border">
                  <p className="font-medium mb-2">Legenda compatibilità:</p>
                  <div className="flex flex-wrap gap-3">
                    <span className="flex items-center gap-2">
@@ -695,7 +695,7 @@ const ConservationStep = ({
                  </div>
                </div>
                {localFormData.selectedCategories.length === 0 && (
-                 <p className="text-xs text-red-500 mt-1">
+                 <p className="text-sm text-red-500 mt-1">
                    ⚠️ Seleziona almeno una categoria per procedere
                  </p>
                )}
