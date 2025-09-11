@@ -360,11 +360,11 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
            }
          }
     
-             if (stepNumber === 4) { // Mansioni e Attività
-           // TasksStep salva come { list: [...], count: number } + savedMaintenances
-           const tasksList = data.tasks?.list || [];
-           const savedMaintenances = data.savedMaintenances || {};
-           const maintenanceTasksCount = Object.values(savedMaintenances).reduce((total, tasks) => total + tasks.length, 0);
+            if (stepNumber === 4) { // Mansioni e Attività
+          // TasksStep salva come { list: [...], count: number } + savedMaintenances
+          const tasksList = data.tasks?.list || [];
+          const savedMaintenances = data.savedMaintenances || [];
+          const maintenanceTasksCount = savedMaintenances.reduce((total, group) => total + group.tasks.length, 0);
            
            const totalTasks = tasksList.length + maintenanceTasksCount;
            
@@ -403,7 +403,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              });
              
              // Conta anche le manutenzioni di monitoraggio temperature
-             const temperatureMaintenances = Object.values(savedMaintenances).flat().filter(task => 
+             const temperatureMaintenances = savedMaintenances.flatMap(group => group.tasks).filter(task => 
                task.task_type === 'temperature_monitoring'
              );
              
@@ -417,7 +417,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              
              // Controlla che i nomi delle attività siano unici (considerando anche le manutenzioni)
              const taskNames = tasksList.map(task => task.name.toLowerCase().trim());
-             const maintenanceNames = Object.values(savedMaintenances).flat().map(task => 
+             const maintenanceNames = savedMaintenances.flatMap(group => group.tasks).map(task => 
                task.task_name ? task.task_name.toLowerCase().trim() : ''
              ).filter(name => name);
              const allNames = [...taskNames, ...maintenanceNames];

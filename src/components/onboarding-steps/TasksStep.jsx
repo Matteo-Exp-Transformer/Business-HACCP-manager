@@ -73,8 +73,16 @@ const TasksStep = ({
           return acc;
         }, {});
         
-        setSavedMaintenances(Object.values(groupedMaintenances));
-        console.log('✅ Manutenzioni caricate:', Object.values(groupedMaintenances));
+        const groupedMaintenancesArray = Object.values(groupedMaintenances);
+        setSavedMaintenances(groupedMaintenancesArray);
+        
+        // Salva le manutenzioni in formData per la validazione
+        setFormData(prev => ({
+          ...prev,
+          savedMaintenances: groupedMaintenancesArray
+        }));
+        
+        console.log('✅ Manutenzioni caricate:', groupedMaintenancesArray);
       }
     } catch (error) {
       console.error('❌ Errore nel caricamento manutenzioni:', error);
