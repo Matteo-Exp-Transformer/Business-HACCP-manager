@@ -249,9 +249,9 @@ const BusinessInfoStep = ({
         <div className="flex items-start gap-3">
           <Info className="h-5 w-5 text-blue-600 mt-0.5" />
           <div>
-            <p className="font-medium text-blue-900">Campi obbligatori</p>
+            <p className="font-medium text-blue-900">Campi Obbligatori</p>
             <p className="text-sm text-blue-800 mt-1">
-              Nome Attività, Indirizzo e Email sono obbligatori per procedere.
+              Vengono indicati con asterisco " * "
             </p>
           </div>
         </div>
