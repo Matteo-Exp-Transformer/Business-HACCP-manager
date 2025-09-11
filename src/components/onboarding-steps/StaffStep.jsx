@@ -35,8 +35,16 @@ const StaffStep = ({
     }
   }, [formData.staff]);
 
-  // RIMOSSO: useEffect che causava loop infinito
-  // updateFormData viene chiamato solo quando necessario (add/edit/delete)
+  // Funzione per aggiornare i dati nel formData principale
+  const updateFormData = (newStaffMembers) => {
+    setFormData(prev => ({
+      ...prev,
+      staff: {
+        ...prev.staff,
+        staffMembers: newStaffMembers
+      }
+    }));
+  };
 
   const ROLES = [
     'Amministratore',

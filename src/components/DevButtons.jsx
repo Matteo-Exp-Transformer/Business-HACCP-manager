@@ -7,7 +7,8 @@ const DevButtons = ({
   onResetOnboarding, 
   isDevMode = false 
 }) => {
-  if (!isDevMode) return null;
+  // Sempre visibili per ora (anche in produzione)
+  // if (!isDevMode) return null;
 
   return (
     <div className="flex gap-2">
