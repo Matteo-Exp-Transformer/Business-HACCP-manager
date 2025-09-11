@@ -251,6 +251,21 @@ const TasksStep = ({
 
   // Validazione: X temperature tasks per X conservation points
 
+  // Validazione 1: Tutte le manutenzioni obbligatorie per i punti di conservazione
+  const hasAllMaintenanceTasks = () => {
+    return temperatureTasksCount >= conservationPointsCount;
+  };
+
+  // Validazione 2: Almeno 1 attività generale registrata
+  const hasGeneralTasks = () => {
+    return tasks.length > 0;
+  };
+
+  // Validazione completa: entrambi i requisiti devono essere soddisfatti
+  const isStepComplete = () => {
+    return hasAllMaintenanceTasks() && hasGeneralTasks();
+  };
+
   // Crea automaticamente le mansioni per i punti di conservazione quando si apre il form
   useEffect(() => {
     if (showAddForm) {
@@ -443,9 +458,7 @@ const TasksStep = ({
     return selectedStaff.map(staff => `${staff.name} ${staff.surname}`).join(', ');
   };
   
-  const canProceed = tasks.length > 0 && 
-    tasks.every(task => task.name && task.assignedRole && task.frequency) &&
-    temperatureTasksCount >= conservationPointsCount;
+  const canProceed = isStepComplete();
 
   // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
@@ -746,55 +759,37 @@ const TasksStep = ({
         </div>
       )}
 
-      {/* Validazione Critica */}
+      {/* Validazione */}
       <div className={`p-4 rounded-lg ${
         canProceed ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
       }`}>
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-              canProceed ? 'bg-green-500' : 'bg-yellow-500'
-            } text-white text-sm font-bold`}>
-              {tasks.length}
-            </div>
-            <div>
-              {canProceed && (
-                <h3 className="text-lg font-bold text-green-900 mb-2">Configurazione Completata</h3>
-              )}
-              <p className={`font-medium ${
-                canProceed ? 'text-green-900' : 'text-yellow-900'
-              }`}>
-                Attività configurate: {tasks.length}
-              </p>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+            canProceed ? 'bg-green-500' : 'bg-yellow-500'
+          } text-white text-sm font-bold`}>
+            {tasks.length + savedMaintenances.length}
           </div>
-          
-          {/* Validazione Temperature Tasks */}
-          <div className={`p-3 rounded-lg ${
-            temperatureTasksCount >= conservationPointsCount ? 'bg-green-100' : 'bg-red-100'
-          }`}>
-            <div className="flex items-center gap-2">
-              <AlertTriangle className={`h-4 w-4 ${
-                temperatureTasksCount >= conservationPointsCount ? 'text-green-600' : 'text-red-600'
-              }`} />
-              <span className={`font-medium ${
-                temperatureTasksCount >= conservationPointsCount ? 'text-green-900' : 'text-red-900'
-              }`}>
-                Validazione Critica: Attività Manutenzione Complete
-              </span>
-            </div>
-            <div className="mt-2 text-sm">
-              <p className={temperatureTasksCount >= conservationPointsCount ? 'text-green-800' : 'text-red-800'}>
-                <strong>Punti di conservazione:</strong> {conservationPointsCount} | 
-                <strong> Attività temperature:</strong> {temperatureTasksCount}
-              </p>
-              <p className={temperatureTasksCount >= conservationPointsCount ? 'text-green-800' : 'text-red-800'}>
-                {temperatureTasksCount >= conservationPointsCount 
-                  ? '✅ Requisito soddisfatto! Ogni punto ha le 3 attività obbligatorie (Rilevamento Temperatura, Sanificazione, Sbrinamento).'
-                  : '❌ Devi creare le 3 attività obbligatorie (Rilevamento Temperatura, Sanificazione, Sbrinamento) per ogni punto di conservazione.'
-                }
-              </p>
-            </div>
+          <div>
+            {canProceed && (
+              <h3 className="text-lg font-bold text-green-900 mb-2">Configurazione Completata</h3>
+            )}
+            <p className={`font-medium ${
+              canProceed ? 'text-green-900' : 'text-yellow-900'
+            }`}>
+              Attività configurate: {tasks.length + savedMaintenances.length}
+            </p>
+            <p className={`text-sm ${
+              canProceed ? 'text-green-800' : 'text-yellow-800'
+            }`}>
+              {canProceed 
+                ? '✅ Tutti i requisiti sono soddisfatti! Puoi procedere al prossimo step.'
+                : !hasAllMaintenanceTasks() && !hasGeneralTasks()
+                  ? '⚠️ Devi configurare le manutenzioni per tutti i punti di conservazione e aggiungere almeno un\'attività generale.'
+                  : !hasAllMaintenanceTasks()
+                    ? '⚠️ Devi configurare le manutenzioni per tutti i punti di conservazione.'
+                    : '⚠️ Devi aggiungere almeno un\'attività generale.'
+              }
+            </p>
           </div>
         </div>
       </div>
