@@ -424,27 +424,21 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              
              // Controllo assegnazione a membri dello staff rimosso - non più obbligatorio
              
-             // Controlla che i nomi delle attività siano unici (considerando anche le manutenzioni)
+             // Controlla che i nomi delle attività generali siano unici (solo tra loro, non con le manutenzioni)
              const taskNames = tasksList.map(task => task.name.toLowerCase().trim());
-             const maintenanceNames = savedMaintenances.flatMap(group => group.tasks).map(task => 
-               task.task_name ? task.task_name.toLowerCase().trim() : ''
-             ).filter(name => name);
-             const allNames = [...taskNames, ...maintenanceNames];
-             const uniqueNames = new Set(allNames);
+             const uniqueTaskNames = new Set(taskNames);
              
-             console.log('🔍 Debug nomi attività:');
+             console.log('🔍 Debug nomi attività generali:');
              console.log('📋 taskNames (generiche):', taskNames);
-             console.log('📋 maintenanceNames:', maintenanceNames);
-             console.log('📋 allNames:', allNames);
-             console.log('📋 uniqueNames:', Array.from(uniqueNames));
-             console.log('📋 allNames.length:', allNames.length);
-             console.log('📋 uniqueNames.size:', uniqueNames.size);
+             console.log('📋 uniqueTaskNames:', Array.from(uniqueTaskNames));
+             console.log('📋 taskNames.length:', taskNames.length);
+             console.log('📋 uniqueTaskNames.size:', uniqueTaskNames.size);
              
-             if (allNames.length !== uniqueNames.size) {
-               console.log('❌ NOMI DUPLICATI TROVATI!');
-               const duplicates = allNames.filter((name, index) => allNames.indexOf(name) !== index);
+             if (taskNames.length !== uniqueTaskNames.size) {
+               console.log('❌ NOMI DUPLICATI TROVATI NELLE ATTIVITÀ GENERALI!');
+               const duplicates = taskNames.filter((name, index) => taskNames.indexOf(name) !== index);
                console.log('❌ Duplicati:', duplicates);
-               errors.taskNames = "I nomi delle attività devono essere unici";
+               errors.taskNames = "I nomi delle attività generali devono essere unici";
              }
              
              // Controllo frequenze diverse rimosso - non più obbligatorio
