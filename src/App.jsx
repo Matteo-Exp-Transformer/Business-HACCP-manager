@@ -175,14 +175,9 @@ function App() {
                 onboarding = JSON.parse(onboardingData)
               }
             } catch (jsonError) {
-              // Se il parsing JSON fallisce, potrebbe essere una stringa che rappresenta un oggetto
-              console.warn('Errore parsing JSON, tentativo con eval:', jsonError)
-              try {
-                onboarding = eval('(' + onboardingData + ')')
-              } catch (evalError) {
-                console.warn('Errore anche con eval, usando oggetto vuoto:', evalError)
-                onboarding = { formData: { departments: { list: [] } } }
-              }
+              // Se il parsing JSON fallisce, usa un oggetto vuoto invece di eval
+              console.warn('Errore parsing JSON, usando oggetto vuoto:', jsonError)
+              onboarding = { formData: { departments: { list: [] } } }
             }
           } else {
             // Se è già un oggetto, usalo direttamente
@@ -222,14 +217,9 @@ function App() {
           try {
             onboarding = JSON.parse(onboardingData)
           } catch (jsonError) {
-            // Se il parsing JSON fallisce, potrebbe essere una stringa che rappresenta un oggetto
-            console.warn('Errore parsing JSON, tentativo con eval:', jsonError)
-            try {
-              onboarding = eval('(' + onboardingData + ')')
-            } catch (evalError) {
-              console.warn('Errore anche con eval, usando oggetto vuoto:', evalError)
-              onboarding = { formData: { departments: { list: [] } } }
-            }
+            // Se il parsing JSON fallisce, usa un oggetto vuoto
+            console.warn('Errore parsing JSON, usando oggetto vuoto:', jsonError)
+            onboarding = { formData: { departments: { list: [] } } }
           }
         } else {
           // Se è già un oggetto, usalo direttamente

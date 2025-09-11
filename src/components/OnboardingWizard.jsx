@@ -361,10 +361,15 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
          }
     
              if (stepNumber === 4) { // Mansioni e Attività
-           // TasksStep salva come { list: [...], count: number }
+           // TasksStep salva come { list: [...], count: number } + savedMaintenances
            const tasksList = data.tasks?.list || [];
-           if (tasksList.length === 0) {
-             errors.tasks = "Devi aggiungere almeno un'attività";
+           const savedMaintenances = data.savedMaintenances || {};
+           const maintenanceTasksCount = Object.values(savedMaintenances).reduce((total, tasks) => total + tasks.length, 0);
+           
+           const totalTasks = tasksList.length + maintenanceTasksCount;
+           
+           if (totalTasks === 0) {
+             errors.tasks = "Devi aggiungere almeno un'attività o configurare le manutenzioni";
            } else {
              tasksList.forEach((task, index) => {
                if (!task.name?.trim()) {
@@ -397,16 +402,27 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                       taskName.includes('monitoraggio');
              });
              
-             if (temperatureTasks.length < conservationPoints.length) {
+             // Conta anche le manutenzioni di monitoraggio temperature
+             const temperatureMaintenances = Object.values(savedMaintenances).flat().filter(task => 
+               task.task_type === 'temperature_monitoring'
+             );
+             
+             const totalTemperatureTasks = temperatureTasks.length + temperatureMaintenances.length;
+             
+             if (totalTemperatureTasks < conservationPoints.length) {
                errors.temperatureTasks = `Devi creare almeno ${conservationPoints.length} attività di monitoraggio temperature (una per ogni punto di conservazione)`;
              }
              
              // Controllo assegnazione a membri dello staff rimosso - non più obbligatorio
              
-             // Controlla che i nomi delle attività siano unici
-             const names = tasksList.map(task => task.name.toLowerCase().trim());
-             const uniqueNames = new Set(names);
-             if (names.length !== uniqueNames.size) {
+             // Controlla che i nomi delle attività siano unici (considerando anche le manutenzioni)
+             const taskNames = tasksList.map(task => task.name.toLowerCase().trim());
+             const maintenanceNames = Object.values(savedMaintenances).flat().map(task => 
+               task.task_name ? task.task_name.toLowerCase().trim() : ''
+             ).filter(name => name);
+             const allNames = [...taskNames, ...maintenanceNames];
+             const uniqueNames = new Set(allNames);
+             if (allNames.length !== uniqueNames.size) {
                errors.taskNames = "I nomi delle attività devono essere unici";
              }
              
