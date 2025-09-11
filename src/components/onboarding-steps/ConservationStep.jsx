@@ -23,7 +23,8 @@ const ConservationStep = ({
     name: '',
     location: '',
     targetTemp: '', // Sostituiamo minTemp e maxTemp con targetTemp
-    selectedCategories: []
+    selectedCategories: [],
+    isAbbattitore: false
   });
 
   // Usa i dati reali da formData
@@ -84,7 +85,8 @@ const ConservationStep = ({
       name: '',
       location: '',
       targetTemp: '',
-      selectedCategories: []
+      selectedCategories: [],
+      isAbbattitore: false
     });
     setEditingPoint(null);
   };
@@ -298,10 +300,19 @@ const ConservationStep = ({
 
   const handleAddPoint = () => {
     if (localFormData.name && localFormData.location && localFormData.targetTemp && localFormData.selectedCategories.length > 0) {
-      const compliance = checkHACCPCompliance(localFormData.targetTemp, localFormData.selectedCategories);
+      // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
+      let finalCategories = localFormData.selectedCategories || []
+      if (localFormData.isAbbattitore) {
+        // Aggiungi le categorie specifiche dell'abbattitore
+        const abbattitoreCategories = ['abbattitore_menu', 'abbattitore_esposizione']
+        finalCategories = [...finalCategories, ...abbattitoreCategories]
+      }
+      
+      const compliance = checkHACCPCompliance(localFormData.targetTemp, finalCategories);
       
       const pointData = {
         ...localFormData,
+        selectedCategories: finalCategories,
         compliance
       };
       
@@ -372,7 +383,8 @@ const ConservationStep = ({
         name: point.name,
         location: point.location,
         targetTemp: point.targetTemp,
-        selectedCategories: point.selectedCategories || []
+        selectedCategories: point.selectedCategories || [],
+        isAbbattitore: point.isAbbattitore || false
       });
       setEditingPoint(id);
       setShowAddForm(true);
@@ -593,6 +605,30 @@ const ConservationStep = ({
                     })() : 'border-gray-300'
                 }`}
               />
+              
+              {/* Checkbox Abbattitore - appare solo se temperatura è tra -1°C e -90°C */}
+              {(() => {
+                const tempValue = parseFloat(localFormData.targetTemp);
+                const isInAbbattitoreRange = !isNaN(tempValue) && tempValue >= -90 && tempValue <= -1;
+                return isInAbbattitoreRange ? (
+                  <div className="mt-3 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isAbbattitore"
+                      checked={localFormData.isAbbattitore || false}
+                      onChange={(e) => {
+                        setLocalFormData(prev => ({ ...prev, isAbbattitore: e.target.checked }));
+                        markStepAsUnconfirmed(currentStep);
+                      }}
+                      className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                    />
+                    <Label htmlFor="isAbbattitore" className="text-lg font-bold text-red-700">
+                      Abbattitore
+                    </Label>
+                  </div>
+                ) : null;
+              })()}
+              
               {localFormData.targetTemp && localFormData.selectedCategories.length > 0 && (
                 <div className="mt-1">
                   {(() => {

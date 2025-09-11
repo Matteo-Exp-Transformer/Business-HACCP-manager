@@ -49,16 +49,24 @@ const MaintenanceSection = ({
   // Carica dati iniziali
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
+      console.log('🔍 MaintenanceSection - Impostando maintenanceData con:', initialData);
       setMaintenanceData(initialData);
     }
   }, [initialData]);
 
   // Notifica cambiamenti al componente padre
   useEffect(() => {
-    if (onMaintenanceChange) {
-      onMaintenanceChange(maintenanceData);
+    if (onMaintenanceChange && Object.keys(maintenanceData).length > 0) {
+      // Solo se i dati sono effettivamente cambiati
+      const hasValidData = Object.values(maintenanceData).some(taskData => 
+        taskData.frequency || taskData.assigned_role || taskData.assigned_category
+      );
+      
+      if (hasValidData) {
+        onMaintenanceChange(maintenanceData);
+      }
     }
-  }, [maintenanceData]); // Rimuovo onMaintenanceChange dalle dipendenze
+  }, [maintenanceData, onMaintenanceChange]);
 
   // Aggiorna un campo specifico per un tipo di attività
   const updateMaintenanceField = (taskType, field, value) => {
@@ -91,17 +99,46 @@ const MaintenanceSection = ({
 
   // Filtra i dipendenti in base a ruolo e categoria selezionati
   const getFilteredStaff = (taskType) => {
+    // Evita chiamate premature se i dati non sono ancora caricati
+    if (!maintenanceData || Object.keys(maintenanceData).length === 0) {
+      console.log(`🔍 getFilteredStaff per ${taskType}: maintenanceData non ancora caricato`);
+      return [];
+    }
+
     const taskData = maintenanceData[taskType];
-    const role = taskData.assigned_role;
-    const category = taskData.assigned_category;
+    const role = taskData?.assigned_role;
+    const category = taskData?.assigned_category;
 
-    if (!role || !category) return [];
+    console.log(`🔍 getFilteredStaff per ${taskType}:`, { 
+      taskData: JSON.stringify(taskData, null, 2), 
+      role, 
+      category, 
+      staffMembers: staffMembers.length,
+      maintenanceDataKeys: Object.keys(maintenanceData),
+      maintenanceData: JSON.stringify(maintenanceData, null, 2)
+    });
 
-    return staffMembers.filter(member => 
-      member.role === role && 
+    if (!role || !category) {
+      console.log(`🔍 Mancano ruolo o categoria per ${taskType}:`, { role, category });
+      return [];
+    }
+
+    const filtered = staffMembers.filter(member =>
+      member.role.toLowerCase() === role.toLowerCase() && 
       member.categories && 
-      member.categories.includes(category)
+      member.categories.some(cat => cat.toLowerCase() === category.toLowerCase())
     );
+    
+    console.log(`🔍 Dipendenti filtrati per ${taskType}:`, filtered.length, 'su', staffMembers.length);
+    console.log(`🔍 Staff members:`, staffMembers.map(s => ({ id: s.id, name: s.name, role: s.role, categories: s.categories })));
+    console.log(`🔍 Filtro: role='${role}', category='${category}'`);
+    console.log(`🔍 Dipendenti che matchano:`, staffMembers.filter(member => {
+      const roleMatch = member.role.toLowerCase() === role.toLowerCase();
+      const categoryMatch = member.categories && member.categories.some(cat => cat.toLowerCase() === category.toLowerCase());
+      console.log(`  - ${member.name}: role=${member.role} (${roleMatch}), categories=${JSON.stringify(member.categories)} (${categoryMatch})`);
+      return roleMatch && categoryMatch;
+    }));
+    return filtered;
   };
 
   // Valida la configurazione di manutenzione

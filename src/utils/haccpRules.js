@@ -241,6 +241,22 @@ export const CONSERVATION_POINT_RULES = {
       maxTemp: 10,
       description: 'Bibite, succhi, acqua, bevande fresche',
       incompatibleWith: ['frozen', 'deep_frozen', 'hot_holding']
+    },
+    {
+      id: 'abbattitore_menu',
+      name: 'Prodotti per Menù / Scorte',
+      minTemp: -80,
+      maxTemp: -10,
+      description: 'Prodotti per menù e scorte in abbattitore',
+      incompatibleWith: ['hot_holding', 'fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'fresh_beverages', 'chilled_ready']
+    },
+    {
+      id: 'abbattitore_esposizione',
+      name: 'Prodotti per Esposizione / Vendita',
+      minTemp: -80,
+      maxTemp: -10,
+      description: 'Prodotti per esposizione e vendita in abbattitore',
+      incompatibleWith: ['hot_holding', 'fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'fresh_beverages', 'chilled_ready']
     }
   ],
   

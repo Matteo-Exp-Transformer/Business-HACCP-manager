@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
@@ -32,11 +32,18 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     assignedTo: '',
     frequency: '',
     selectedCategories: [],
-    maintenanceData: {}
+    maintenanceData: {},
+    isAbbattitore: false
   })
+
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRefrigerator, setSelectedRefrigerator] = useState(null)
   const [showTemperatureHistory, setShowTemperatureHistory] = useState(false)
+
+  // Funzione stabilizzata per evitare loop infiniti
+  const handleMaintenanceChange = useCallback((maintenanceData) => {
+    setFormData(prev => ({...prev, maintenanceData}))
+  }, [])
   
   // Stati per i dati dell'onboarding
   const [onboardingData, setOnboardingData] = useState(null)
@@ -94,12 +101,15 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     })
   }
 
+
   // Funzione per validazione HACCP (stessa logica dell'onboarding)
   const checkHACCPCompliance = (targetTemp, selectedCategories = []) => {
     // Gestisce "ambiente" come range 15-25°C per monitoraggio futuro
     let temp;
     let isAmbiente = false;
-    if (targetTemp.toLowerCase().trim() === 'ambiente') {
+    
+    // Controlla se targetTemp è una stringa e se è "ambiente"
+    if (typeof targetTemp === 'string' && targetTemp.toLowerCase().trim() === 'ambiente') {
       temp = 20; // Valore medio per validazione HACCP
       isAmbiente = true;
     } else {
@@ -347,12 +357,14 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     if (selectedCategories.includes(categoryId)) return 'selected';
     
     // Se non c'è temperatura inserita, mostra tutte le categorie come neutral
-    if (!targetTemp || targetTemp.trim() === '') return 'neutral';
+    if (!targetTemp || (typeof targetTemp === 'string' && targetTemp.trim() === '')) return 'neutral';
     
     // Gestisce "ambiente" come range 15-25°C per monitoraggio futuro
     let temp;
     let isAmbiente = false;
-    if (targetTemp.toLowerCase().trim() === 'ambiente') {
+    
+    // Controlla se targetTemp è una stringa e se è "ambiente"
+    if (typeof targetTemp === 'string' && targetTemp.toLowerCase().trim() === 'ambiente') {
       temp = 20; // Valore medio per validazione HACCP
       isAmbiente = true;
     } else {
@@ -498,22 +510,377 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
   }
 
   // Carica le categorie personalizzate dal localStorage all'avvio
-  // Carica i dati dell'onboarding
+  // Carica i dati esistenti e assicurati che abbiano isAbbattitore
   useEffect(() => {
-    const savedOnboarding = localStorage.getItem('onboardingData')
-    if (savedOnboarding && savedOnboarding !== '[object Object]') {
+    const savedRefrigerators = localStorage.getItem('haccp-refrigerators')
+    if (savedRefrigerators) {
+      try {
+        const refrigerators = JSON.parse(savedRefrigerators)
+        const updatedRefrigerators = refrigerators.map(ref => ({
+          ...ref,
+          isAbbattitore: ref.isAbbattitore || false
+        }))
+        
+        // Controlla se ci sono stati aggiornamenti
+        const hasUpdates = refrigerators.some(ref => ref.isAbbattitore === undefined)
+        if (hasUpdates) {
+          console.log('🔄 Aggiornando punti di conservazione con flag isAbbattitore')
+          setRefrigerators(updatedRefrigerators)
+          localStorage.setItem('haccp-refrigerators', JSON.stringify(updatedRefrigerators))
+        } else {
+          setRefrigerators(updatedRefrigerators)
+        }
+        
+        // Debug: mostra la classificazione di ogni punto (solo se ci sono stati aggiornamenti)
+        if (hasUpdates) {
+          console.log('🔍 Classificazione punti di conservazione:')
+          updatedRefrigerators.forEach(ref => {
+            const type = getRefrigeratorType(ref)
+            console.log(`   ${ref.name}: ${ref.setTemperature}°C, isAbbattitore: ${ref.isAbbattitore} → ${type}`)
+          })
+        }
+      } catch (error) {
+        console.error('Errore nel caricamento dei frigoriferi:', error)
+      }
+    }
+  }, [])
+
+  // Carica le attività di manutenzione dal database per i punti esistenti
+  useEffect(() => {
+    const loadMaintenanceData = async () => {
+      try {
+        const result = await supabaseService.getMaintenanceTasks()
+        if (result.success && result.data.length > 0) {
+          console.log('🔍 Caricamento attività di manutenzione dal database:', result.data.length)
+          
+          // Raggruppa per punto di conservazione
+          const groupedMaintenances = result.data.reduce((acc, maintenance) => {
+            const pointId = maintenance.conservation_point_id
+            if (!acc[pointId]) {
+              acc[pointId] = {
+                conservation_point_id: pointId,
+                conservation_point_name: maintenance.conservation_point_name,
+                tasks: []
+              }
+            }
+            acc[pointId].tasks.push(maintenance)
+            return acc
+          }, {})
+          
+          const maintenanceArray = Object.values(groupedMaintenances)
+          console.log('🔍 Attività raggruppate:', maintenanceArray)
+          console.log('🔍 Numero totale di gruppi di attività:', maintenanceArray.length)
+          
+          // Aggiorna i frigoriferi esistenti con le attività di manutenzione
+          setRefrigerators(prevRefrigerators => {
+            // Controlla se ci sono già dati di manutenzione per evitare loop infiniti
+            const hasMaintenanceData = prevRefrigerators.some(ref => 
+              ref.maintenanceData && Object.keys(ref.maintenanceData).length > 0
+            )
+            
+            if (hasMaintenanceData) {
+              console.log('🔍 Dati di manutenzione già presenti, saltando aggiornamento')
+              return prevRefrigerators
+            }
+            
+            const updatedRefrigerators = prevRefrigerators.map(refrigerator => {
+              const pointMaintenances = maintenanceArray.find(group => 
+                group.conservation_point_id === refrigerator.id
+              )
+              
+              if (pointMaintenances && pointMaintenances.tasks) {
+                let maintenanceData = {}
+                
+                // Mappa i valori di frequenza ai valori corretti
+                const mapFrequency = (freq, taskType) => {
+                  if (!freq) return taskType === 'defrosting' ? 'semiannual' : 'daily'
+                  
+                  // Mappa valori comuni
+                  if (freq === 'custom_days') return 'daily'
+                  if (freq === 'Semestrale (ogni 6 mesi)') return 'semiannual'
+                  if (freq === 'Annuale') return 'annual'
+                  if (freq === 'Giornalmente') return 'daily'
+                  if (freq === 'Settimanale') return 'weekly'
+                  if (freq === 'Mensile') return 'monthly'
+                  
+                  // Se è già un valore valido, usalo
+                  const validFrequencies = {
+                    'temperature_monitoring': ['daily', 'weekly', 'monthly'],
+                    'sanitization': ['daily', 'weekly'],
+                    'defrosting': ['semiannual', 'annual']
+                  }
+                  
+                  if (validFrequencies[taskType]?.includes(freq)) {
+                    return freq
+                  }
+                  
+                  // Default per tipo
+                  return taskType === 'defrosting' ? 'semiannual' : 'daily'
+                }
+                
+                // Mappa i ruoli ai valori corretti
+                const mapRole = (role) => {
+                  if (!role) return ''
+                  
+                  const roleMap = {
+                    'Amministratore': 'amministratore',
+                    'Responsabile': 'responsabile',
+                    'Dipendente': 'dipendente',
+                    'Collaboratore': 'collaboratore',
+                    'Collaboratore Occasionale': 'collaboratore'
+                  }
+                  
+                  return roleMap[role] || role.toLowerCase()
+                }
+                
+                // Mappa le categorie ai valori corretti
+                const mapCategory = (category) => {
+                  if (!category) return ''
+                  
+                  const categoryMap = {
+                    'Amministratore': 'amministratore',
+                    'Cuochi': 'cuochi',
+                    'Banconisti': 'banconisti',
+                    'Camerieri': 'camerieri',
+                    'Social & Media Manager': 'social_media_manager',
+                    'Altro': 'altro'
+                  }
+                  
+                  return categoryMap[category] || category.toLowerCase()
+                }
+                
+                pointMaintenances.tasks.forEach(task => {
+                  const taskType = task.task_type
+                  if (taskType === 'temperature_monitoring') {
+                    maintenanceData.temperature_monitoring = {
+                      frequency: mapFrequency(task.frequency, 'temperature_monitoring'),
+                      assigned_role: mapRole(task.assigned_role),
+                      assigned_category: mapCategory(task.assigned_category),
+                      assigned_staff_ids: task.assigned_staff_ids || []
+                    }
+                  } else if (taskType === 'sanitization') {
+                    maintenanceData.sanitization = {
+                      frequency: mapFrequency(task.frequency, 'sanitization'),
+                      assigned_role: mapRole(task.assigned_role),
+                      assigned_category: mapCategory(task.assigned_category),
+                      assigned_staff_ids: task.assigned_staff_ids || []
+                    }
+                  } else if (taskType === 'defrosting') {
+                    maintenanceData.defrosting = {
+                      frequency: mapFrequency(task.frequency, 'defrosting'),
+                      assigned_role: mapRole(task.assigned_role),
+                      assigned_category: mapCategory(task.assigned_category),
+                      assigned_staff_ids: task.assigned_staff_ids || []
+                    }
+                  }
+                })
+                
+                console.log(`🔍 Aggiornando ${refrigerator.name} con maintenanceData:`, maintenanceData)
+                console.log(`🔍 assigned_staff_ids:`, maintenanceData.temperature_monitoring?.assigned_staff_ids, maintenanceData.sanitization?.assigned_staff_ids, maintenanceData.defrosting?.assigned_staff_ids)
+                return {
+                  ...refrigerator,
+                  maintenanceData: maintenanceData
+                }
+              }
+              
+              return refrigerator
+            })
+            
+            // Salva nel localStorage
+            // Debug: console.log('🔍 Salvando frigoriferi aggiornati con manutenzioni nel localStorage')
+            localStorage.setItem('haccp-refrigerators', JSON.stringify(updatedRefrigerators))
+            return updatedRefrigerators
+          })
+        }
+      } catch (error) {
+        console.error('❌ Errore nel caricamento delle attività di manutenzione:', error)
+      }
+    }
+    
+    loadMaintenanceData()
+  }, [])
+
+  // Carica i dipendenti dal localStorage
+  useEffect(() => {
+    const savedStaff = localStorage.getItem('haccp-staff')
+    if (savedStaff) {
+      try {
+        const staff = JSON.parse(savedStaff)
+        console.log('🔍 Caricando staffMembers dal localStorage:', staff.length)
+        console.log('🔍 StaffMembers:', JSON.stringify(staff, null, 2))
+        setStaffMembers(staff)
+      } catch (error) {
+        console.error('Errore nel caricamento dello staff:', error)
+      }
+    } else {
+      console.log('🔍 Nessun staffMembers trovato nel localStorage')
+    }
+  }, [])
+
+  // Carica i dati dell'onboarding solo se non ci sono già dati
+  useEffect(() => {
+    const savedOnboarding = localStorage.getItem('haccp-onboarding-new')
+    const existingRefrigerators = localStorage.getItem('haccp-refrigerators')
+    
+    // Carica i dati dell'onboarding solo se non ci sono già frigoriferi salvati
+    // e se non è già stato caricato (controlla un flag)
+    const hasLoadedOnboarding = localStorage.getItem('haccp-onboarding-loaded')
+    if (savedOnboarding && savedOnboarding !== '[object Object]' && !existingRefrigerators && !hasLoadedOnboarding) {
       try {
         const data = JSON.parse(savedOnboarding)
         setOnboardingData(data)
         
         // Estrae i reparti
-        if (data.departments && Array.isArray(data.departments)) {
-          setDepartments(data.departments)
+        if (data.formData?.departments?.list && Array.isArray(data.formData.departments.list)) {
+          setDepartments(data.formData.departments.list)
         }
         
         // Estrae i membri dello staff
-        if (data.staff && Array.isArray(data.staff)) {
-          setStaffMembers(data.staff)
+        if (data.formData?.staff?.staffMembers && Array.isArray(data.formData.staff.staffMembers)) {
+        console.log('🔍 Caricando staffMembers dall\'onboarding:', data.formData.staff.staffMembers.length)
+        console.log('🔍 Primo dipendente:', JSON.stringify(data.formData.staff.staffMembers[0], null, 2))
+        setStaffMembers(data.formData.staff.staffMembers)
+        } else {
+          console.log('🔍 Nessun staffMembers trovato nell\'onboarding')
+        }
+        
+        // Estrae i punti di conservazione e li carica nei frigoriferi
+        if (data.formData?.conservation?.points && Array.isArray(data.formData.conservation.points)) {
+          // Carica le attività di manutenzione dall'onboarding
+          const savedMaintenances = data.formData?.savedMaintenances || data.savedMaintenances || []
+          
+          console.log('🔍 Dati onboarding caricati:', data.formData.conservation.points.length, 'punti,', savedMaintenances.length, 'attività manutenzione')
+          console.log('🔍 Primo punto di conservazione:', data.formData.conservation.points[0])
+          
+          const conservationPoints = data.formData.conservation.points.map(point => {
+            // Trova le attività di manutenzione per questo punto
+            const pointMaintenances = savedMaintenances.find(group => 
+              group.conservation_point_id === point.id
+            )
+            
+            // Debug: console.log(`🔍 Punto ${point.name}: ${pointMaintenances ? pointMaintenances.tasks.length : 0} attività`)
+            
+            // Converte le attività di manutenzione nel formato atteso
+            let maintenanceData = {}
+            if (pointMaintenances && pointMaintenances.tasks) {
+              // Mappa i valori di frequenza ai valori corretti
+              const mapFrequency = (freq, taskType) => {
+                if (!freq) return taskType === 'defrosting' ? 'semiannual' : 'daily'
+                
+                // Mappa valori comuni
+                if (freq === 'custom_days') return 'daily'
+                if (freq === 'Semestrale (ogni 6 mesi)') return 'semiannual'
+                if (freq === 'Annuale') return 'annual'
+                if (freq === 'Giornalmente') return 'daily'
+                if (freq === 'Settimanale') return 'weekly'
+                if (freq === 'Mensile') return 'monthly'
+                
+                // Se è già un valore valido, usalo
+                const validFrequencies = {
+                  'temperature_monitoring': ['daily', 'weekly', 'monthly'],
+                  'sanitization': ['daily', 'weekly'],
+                  'defrosting': ['semiannual', 'annual']
+                }
+                
+                if (validFrequencies[taskType]?.includes(freq)) {
+                  return freq
+                }
+                
+                // Default per tipo
+                return taskType === 'defrosting' ? 'semiannual' : 'daily'
+              }
+              
+              // Mappa i ruoli ai valori corretti
+              const mapRole = (role) => {
+                if (!role) return ''
+                
+                const roleMap = {
+                  'Amministratore': 'amministratore',
+                  'Responsabile': 'responsabile',
+                  'Dipendente': 'dipendente',
+                  'Collaboratore': 'collaboratore',
+                  'Collaboratore Occasionale': 'collaboratore'
+                }
+                
+                return roleMap[role] || role.toLowerCase()
+              }
+              
+              // Mappa le categorie ai valori corretti
+              const mapCategory = (category) => {
+                if (!category) return ''
+                
+                const categoryMap = {
+                  'Amministratore': 'amministratore',
+                  'Cuochi': 'cuochi',
+                  'Banconisti': 'banconisti',
+                  'Camerieri': 'camerieri',
+                  'Social & Media Manager': 'social_media_manager',
+                  'Altro': 'altro'
+                }
+                
+                return categoryMap[category] || category.toLowerCase()
+              }
+              
+              pointMaintenances.tasks.forEach(task => {
+                const taskType = task.task_type
+                // Debug: console.log(`  - Attività ${taskType}:`, task)
+                  if (taskType === 'temperature_monitoring') {
+                    maintenanceData.temperature_monitoring = {
+                      frequency: mapFrequency(task.frequency, 'temperature_monitoring'),
+                      assigned_role: mapRole(task.assigned_role),
+                      assigned_category: mapCategory(task.assigned_category),
+                      assigned_staff_ids: task.assigned_staff_ids || []
+                    }
+                  } else if (taskType === 'sanitization') {
+                    maintenanceData.sanitization = {
+                      frequency: mapFrequency(task.frequency, 'sanitization'),
+                      assigned_role: mapRole(task.assigned_role),
+                      assigned_category: mapCategory(task.assigned_category),
+                      assigned_staff_ids: task.assigned_staff_ids || []
+                    }
+                  } else if (taskType === 'defrosting') {
+                    maintenanceData.defrosting = {
+                      frequency: mapFrequency(task.frequency, 'defrosting'),
+                      assigned_role: mapRole(task.assigned_role),
+                      assigned_category: mapCategory(task.assigned_category),
+                      assigned_staff_ids: task.assigned_staff_ids || []
+                    }
+                  }
+              })
+            }
+            
+            console.log(`🔍 Punto ${point.name} - MaintenanceData finale:`, maintenanceData)
+            console.log(`🔍 Punto ${point.name} - assigned_staff_ids:`, maintenanceData.temperature_monitoring?.assigned_staff_ids, maintenanceData.sanitization?.assigned_staff_ids, maintenanceData.defrosting?.assigned_staff_ids)
+            
+            console.log(`🔍 Punto ${point.name} - targetTemp:`, point.targetTemp, 'setTemperature:', point.setTemperature, 'temperature:', point.temperature)
+            console.log(`🔍 Punto ${point.name} - Tutti i campi temperatura:`, {
+              targetTemp: point.targetTemp,
+              setTemperature: point.setTemperature,
+              temperature: point.temperature,
+              temp: point.temp
+            })
+            console.log(`🔍 Punto ${point.name} - Punto completo:`, JSON.stringify(point, null, 2))
+            
+            return {
+              ...point,
+              id: point.id || `conservation-${Date.now()}-${Math.random()}`,
+              setTemperature: point.targetTemp || point.setTemperature || point.temperature || point.temp || '',
+              selectedCategories: point.selectedCategories || [],
+              compliance: point.compliance || checkHACCPCompliance(point.targetTemp, point.selectedCategories),
+              createdAt: point.createdAt || new Date().toISOString(),
+              isAbbattitore: false, // Forza sempre false per i punti dall'onboarding
+              maintenanceData: maintenanceData
+            }
+          })
+          
+          // Aggiorna i frigoriferi con i dati dell'onboarding
+          setRefrigerators(conservationPoints)
+          localStorage.setItem('haccp-refrigerators', JSON.stringify(conservationPoints))
+          
+          // Marca l'onboarding come caricato per evitare ricaricamenti
+          localStorage.setItem('haccp-onboarding-loaded', 'true')
+          
+          console.log('✅ Punti di conservazione caricati dall\'onboarding:', conservationPoints.length, 'punti')
         }
       } catch (error) {
         console.error('Errore nel caricamento dei dati onboarding:', error)
@@ -624,31 +991,56 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
   }
 
   // Funzione per determinare il tipo di punto di conservazione in base alla temperatura
-  const getRefrigeratorType = (temperature) => {
-    // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
+  const getRefrigeratorType = (refrigerator) => {
+    // Se è esplicitamente marcato come abbattitore, restituisci Abbattitore
+    if (refrigerator.isAbbattitore) {
+      return 'Abbattitore'
+    }
+    
+    // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range) e quelli dall'onboarding
     let tempValue = 0
     
-    if (typeof temperature === 'object' && temperature.setTemperatureMin !== undefined && temperature.setTemperatureMax !== undefined) {
+    // Controlla se è un oggetto con range di temperatura
+    if (typeof refrigerator === 'object' && refrigerator.setTemperatureMin !== undefined && refrigerator.setTemperatureMax !== undefined) {
       // Nuovo formato con range - usa la media
-      tempValue = (temperature.setTemperatureMin + temperature.setTemperatureMax) / 2
-    } else if (typeof temperature === 'string') {
-      // Vecchio formato - estrae il valore numerico dalla stringa
-      const tempStr = temperature.replace('°C', '').trim()
+      tempValue = (refrigerator.setTemperatureMin + refrigerator.setTemperatureMax) / 2
+    } else if (refrigerator.setTemperature) {
+      // Vecchio formato - gestisce sia numeri che "ambiente"
+      if (refrigerator.setTemperature.toString().toLowerCase().trim() === 'ambiente') {
+        tempValue = 20 // Valore medio per ambiente
+      } else {
+        const tempStr = refrigerator.setTemperature.toString().replace('°C', '').trim()
       tempValue = parseFloat(tempStr)
-    } else if (typeof temperature === 'number') {
+      }
+    } else if (refrigerator.targetTemp) {
+      // Formato dall'onboarding - gestisce sia numeri che "ambiente"
+      if (refrigerator.targetTemp.toString().toLowerCase().trim() === 'ambiente') {
+        tempValue = 20 // Valore medio per ambiente
+      } else {
+        const tempStr = refrigerator.targetTemp.toString().replace('°C', '').trim()
+        tempValue = parseFloat(tempStr)
+      }
+    } else if (typeof refrigerator === 'string') {
+      // Se viene passata direttamente una stringa di temperatura
+      if (refrigerator.toLowerCase().trim() === 'ambiente') {
+        tempValue = 20 // Valore medio per ambiente
+      } else {
+        const tempStr = refrigerator.replace('°C', '').trim()
+        tempValue = parseFloat(tempStr)
+      }
+    } else if (typeof refrigerator === 'number') {
       // Formato numerico diretto
-      tempValue = temperature
+      tempValue = refrigerator
     }
     
     if (isNaN(tempValue)) return 'N/A'
     
-    if (tempValue < -13.5 && tempValue >= -80) {
-      return 'Abbattitore'
-    } else if (tempValue < -2.5 && tempValue >= -13.5) {
+    // Classifica in base alla temperatura (solo se non è esplicitamente marcato come abbattitore)
+    if (tempValue < -1 && tempValue >= -90) {
       return 'Freezer'
-    } else if ((tempValue >= -2.5 && tempValue <= 0) || (tempValue > 0 && tempValue <= 14)) {
+    } else if (tempValue >= 0 && tempValue <= 8) {
       return 'Frigo'
-    } else if (tempValue >= 15 && tempValue <= 25) {
+    } else if (tempValue >= 15 && tempValue <= 27) {
       return 'Ambiente'
     } else {
       return 'N/A'
@@ -746,6 +1138,14 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       }
     }
 
+    // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
+    let finalCategories = formData.selectedCategories || []
+    if (formData.isAbbattitore) {
+      // Aggiungi le categorie specifiche dell'abbattitore
+      const abbattitoreCategories = ['abbattitore_menu', 'abbattitore_esposizione']
+      finalCategories = [...finalCategories, ...abbattitoreCategories]
+    }
+
     const newRefrigerator = {
       id: Date.now(),
       name: formData.name.trim(),
@@ -753,10 +1153,14 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       location: formData.location.trim(),
       dedicatedTo: formData.dedicatedTo.trim(),
       nextMaintenance: formData.nextMaintenance.trim(),
-      selectedCategories: formData.selectedCategories || [],
+      assignedRole: formData.assignedRole.trim(),
+      assignedTo: formData.assignedTo.trim(),
+      frequency: formData.frequency.trim(),
+      selectedCategories: finalCategories,
       maintenanceData: formData.maintenanceData || {},
       createdAt: new Date().toISOString(),
-      createdBy: currentUser?.name || 'Unknown'
+      createdBy: currentUser?.name || 'Unknown',
+      isAbbattitore: formData.isAbbattitore || false
     }
 
     setRefrigerators([...refrigerators, newRefrigerator])
@@ -797,11 +1201,16 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       location: '',
       dedicatedTo: '',
       nextMaintenance: '',
+      assignedRole: '',
+      assignedTo: '',
+      frequency: '',
       selectedCategories: [],
-      maintenanceData: {}
+      maintenanceData: {},
+      isAbbattitore: false
     })
     setShowAddModal(false)
   }
+
 
   const deleteRefrigerator = async (id) => {
     if (confirm('Sei sicuro di voler eliminare questo punto di conservazione?')) {
@@ -824,11 +1233,25 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
   const editRefrigerator = (refrigerator) => {
     setEditingRefrigerator(refrigerator)
     
-    // Estrae il valore di temperatura dal campo setTemperature
+    // Debug: verifica i dati di manutenzione
+    console.log('🔍 EditRefrigerator - Dati del punto:', refrigerator.name)
+    console.log('🔍 maintenanceData completo:', JSON.stringify(refrigerator.maintenanceData, null, 2))
+    console.log('🔍 staffMembers disponibili:', staffMembers.length, 'dipendenti')
+    console.log('🔍 setTemperature:', refrigerator.setTemperature)
+    console.log('🔍 Tutti i campi temperatura nel punto:', {
+      setTemperature: refrigerator.setTemperature,
+      targetTemp: refrigerator.targetTemp,
+      temperature: refrigerator.temperature,
+      temp: refrigerator.temp
+    })
+    
+    // Estrae il valore di temperatura da tutti i possibili campi
     let temperature = ''
     
-    if (refrigerator.setTemperature) {
-      const tempStr = refrigerator.setTemperature.toString()
+    const tempValue = refrigerator.setTemperature || refrigerator.targetTemp || refrigerator.temperature || refrigerator.temp
+    
+    if (tempValue) {
+      const tempStr = tempValue.toString()
       
       // Se è il range "da 15°C a 25°C", mostra "ambiente"
       if (tempStr.includes('da 15°C a 25°C')) {
@@ -839,15 +1262,24 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       }
     }
     
-    setFormData({
+    console.log('🔍 Temperatura estratta:', temperature, 'da valore:', tempValue)
+    
+    const formDataToSet = {
       name: refrigerator.name,
       setTemperature: temperature,
       location: refrigerator.location || '',
       dedicatedTo: refrigerator.dedicatedTo || '',
       nextMaintenance: refrigerator.nextMaintenance || '',
+      assignedRole: refrigerator.assignedRole || '',
+      assignedTo: refrigerator.assignedTo || '',
+      frequency: refrigerator.frequency || '',
       selectedCategories: refrigerator.selectedCategories || [],
-      maintenanceData: refrigerator.maintenanceData || {}
-    })
+      maintenanceData: refrigerator.maintenanceData || {},
+      isAbbattitore: refrigerator.isAbbattitore || false
+    }
+    
+    console.log('🔍 FormData da impostare:', JSON.stringify(formDataToSet.maintenanceData, null, 2))
+    setFormData(formDataToSet)
     setShowEditModal(true)
   }
 
@@ -927,6 +1359,14 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       }
     }
 
+    // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
+    let finalCategories = formData.selectedCategories || []
+    if (formData.isAbbattitore) {
+      // Aggiungi le categorie specifiche dell'abbattitore
+      const abbattitoreCategories = ['abbattitore_menu', 'abbattitore_esposizione']
+      finalCategories = [...finalCategories, ...abbattitoreCategories]
+    }
+
     const updatedRefrigerator = {
       ...editingRefrigerator,
       name: formData.name.trim(),
@@ -934,10 +1374,14 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       location: formData.location.trim(),
       dedicatedTo: formData.dedicatedTo.trim(),
       nextMaintenance: formData.nextMaintenance.trim(),
-      selectedCategories: formData.selectedCategories || [],
+      assignedRole: formData.assignedRole.trim(),
+      assignedTo: formData.assignedTo.trim(),
+      frequency: formData.frequency.trim(),
+      selectedCategories: finalCategories,
       maintenanceData: formData.maintenanceData || {},
       updatedAt: new Date().toISOString(),
-      updatedBy: currentUser?.name || 'Unknown'
+      updatedBy: currentUser?.name || 'Unknown',
+      isAbbattitore: formData.isAbbattitore || false
     }
 
     setRefrigerators(refrigerators.map(ref => 
@@ -984,8 +1428,12 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       location: '',
       dedicatedTo: '',
       nextMaintenance: '',
+                      assignedRole: '',
+                      assignedTo: '',
+                      frequency: '',
       selectedCategories: [],
-      maintenanceData: {}
+                      maintenanceData: {},
+                      isAbbattitore: false
     })
     setEditingRefrigerator(null)
     setShowEditModal(false)
@@ -999,6 +1447,9 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     } else if (refrigerator.setTemperature) {
       // Vecchio formato
       return refrigerator.setTemperature
+    } else if (refrigerator.targetTemp) {
+      // Formato dall'onboarding
+      return refrigerator.targetTemp
     }
     return 'N/A'
   }
@@ -1011,6 +1462,10 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     } else if (refrigerator.setTemperature) {
       // Vecchio formato - estrae il valore numerico dalla stringa
       const tempStr = refrigerator.setTemperature.toString().replace('°C', '').trim()
+      return parseFloat(tempStr)
+    } else if (refrigerator.targetTemp) {
+      // Formato dall'onboarding - estrae il valore numerico dalla stringa
+      const tempStr = refrigerator.targetTemp.toString().replace('°C', '').trim()
       return parseFloat(tempStr)
     }
     return 0
@@ -1153,7 +1608,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
             <div className="space-y-6">
               {/* Categorie frigoriferi */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Frigoriferi (-2.5°C a 0°C e 0°C a +14°C) */}
+                {/* Frigoriferi (0°C a +8°C) */}
                 <div className="border rounded-lg p-4 bg-blue-50">
                   <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
                     <Thermometer className="h-4 w-4" />
@@ -1168,19 +1623,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
-                      .filter(ref => {
-                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
-                        let tempValue = 0
-                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
-                          // Nuovo formato con range - usa la media
-                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
-                        } else if (ref.setTemperature) {
-                          // Vecchio formato - estrae il valore numerico dalla stringa
-                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
-                          tempValue = parseFloat(tempStr)
-                        }
-                        return !isNaN(tempValue) && ((tempValue >= -2.5 && tempValue <= 0) || (tempValue > 0 && tempValue <= 14))
-                      })
+                      .filter(ref => getRefrigeratorType(ref) === 'Frigo')
                       .map(refrigerator => {
                         const status = getTemperatureStatus(refrigerator)
                         return (
@@ -1236,7 +1679,27 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                                 <span className="font-medium">{getDisplayTemperature(refrigerator)}</span>
                               </div>
                             </div>
-                            {refrigerator.dedicatedTo && (
+                            {/* Mostra le categorie selezionate dall'onboarding */}
+                            {refrigerator.selectedCategories && refrigerator.selectedCategories.length > 0 && (
+                              <div className="mt-2 text-xs">
+                                <span className="text-gray-500">Categorie: </span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {refrigerator.selectedCategories.map(categoryId => {
+                                    const category = allCategories.find(cat => cat.id === categoryId)
+                                    return (
+                                      <span
+                                        key={categoryId}
+                                        className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                      >
+                                        {category?.name || categoryId}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            {/* Fallback per la vecchia categoria singola */}
+                            {(!refrigerator.selectedCategories || refrigerator.selectedCategories.length === 0) && refrigerator.dedicatedTo && (
                               <div className="mt-2 text-xs">
                                 <span className="text-gray-500">Categoria: </span>
                                 <span className="font-medium text-gray-700">
@@ -1247,25 +1710,13 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                           </div>
                         )
                       })}
-                    {filteredRefrigerators.filter(ref => {
-                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
-                        let tempValue = 0
-                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
-                          // Nuovo formato con range - usa la media
-                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
-                        } else if (ref.setTemperature) {
-                          // Vecchio formato - estrae il valore numerico dalla stringa
-                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
-                          tempValue = parseFloat(tempStr)
-                        }
-                        return !isNaN(tempValue) && ((tempValue >= -2.5 && tempValue <= 0) || (tempValue > 0 && tempValue <= 14))
-                      }).length === 0 && (
+                    {filteredRefrigerators.filter(ref => getRefrigeratorType(ref) === 'Frigo').length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">Nessun frigorifero</p>
                     )}
                   </div>
                 </div>
 
-                {/* Freezer (-2.5°C a -13.5°C) */}
+                {/* Freezer (-1°C a -90°C) */}
                 <div className="border rounded-lg p-4 bg-purple-50">
                   <h3 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
                     <Thermometer className="h-4 w-4" />
@@ -1280,19 +1731,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
-                      .filter(ref => {
-                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
-                        let tempValue = 0
-                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
-                          // Nuovo formato con range - usa la media
-                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
-                        } else if (ref.setTemperature) {
-                          // Vecchio formato - estrae il valore numerico dalla stringa
-                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
-                          tempValue = parseFloat(tempStr)
-                        }
-                        return !isNaN(tempValue) && tempValue < -2.5 && tempValue >= -13.5
-                      })
+                      .filter(ref => getRefrigeratorType(ref) === 'Freezer')
                       .map(refrigerator => {
                         const status = getTemperatureStatus(refrigerator)
                         return (
@@ -1348,7 +1787,27 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                                 <span className="font-medium">{getDisplayTemperature(refrigerator)}</span>
                               </div>
                             </div>
-                            {refrigerator.dedicatedTo && (
+                            {/* Mostra le categorie selezionate dall'onboarding */}
+                            {refrigerator.selectedCategories && refrigerator.selectedCategories.length > 0 && (
+                              <div className="mt-2 text-xs">
+                                <span className="text-gray-500">Categorie: </span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {refrigerator.selectedCategories.map(categoryId => {
+                                    const category = allCategories.find(cat => cat.id === categoryId)
+                                    return (
+                                      <span
+                                        key={categoryId}
+                                        className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                      >
+                                        {category?.name || categoryId}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            {/* Fallback per la vecchia categoria singola */}
+                            {(!refrigerator.selectedCategories || refrigerator.selectedCategories.length === 0) && refrigerator.dedicatedTo && (
                               <div className="mt-2 text-xs">
                                 <span className="text-gray-500">Categoria: </span>
                                 <span className="font-medium text-gray-700">
@@ -1359,25 +1818,13 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                           </div>
                         )
                       })}
-                    {filteredRefrigerators.filter(ref => {
-                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
-                        let tempValue = 0
-                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
-                          // Nuovo formato con range - usa la media
-                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
-                        } else if (ref.setTemperature) {
-                          // Vecchio formato - estrae il valore numerico dalla stringa
-                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
-                          tempValue = parseFloat(tempStr)
-                        }
-                        return !isNaN(tempValue) && tempValue < -2.5 && tempValue >= -13.5
-                      }).length === 0 && (
+                    {filteredRefrigerators.filter(ref => getRefrigeratorType(ref) === 'Freezer').length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">Nessun freezer</p>
                     )}
                   </div>
                 </div>
 
-                {/* Abbattitore (-13.5°C a -80°C) */}
+                {/* Abbattitore (solo punti con isAbbattitore: true) */}
                 <div className="border rounded-lg p-4 bg-red-50">
                   <h3 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
                     <Thermometer className="h-4 w-4" />
@@ -1392,19 +1839,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
-                      .filter(ref => {
-                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
-                        let tempValue = 0
-                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
-                          // Nuovo formato con range - usa la media
-                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
-                        } else if (ref.setTemperature) {
-                          // Vecchio formato - estrae il valore numerico dalla stringa
-                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
-                          tempValue = parseFloat(tempStr)
-                        }
-                        return !isNaN(tempValue) && tempValue < -13.5 && tempValue >= -80
-                      })
+                      .filter(ref => getRefrigeratorType(ref) === 'Abbattitore')
                       .map(refrigerator => {
                         const status = getTemperatureStatus(refrigerator)
                         return (
@@ -1460,7 +1895,27 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                                 <span className="font-medium">{getDisplayTemperature(refrigerator)}</span>
                               </div>
                             </div>
-                            {refrigerator.dedicatedTo && (
+                            {/* Mostra le categorie selezionate dall'onboarding */}
+                            {refrigerator.selectedCategories && refrigerator.selectedCategories.length > 0 && (
+                              <div className="mt-2 text-xs">
+                                <span className="text-gray-500">Categorie: </span>
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {refrigerator.selectedCategories.map(categoryId => {
+                                    const category = allCategories.find(cat => cat.id === categoryId)
+                                    return (
+                                      <span
+                                        key={categoryId}
+                                        className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                      >
+                                        {category?.name || categoryId}
+                                      </span>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            {/* Fallback per la vecchia categoria singola */}
+                            {(!refrigerator.selectedCategories || refrigerator.selectedCategories.length === 0) && refrigerator.dedicatedTo && (
                               <div className="mt-2 text-xs">
                                 <span className="text-gray-500">Categoria: </span>
                                 <span className="font-medium text-gray-700">
@@ -1471,25 +1926,13 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                           </div>
                         )
                       })}
-                    {filteredRefrigerators.filter(ref => {
-                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
-                        let tempValue = 0
-                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
-                          // Nuovo formato con range - usa la media
-                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
-                        } else if (ref.setTemperature) {
-                          // Vecchio formato - estrae il valore numerico dalla stringa
-                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
-                          tempValue = parseFloat(tempStr)
-                        }
-                        return !isNaN(tempValue) && tempValue < -13.5 && tempValue >= -80
-                      }).length === 0 && (
+                    {filteredRefrigerators.filter(ref => getRefrigeratorType(ref) === 'Abbattitore').length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">Nessun abbattitore</p>
                     )}
                   </div>
                 </div>
 
-                {/* Ambiente (15°C a 25°C) */}
+                {/* Ambiente (15°C a 27°C) */}
                 <div className="border rounded-lg p-4 bg-green-50">
                   <h3 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
                     <Thermometer className="h-4 w-4" />
@@ -1504,19 +1947,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   </h3>
                   <div className="space-y-2">
                     {filteredRefrigerators
-                      .filter(ref => {
-                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
-                        let tempValue = 0
-                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
-                          // Nuovo formato con range - usa la media
-                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
-                        } else if (ref.setTemperature) {
-                          // Vecchio formato - estrae il valore numerico dalla stringa
-                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
-                          tempValue = parseFloat(tempStr)
-                        }
-                        return !isNaN(tempValue) && tempValue >= 15 && tempValue <= 25
-                      })
+                      .filter(ref => getRefrigeratorType(ref) === 'Ambiente')
                       .map(refrigerator => {
                         const status = getTemperatureStatus(refrigerator)
                         return (
@@ -1583,19 +2014,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                           </div>
                         )
                       })}
-                    {filteredRefrigerators.filter(ref => {
-                        // Gestisce sia i vecchi frigoriferi (con setTemperature singola) che i nuovi (con range)
-                        let tempValue = 0
-                        if (ref.setTemperatureMin !== undefined && ref.setTemperatureMax !== undefined) {
-                          // Nuovo formato con range - usa la media
-                          tempValue = (ref.setTemperatureMin + ref.setTemperatureMax) / 2
-                        } else if (ref.setTemperature) {
-                          // Vecchio formato - estrae il valore numerico dalla stringa
-                          const tempStr = ref.setTemperature.toString().replace('°C', '').trim()
-                          tempValue = parseFloat(tempStr)
-                        }
-                        return !isNaN(tempValue) && tempValue >= 15 && tempValue <= 25
-                      }).length === 0 && (
+                    {filteredRefrigerators.filter(ref => getRefrigeratorType(ref) === 'Ambiente').length === 0 && (
                       <p className="text-sm text-gray-500 text-center py-2">Nessun punto ambiente</p>
                     )}
                   </div>
@@ -2042,7 +2461,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               <div className="bg-green-50 p-3 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Temperatura di Conservazione</h3>
                 <div>
-                  <Label htmlFor="setTemperature" className="text-sm font-medium text-gray-700">Temperatura Impostata (°C) *</Label>
+                  <Label htmlFor="setTemperature" className="text-sm font-medium text-gray-700">Temperatura Punto di Conservazione (°C) *</Label>
                   <Input
                     id="setTemperature"
                     type="text"
@@ -2064,6 +2483,26 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   <p className="text-xs text-gray-600 mt-2 p-2 bg-white rounded border">
                     Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer, "ambiente" per temperatura ambiente)
                   </p>
+                  
+                  {/* Checkbox Abbattitore - appare solo se temperatura è tra -1°C e -90°C */}
+                  {(() => {
+                    const tempValue = parseFloat(formData.setTemperature);
+                    const isInAbbattitoreRange = !isNaN(tempValue) && tempValue >= -90 && tempValue <= -1;
+                    return isInAbbattitoreRange ? (
+                      <div className="mt-3 flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id="isAbbattitore"
+                          checked={formData.isAbbattitore}
+                          onChange={(e) => setFormData({...formData, isAbbattitore: e.target.checked})}
+                          className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                        />
+                        <Label htmlFor="isAbbattitore" className="text-lg font-bold text-red-700">
+                          Abbattitore
+                        </Label>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
                 
                 {/* Validazione HACCP in tempo reale */}
@@ -2113,9 +2552,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               <MaintenanceSection
                 conservationPointId={null} // Sarà generato al salvataggio
                 staffMembers={staffMembers}
-                onMaintenanceChange={(maintenanceData) => 
-                  setFormData({...formData, maintenanceData})
-                }
+                onMaintenanceChange={handleMaintenanceChange}
                 initialData={formData.maintenanceData}
                 isRequired={true}
               />
@@ -2293,7 +2730,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               <div className="bg-green-50 p-3 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Temperatura di Conservazione</h3>
                 <div>
-                  <Label htmlFor="edit-setTemperature" className="text-sm font-medium text-gray-700">Temperatura Impostata (°C) *</Label>
+                  <Label htmlFor="edit-setTemperature" className="text-sm font-medium text-gray-700">Temperatura Punto di Conservazione (°C) *</Label>
                   <Input
                     id="edit-setTemperature"
                     type="text"
@@ -2315,6 +2752,26 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   <p className="text-xs text-gray-600 mt-2 p-2 bg-white rounded border">
                     Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer, "ambiente" per temperatura ambiente)
                   </p>
+                  
+                  {/* Checkbox Abbattitore - appare solo se temperatura è tra -1°C e -90°C */}
+                  {(() => {
+                    const tempValue = parseFloat(formData.setTemperature);
+                    const isInAbbattitoreRange = !isNaN(tempValue) && tempValue >= -90 && tempValue <= -1;
+                    return isInAbbattitoreRange ? (
+                      <div className="mt-3 flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id="edit-isAbbattitore"
+                          checked={formData.isAbbattitore}
+                          onChange={(e) => setFormData({...formData, isAbbattitore: e.target.checked})}
+                          className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                        />
+                        <Label htmlFor="edit-isAbbattitore" className="text-lg font-bold text-red-700">
+                          Abbattitore
+                        </Label>
+                      </div>
+                    ) : null;
+                  })()}
                 </div>
                 
                 {/* Validazione HACCP in tempo reale */}
@@ -2385,9 +2842,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               <MaintenanceSection
                 conservationPointId={editingRefrigerator?.id}
                 staffMembers={staffMembers}
-                onMaintenanceChange={(maintenanceData) => 
-                  setFormData({...formData, maintenanceData})
-                }
+                onMaintenanceChange={handleMaintenanceChange}
                 initialData={formData.maintenanceData}
                 isRequired={true}
               />

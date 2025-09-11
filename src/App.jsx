@@ -1758,6 +1758,42 @@ function App() {
             <p className="text-gray-600">
               Benvenuto, <span className="font-['Dancing_Script'] font-semibold text-2xl text-purple-600">{currentUser.name} - {currentUser.role === 'admin' ? 'Admin' : 'Dipendente'}</span>
             </p>
+            
+            {/* Informazioni Business dall'Onboarding */}
+            {(() => {
+              const savedOnboarding = localStorage.getItem('haccp-onboarding-new');
+              if (!savedOnboarding || savedOnboarding === '[object Object]') {
+                return null;
+              }
+              
+              let businessInfo = {};
+              try {
+                const onboarding = JSON.parse(savedOnboarding);
+                businessInfo = onboarding.formData?.business || {};
+              } catch (error) {
+                console.error('Errore parsing onboarding data:', error);
+                return null;
+              }
+              
+              if (!businessInfo.companyName) {
+                return null;
+              }
+              
+              return (
+                <div className="mt-2 text-sm text-gray-600">
+                  <p className="font-medium text-gray-900">{businessInfo.companyName}</p>
+                  {businessInfo.address && (
+                    <p className="text-xs text-gray-500 mt-1">{businessInfo.address}</p>
+                  )}
+                  {businessInfo.email && (
+                    <p className="text-xs text-gray-500">{businessInfo.email}</p>
+                  )}
+                  {businessInfo.phone && (
+                    <p className="text-xs text-gray-500">{businessInfo.phone}</p>
+                  )}
+                </div>
+              );
+            })()}
           </div>
           
           <div className="flex flex-col sm:flex-row gap-2">
