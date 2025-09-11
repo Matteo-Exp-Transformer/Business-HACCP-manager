@@ -19,6 +19,7 @@ const TasksStep = ({
 }) => {
   const [tasks, setTasks] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [formType, setFormType] = useState('generic'); // 'generic' o 'maintenance'
   const [editingTask, setEditingTask] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
   const [localFormData, setLocalFormData] = useState({
@@ -174,6 +175,11 @@ const TasksStep = ({
   };
 
   const getSuggestedTaskName = (conservationPoint) => {
+    // Se è un form generico, non suggerire nulla
+    if (formType === 'generic') {
+      return '';
+    }
+    
     if (conservationPoint) {
       return `Rilevamento temperatura ${conservationPoint.name}`;
     }
@@ -248,19 +254,30 @@ const TasksStep = ({
   // Crea automaticamente le mansioni per i punti di conservazione quando si apre il form
   useEffect(() => {
     if (showAddForm) {
-      const conservationPoints = getConservationPoints();
-      const missingTasks = conservationPoints.filter(point => !hasTaskForConservationPoint(point));
-      
-      if (missingTasks.length > 0) {
-        // Pre-compila con la prima mansione mancante
-        const firstMissingPoint = missingTasks[0];
-        setLocalFormData(prev => ({
-          ...prev,
-          name: getSuggestedTaskName(firstMissingPoint)
-        }));
+      // Solo per form di manutenzione, non per form generico
+      if (formType === 'maintenance') {
+        const conservationPoints = getConservationPoints();
+        const missingTasks = conservationPoints.filter(point => !hasTaskForConservationPoint(point));
+        
+        if (missingTasks.length > 0) {
+          // Pre-compila con la prima mansione mancante
+          const firstMissingPoint = missingTasks[0];
+          setLocalFormData(prev => ({
+            ...prev,
+            name: getSuggestedTaskName(firstMissingPoint)
+          }));
+        }
+      } else {
+        // Per form generico, resetta il form
+        setLocalFormData({
+          name: '',
+          assignedRole: '',
+          assignedEmployee: '',
+          frequency: ''
+        });
       }
     }
-  }, [showAddForm]);
+  }, [showAddForm, formType]);
 
   const handleAddTask = () => {
     if (localFormData.name && localFormData.assignedRole && localFormData.frequency) {
@@ -488,7 +505,10 @@ const TasksStep = ({
         <div className="flex items-center justify-between">
           <h4 className="font-medium text-gray-900">Attività e Mansioni</h4>
           <Button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              setFormType('generic');
+              setShowAddForm(true);
+            }}
             variant="outline"
             size="sm"
           >
