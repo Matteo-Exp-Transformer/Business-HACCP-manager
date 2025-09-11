@@ -796,7 +796,7 @@ function App() {
     // Aggiungi company_id a tutti i task
     const maintenanceTasksWithCompanyId = maintenanceTasks.map(task => ({
       ...task,
-      company_id: 'demo-pizzeria'
+      company_id: companyId // Usa il company_id corrente dell'app
     }));
     
     // Salva le manutenzioni precompilate
@@ -805,6 +805,7 @@ function App() {
     console.log('✅ Onboarding precompilato con i tuoi dati')
     console.log('✅ Dati di accesso precompilati: Admin / 0000')
     console.log('✅ Manutenzioni precompilate: 21 attività per 7 punti di conservazione')
+    console.log('🔑 Company ID utilizzato:', companyId)
     console.log('💾 Manutenzioni salvate in localStorage:', maintenanceTasksWithCompanyId.length, 'task')
     console.log('🔍 Verifica localStorage:', JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]').length, 'task trovati')
     
