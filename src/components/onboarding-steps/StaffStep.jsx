@@ -472,6 +472,9 @@ const StaffStep = ({
             {staffMembers.length}
           </div>
           <div>
+            {isStepConfirmed(currentStep) && (
+              <h3 className="text-lg font-bold text-green-900 mb-2">Configurazione Completata</h3>
+            )}
             <p className={`font-medium ${
               isStepConfirmed(currentStep) 
                 ? 'text-green-900' 

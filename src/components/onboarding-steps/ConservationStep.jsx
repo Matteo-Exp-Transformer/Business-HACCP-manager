@@ -774,6 +774,9 @@ const ConservationStep = ({
             {conservationPoints.length}
           </div>
           <div>
+            {canProceed && (
+              <h3 className="text-lg font-bold text-green-900 mb-2">Configurazione Completata</h3>
+            )}
             <p className={`font-medium ${
               canProceed ? 'text-green-900' : hasNonCompliantPoints ? 'text-red-900' : 'text-yellow-900'
             }`}>
