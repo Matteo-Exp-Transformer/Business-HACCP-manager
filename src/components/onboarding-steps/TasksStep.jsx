@@ -377,6 +377,7 @@ const TasksStep = ({
       case 'annual':
         return 'Annuale';
       case 'custom_days':
+      case 'Giorni specifici':
         if (selectedDays && selectedDays.length > 0) {
           const dayNames = {
             monday: 'Lunedì',

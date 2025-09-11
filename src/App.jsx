@@ -505,7 +505,7 @@ function App() {
         conservation_point_name: 'Frigo A',
         task_type: 'sanitization',
         task_name: 'Sanificazione',
-        frequency: 'Giorni specifici',
+        frequency: 'custom_days',
         selected_days: ['tuesday', 'thursday'], // Martedì e Giovedì
         assigned_role: 'Amministratore',
         assigned_category: 'Cuochi',
@@ -549,7 +549,7 @@ function App() {
         conservation_point_name: 'Frigo Bancone 1',
         task_type: 'sanitization',
         task_name: 'Sanificazione',
-        frequency: 'Giorni specifici',
+        frequency: 'custom_days',
         selected_days: ['monday', 'wednesday'], // Lunedì e Mercoledì
         assigned_role: 'Dipendente',
         assigned_category: 'Social & Media Manager',
@@ -593,7 +593,7 @@ function App() {
         conservation_point_name: 'Frigo Bancone 2',
         task_type: 'sanitization',
         task_name: 'Sanificazione',
-        frequency: 'Giorni specifici',
+        frequency: 'custom_days',
         selected_days: ['friday'], // Venerdì
         assigned_role: 'Dipendente',
         assigned_category: 'Banconisti',
@@ -637,7 +637,7 @@ function App() {
         conservation_point_name: 'Frigo Bancone 3',
         task_type: 'sanitization',
         task_name: 'Sanificazione',
-        frequency: 'Giorni specifici',
+        frequency: 'custom_days',
         selected_days: ['thursday'], // Giovedì
         assigned_role: 'Responsabile',
         assigned_category: 'Banconisti',
@@ -667,7 +667,7 @@ function App() {
         conservation_point_name: 'Frigo B',
         task_type: 'temperature_monitoring',
         task_name: 'Rilevamento Temperatura',
-        frequency: 'Giorni specifici',
+        frequency: 'custom_days',
         selected_days: ['monday'], // Lunedì
         assigned_role: 'Amministratore',
         assigned_category: 'Cuochi',
@@ -681,7 +681,7 @@ function App() {
         conservation_point_name: 'Frigo B',
         task_type: 'sanitization',
         task_name: 'Sanificazione',
-        frequency: 'Giorni specifici',
+        frequency: 'custom_days',
         selected_days: ['monday', 'thursday'], // Lunedì e Giovedì
         assigned_role: 'Amministratore',
         assigned_category: 'Cuochi',
@@ -725,7 +725,7 @@ function App() {
         conservation_point_name: 'Frigo C',
         task_type: 'sanitization',
         task_name: 'Sanificazione',
-        frequency: 'Giorni specifici',
+        frequency: 'custom_days',
         selected_days: ['wednesday'], // Mercoledì
         assigned_role: 'Responsabile',
         assigned_category: 'Amministratore',
