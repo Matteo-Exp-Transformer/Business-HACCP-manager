@@ -431,7 +431,19 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              ).filter(name => name);
              const allNames = [...taskNames, ...maintenanceNames];
              const uniqueNames = new Set(allNames);
+             
+             console.log('🔍 Debug nomi attività:');
+             console.log('📋 taskNames (generiche):', taskNames);
+             console.log('📋 maintenanceNames:', maintenanceNames);
+             console.log('📋 allNames:', allNames);
+             console.log('📋 uniqueNames:', Array.from(uniqueNames));
+             console.log('📋 allNames.length:', allNames.length);
+             console.log('📋 uniqueNames.size:', uniqueNames.size);
+             
              if (allNames.length !== uniqueNames.size) {
+               console.log('❌ NOMI DUPLICATI TROVATI!');
+               const duplicates = allNames.filter((name, index) => allNames.indexOf(name) !== index);
+               console.log('❌ Duplicati:', duplicates);
                errors.taskNames = "I nomi delle attività devono essere unici";
              }
              
