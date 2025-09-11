@@ -175,9 +175,9 @@ const TasksStep = ({
   };
 
   const getSuggestedTaskName = (conservationPoint) => {
-    // Se è un form generico, non suggerire nulla
+    // Se è un form generico, suggerisci esempi di attività
     if (formType === 'generic') {
-      return '';
+      return 'Sanificazione Superfici Bancone / Chiusura di Cassa alle 23:55 / Pulizia dei Tavoli della Sala';
     }
     
     if (conservationPoint) {
