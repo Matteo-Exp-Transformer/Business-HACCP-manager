@@ -365,6 +365,12 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
           const tasksList = data.tasks?.list || [];
           const savedMaintenances = data.savedMaintenances || [];
           const maintenanceTasksCount = savedMaintenances.reduce((total, group) => total + group.tasks.length, 0);
+          
+          console.log('🔍 OnboardingWizard Step 4 Validation:');
+          console.log('📋 tasksList:', tasksList.length, 'tasks');
+          console.log('📋 savedMaintenances:', savedMaintenances.length, 'groups');
+          console.log('📋 maintenanceTasksCount:', maintenanceTasksCount);
+          console.log('📋 totalTasks:', tasksList.length + maintenanceTasksCount);
            
            const totalTasks = tasksList.length + maintenanceTasksCount;
            
@@ -408,6 +414,12 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              );
              
              const totalTemperatureTasks = temperatureTasks.length + temperatureMaintenances.length;
+             
+             console.log('🌡️ Temperature validation:');
+             console.log('📋 conservationPoints:', conservationPoints.length);
+             console.log('📋 temperatureTasks (generic):', temperatureTasks.length);
+             console.log('📋 temperatureMaintenances:', temperatureMaintenances.length);
+             console.log('📋 totalTemperatureTasks:', totalTemperatureTasks);
              
              if (totalTemperatureTasks < conservationPoints.length) {
                errors.temperatureTasks = `Devi creare almeno ${conservationPoints.length} attività di monitoraggio temperature (una per ogni punto di conservazione)`;
