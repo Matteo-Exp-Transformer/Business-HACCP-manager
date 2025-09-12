@@ -392,9 +392,27 @@ const TasksStep = ({
     
     // Prepara i dati esistenti per il form
     const existingData = {
-      [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {},
-      [MAINTENANCE_TASK_TYPES.SANITIZATION]: {},
-      [MAINTENANCE_TASK_TYPES.DEFROSTING]: {}
+      [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
+        frequency: '',
+        selected_days: [],
+        assigned_role: '',
+        assigned_category: '',
+        assigned_staff_ids: []
+      },
+      [MAINTENANCE_TASK_TYPES.SANITIZATION]: {
+        frequency: '',
+        selected_days: [],
+        assigned_role: '',
+        assigned_category: '',
+        assigned_staff_ids: []
+      },
+      [MAINTENANCE_TASK_TYPES.DEFROSTING]: {
+        frequency: '',
+        selected_days: [],
+        assigned_role: '',
+        assigned_category: '',
+        assigned_staff_ids: []
+      }
     };
     
     // Popola i dati esistenti per ogni tipo di attività
@@ -402,7 +420,7 @@ const TasksStep = ({
       const taskType = task.task_type;
       if (existingData[taskType]) {
         existingData[taskType] = {
-          frequency: task.frequency,
+          frequency: task.frequency || '',
           selected_days: task.selected_days || [],
           assigned_role: task.assigned_role || '',
           assigned_category: task.assigned_category || '',
