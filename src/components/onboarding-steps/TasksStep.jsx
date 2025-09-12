@@ -321,10 +321,18 @@ const TasksStep = ({
   }, [showAddForm, formType]);
 
   const handleAddTask = () => {
+    // Validazione del nome dell'attività
+    if (!localFormData.name || localFormData.name.trim().length < 5) {
+      setValidationErrors({
+        name: "Nome attività deve essere di almeno 5 caratteri"
+      });
+      return;
+    }
+    
     if (localFormData.name && localFormData.assignedRole && localFormData.frequency) {
       const newTask = {
         id: Date.now(),
-        name: localFormData.name,
+        name: localFormData.name.trim(),
         assignedRole: localFormData.assignedRole,
         assignedEmployee: localFormData.assignedEmployee || null,
         frequency: localFormData.frequency
@@ -338,6 +346,7 @@ const TasksStep = ({
       });
       resetForm();
       setShowAddForm(false);
+      setValidationErrors({}); // Reset errori
     }
   };
 
@@ -710,10 +719,21 @@ const TasksStep = ({
               <Input
                 id="name"
                 value={localFormData.name}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => {
+                  setLocalFormData(prev => ({ ...prev, name: e.target.value }));
+                  // Reset errori quando l'utente inizia a digitare
+                  if (validationErrors.name) {
+                    setValidationErrors(prev => ({ ...prev, name: null }));
+                  }
+                }}
                 placeholder=""
-                className="mt-1"
+                className={`mt-1 ${validationErrors.name ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : ''}`}
               />
+              {validationErrors.name && (
+                <p className="text-sm text-red-500 mt-1">
+                  ⚠️ {validationErrors.name}
+                </p>
+              )}
               <p className="text-sm text-gray-500 mt-1">
                 Suggerimento: {getSuggestedTaskName()}
               </p>
@@ -837,6 +857,24 @@ const TasksStep = ({
           </div>
         </div>
       </div>
+
+      {/* Messaggio di errore per attività con nomi troppo corti */}
+      {tasks.some(task => task.name && task.name.trim().length < 5) && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <h4 className="font-medium text-red-900">Errore di Validazione</h4>
+          </div>
+          <p className="text-sm text-red-800 mb-2">
+            Alcune attività hanno nomi troppo corti. Per procedere al prossimo step:
+          </p>
+          <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+            <li>Il nome di ogni attività deve essere di almeno 5 caratteri</li>
+            <li>Modifica o elimina le attività con nomi troppo corti</li>
+            <li>Esempio di nome valido: "Pulizia bancone cucina"</li>
+          </ul>
+        </div>
+      )}
 
              {/* Errori di validazione */}
        {Object.keys(validationErrors).length > 0 && (
