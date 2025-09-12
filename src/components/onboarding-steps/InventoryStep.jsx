@@ -65,21 +65,6 @@ const InventoryStep = ({
   }, []); // SOLO al mount, non quando formData cambia
 
 
-  // Aggiorna formData solo quando necessario (senza loop)
-  const updateFormData = useCallback(() => {
-    console.log('🔄 InventoryStep: updateFormData called with products:', products);
-    setFormData(prevFormData => {
-      const updatedFormData = {
-        ...prevFormData,
-        products: {
-          productsList: products,
-          count: products.length
-        }
-      };
-      console.log('🔄 InventoryStep: updatedFormData:', updatedFormData);
-      return updatedFormData;
-    });
-  }, [products, setFormData]);
 
   // Ricalcola la compliance quando i punti di conservazione cambiano (solo se necessario)
   useEffect(() => {
@@ -103,8 +88,16 @@ const InventoryStep = ({
     }
   }, [formData.conservation?.points]); // Solo quando i punti di conservazione cambiano
 
-  // RIMOSSO: useEffect che causava loop infinito
-  // updateFormData viene chiamato solo quando necessario (add/edit/delete)
+  // Sincronizza lo stato locale con formData quando cambia
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      products: {
+        productsList: products,
+        count: products.length
+      }
+    }));
+  }, [products, setFormData]);
 
   const PRODUCT_TYPES = [
     'Latticini e Formaggi',
@@ -172,14 +165,9 @@ const InventoryStep = ({
       
       if (editingProduct) {
         // Modifica prodotto esistente
-        setProducts(prev => {
-          const updated = prev.map(product => 
-            product.id === editingProduct ? { ...product, ...localFormData, compliance } : product
-          );
-          // Aggiorna formData dopo aver modificato i prodotti
-          setTimeout(() => updateFormData(), 0);
-          return updated;
-        });
+        setProducts(prev => prev.map(product => 
+          product.id === editingProduct ? { ...product, ...localFormData, compliance } : product
+        ));
       } else {
         // Aggiungi nuovo prodotto
         const newProduct = {
@@ -187,12 +175,7 @@ const InventoryStep = ({
           ...localFormData,
           compliance
         };
-        setProducts(prev => {
-          const updated = [...prev, newProduct];
-          // Aggiorna formData dopo aver aggiunto il prodotto
-          setTimeout(() => updateFormData(), 0);
-          return updated;
-        });
+        setProducts(prev => [...prev, newProduct]);
       }
       
       resetForm();
@@ -202,12 +185,7 @@ const InventoryStep = ({
 
 
   const handleDeleteProduct = (id) => {
-    setProducts(prev => {
-      const updated = prev.filter(product => product.id !== id);
-      // Aggiorna formData dopo aver eliminato il prodotto
-      setTimeout(() => updateFormData(), 0);
-      return updated;
-    });
+    setProducts(prev => prev.filter(product => product.id !== id));
   };
 
   const handleEditProduct = (id) => {
