@@ -858,21 +858,60 @@ const TasksStep = ({
         </div>
       </div>
 
-      {/* Messaggio di errore per attività con nomi troppo corti */}
-      {tasks.some(task => task.name && task.name.trim().length < 5) && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+      {/* Messaggio di errore generale quando non si può procedere */}
+      {!canProceed && (
+        <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="h-5 w-5 text-red-600" />
-            <h4 className="font-medium text-red-900">Errore di Validazione</h4>
+            <h4 className="font-bold text-red-900">Non puoi procedere al prossimo step</h4>
           </div>
           <p className="text-sm text-red-800 mb-2">
-            Alcune attività hanno nomi troppo corti. Per procedere al prossimo step:
+            Ci sono errori che devi correggere prima di poter continuare:
           </p>
           <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
-            <li>Il nome di ogni attività deve essere di almeno 5 caratteri</li>
-            <li>Modifica o elimina le attività con nomi troppo corti</li>
-            <li>Esempio di nome valido: "Pulizia bancone cucina"</li>
+            {tasks.some(task => task.name && task.name.trim().length < 5) && (
+              <li>Alcune attività hanno nomi troppo corti (minimo 5 caratteri)</li>
+            )}
+            {!hasAllMaintenanceTasks() && (
+              <li>Devi configurare le manutenzioni per tutti i punti di conservazione</li>
+            )}
+            {!hasGeneralTasks() && (
+              <li>Devi aggiungere almeno un'attività generale</li>
+            )}
           </ul>
+        </div>
+      )}
+
+      {/* Messaggio di errore per attività con nomi troppo corti */}
+      {tasks.some(task => task.name && task.name.trim().length < 5) && (
+        <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-6 w-6 text-red-600" />
+            <h4 className="text-lg font-bold text-red-900">⚠️ ERRORE DI VALIDAZIONE</h4>
+          </div>
+          <div className="bg-red-100 p-3 rounded-md mb-3">
+            <p className="text-base font-semibold text-red-900 mb-2">
+              Non puoi procedere al prossimo step perché alcune attività hanno nomi troppo corti!
+            </p>
+            <p className="text-sm text-red-800 mb-2">
+              Per procedere, devi correggere i seguenti problemi:
+            </p>
+            <ul className="text-sm text-red-700 list-disc list-inside space-y-1 font-medium">
+              <li>Il nome di ogni attività deve essere di almeno 5 caratteri</li>
+              <li>Modifica o elimina le attività con nomi troppo corti</li>
+              <li>Esempio di nome valido: "Pulizia bancone cucina"</li>
+            </ul>
+          </div>
+          <div className="text-sm text-red-700">
+            <strong>Attività con problemi:</strong>
+            <ul className="list-disc list-inside mt-1">
+              {tasks.filter(task => task.name && task.name.trim().length < 5).map((task, index) => (
+                <li key={index}>
+                  "{task.name}" (solo {task.name.trim().length} caratteri - ne servono almeno 5)
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       )}
 
