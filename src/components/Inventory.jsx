@@ -46,6 +46,7 @@ import {
   Info
 } from 'lucide-react'
 import CustomCategoryManager from './CustomCategoryManager'
+import CollapsibleCard from './CollapsibleCard'
 import jsPDF from 'jspdf'
 import { getConservationSuggestions, suggestStorageLocation, getOptimalTemperature } from '../utils/temperatureDatabase'
 
@@ -774,190 +775,6 @@ const Inventory = () => {
             </div>
           </div>
 
-      {/* Filtri */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtri
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-            <div>
-              <Label htmlFor="search">Cerca</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  id="search"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Nome prodotto, reparto, punto di conservazione..."
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <div>
-              <Label htmlFor="category">Categoria</Label>
-            <select
-                id="category"
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Tutte le categorie</option>
-                {CATEGORIES.map(category => (
-                  <option key={category.id} value={category.id}>{category.name}</option>
-              ))}
-            </select>
-            </div>
-            
-            <div>
-              <Label htmlFor="expiry">Scadenza</Label>
-            <select
-                id="expiry"
-              value={filterExpiry}
-              onChange={(e) => setFilterExpiry(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Tutte le scadenze</option>
-              <option value="expired">Scaduti</option>
-              <option value="critical">Critici (≤3 giorni)</option>
-              <option value="warning">In scadenza (≤7 giorni)</option>
-              <option value="ok">OK (&gt;7 giorni)</option>
-            </select>
-          </div>
-          
-            <div>
-              <Label htmlFor="allergen">Allergene</Label>
-              <select
-                id="allergen"
-                value={filterAllergen}
-                onChange={(e) => setFilterAllergen(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Tutti gli allergeni</option>
-                {ALLERGENS.map(allergen => (
-                  <option key={allergen.id} value={allergen.id}>{allergen.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <Label htmlFor="lot">Numero Lotto</Label>
-              <Input
-                id="lot"
-                value={filterLot}
-                onChange={(e) => setFilterLot(e.target.value)}
-                placeholder="Filtra per numero lotto..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="supplier">Fornitore</Label>
-              <Input
-                id="supplier"
-                value={filterSupplier}
-                onChange={(e) => setFilterSupplier(e.target.value)}
-                placeholder="Filtra per fornitore..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="orderId">ID Ordine</Label>
-              <Input
-                id="orderId"
-                value={filterOrderId}
-                onChange={(e) => setFilterOrderId(e.target.value)}
-                placeholder="Filtra per ID ordine..."
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="department">Reparto</Label>
-              <select
-                id="department"
-                value={filterDepartment}
-                onChange={(e) => setFilterDepartment(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Tutti i reparti</option>
-                {departments.map(dept => (
-                  <option key={dept.id} value={dept.name}>{dept.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <Label htmlFor="conservationPoint">Punto di Conservazione</Label>
-              <select
-                id="conservationPoint"
-                value={filterConservationPoint}
-                onChange={(e) => setFilterConservationPoint(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Tutti i punti</option>
-                {conservationPoints.map(point => (
-                  <option key={point.id} value={point.name}>{point.name}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="col-span-full">
-              <div className="flex flex-wrap gap-4 items-center mb-4">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="groupByDepartment"
-                    checked={groupByDepartment}
-                    onChange={(e) => {
-                      setGroupByDepartment(e.target.checked)
-                      if (e.target.checked) setGroupByConservationPoint(false)
-                    }}
-                    className="rounded"
-                  />
-                  <Label htmlFor="groupByDepartment" className="text-sm">Raggruppa per Reparto</Label>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="groupByConservationPoint"
-                    checked={groupByConservationPoint}
-                    onChange={(e) => {
-                      setGroupByConservationPoint(e.target.checked)
-                      if (e.target.checked) setGroupByDepartment(false)
-                    }}
-                    className="rounded"
-                  />
-                  <Label htmlFor="groupByConservationPoint" className="text-sm">Raggruppa per Punto di Conservazione</Label>
-                </div>
-              </div>
-              
-              <Button 
-                onClick={() => {
-                  setSearchTerm('')
-                  setFilterCategory('')
-                  setFilterExpiry('')
-                  setFilterAllergen('')
-                  setFilterLot('')
-                  setFilterSupplier('')
-                  setFilterOrderId('')
-                  setFilterDepartment('')
-                  setFilterConservationPoint('')
-                  setGroupByDepartment(false)
-                  setGroupByConservationPoint(false)
-                }}
-                variant="outline"
-                className="w-full"
-              >
-                🔄 Reset Filtri
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Alert prodotti senza punto di conservazione */}
       {showMissingConservationAlert && productsWithoutConservation.length > 0 && (
@@ -1014,36 +831,251 @@ const Inventory = () => {
       )}
 
       {/* 1. Gestione Inventario */}
-        <Card>
-          <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Gestione Inventario
-            </CardTitle>
-                  <div className="flex gap-2">
-              {products.length > 0 && (
-                <>
-                    <Button
-                    onClick={() => setShowBulkDelete(true)}
-                    className="flex items-center gap-2"
-                      variant="outline"
+      <CollapsibleCard
+        title="Gestione Inventario"
+        subtitle="Filtri, ricerca e aggiunta rapida prodotti"
+        icon={Package}
+        iconColor="text-blue-600"
+        iconBgColor="bg-blue-100"
+        count={products.length}
+      >
+          {/* Filtri integrati */}
+          <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Filtri e Ricerca
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="search">Cerca</Label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Nome prodotto, reparto, punto di conservazione..."
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="category">Categoria</Label>
+                <select
+                  id="category"
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Tutte le categorie</option>
+                  {CATEGORIES.map(category => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <Label htmlFor="expiry">Scadenza</Label>
+                <select
+                  id="expiry"
+                  value={filterExpiry}
+                  onChange={(e) => setFilterExpiry(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Tutte le scadenze</option>
+                  <option value="expired">Scaduti</option>
+                  <option value="critical">Critici (≤3 giorni)</option>
+                  <option value="warning">In scadenza (≤7 giorni)</option>
+                  <option value="ok">OK (&gt;7 giorni)</option>
+                </select>
+              </div>
+              
+              <div>
+                <Label htmlFor="department">Reparto</Label>
+                <select
+                  id="department"
+                  value={filterDepartment}
+                  onChange={(e) => setFilterDepartment(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Tutti i reparti</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.name}>{dept.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            
+            <div className="mt-4 flex gap-4 items-center">
+              <Button
+                onClick={() => {
+                  setSearchTerm('')
+                  setFilterCategory('')
+                  setFilterExpiry('')
+                  setFilterDepartment('')
+                  setGroupByDepartment(false)
+                  setGroupByConservationPoint(false)
+                }}
+                variant="outline"
+                size="sm"
+              >
+                🔄 Reset Filtri
+              </Button>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="groupByDepartment"
+                    checked={groupByDepartment}
+                    onChange={(e) => {
+                      setGroupByDepartment(e.target.checked)
+                      if (e.target.checked) setGroupByConservationPoint(false)
+                    }}
+                    className="rounded"
+                  />
+                  <Label htmlFor="groupByDepartment" className="text-sm">Raggruppa per Reparto</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="groupByConservationPoint"
+                    checked={groupByConservationPoint}
+                    onChange={(e) => {
+                      setGroupByConservationPoint(e.target.checked)
+                      if (e.target.checked) setGroupByDepartment(false)
+                    }}
+                    className="rounded"
+                  />
+                  <Label htmlFor="groupByConservationPoint" className="text-sm">Raggruppa per Punto di Conservazione</Label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Form Aggiunta Rapida Prodotti */}
+          {showAddForm && (
+            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Plus className="h-5 w-5" />
+                {editingProduct ? 'Modifica Prodotto' : 'Aggiungi Prodotto'}
+              </h3>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="name">Nome Prodotto *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder="Es. Pomodori San Marzano"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="category">Categoria *</Label>
+                    <select
+                      id="category"
+                      value={formData.category}
+                      onChange={(e) => handleInputChange('category', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
                     >
-                    🗑️ Rimuovi Prodotti
-                    </Button>
-                  <Button 
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center gap-2"
-                    variant="destructive"
-                  >
-                    ❌ Cancella Tutto l'Inventario
+                      <option value="">Seleziona categoria</option>
+                      {CATEGORIES.map(category => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="department">Reparto *</Label>
+                    <select
+                      id="department"
+                      value={formData.department}
+                      onChange={(e) => handleInputChange('department', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Seleziona reparto</option>
+                      {departments.map(dept => (
+                        <option key={dept.id} value={dept.name}>{dept.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="conservationPoint">Punto di Conservazione *</Label>
+                    <select
+                      id="conservationPoint"
+                      value={formData.conservationPoint}
+                      onChange={(e) => handleInputChange('conservationPoint', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">Seleziona punto di conservazione</option>
+                      {conservationPoints.map(point => (
+                        <option key={point.id} value={point.name}>{point.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="expiryDate">Data di Scadenza *</Label>
+                    <Input
+                      id="expiryDate"
+                      type="date"
+                      value={formData.expiryDate}
+                      onChange={(e) => handleInputChange('expiryDate', e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label>Allergeni</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
+                    {ALLERGENS.map(allergen => (
+                      <label key={allergen.id} className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          checked={formData.allergens.includes(allergen.id)}
+                          onChange={() => handleAllergenToggle(allergen.id)}
+                          className="rounded"
+                        />
+                        <span className="text-sm">{allergen.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="notes">Note</Label>
+                  <textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                    placeholder="Note aggiuntive sul prodotto..."
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="flex justify-end gap-2">
+                  <Button type="button" onClick={resetForm} variant="outline">
+                    Annulla
                   </Button>
-                </>
-              )}
-                            </div>
-                          </div>
-        </CardHeader>
-        <CardContent>
+                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                    {editingProduct ? 'Aggiorna' : 'Aggiungi'} Prodotto
+                  </Button>
+                </div>
+              </form>
+            </div>
+          )}
+
           {filteredProducts.length === 0 ? (
             <div className="text-center py-8">
               <Package className="h-12 w-12 mx-auto mb-3 text-gray-400" />
@@ -1117,44 +1149,17 @@ const Inventory = () => {
               ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+      </CollapsibleCard>
 
       {/* 2. Prodotti nell'inventario */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>
-              Prodotti nell'inventario ({filteredProducts.length})
-              {(groupByDepartment || groupByConservationPoint) && (
-                <span className="text-sm font-normal text-gray-600 ml-2">
-                  - Raggruppati per {groupByDepartment ? 'Reparto' : 'Punto di Conservazione'}
-                </span>
-              )}
-            </CardTitle>
-            <div className="flex gap-2">
-              {products.length > 0 && (
-                <>
-                <Button 
-                    onClick={() => setShowBulkDelete(true)}
-                    className="flex items-center gap-2"
-                  variant="outline"
-                >
-                    🗑️ Rimuovi Prodotti
-                </Button>
-                  <Button 
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center gap-2"
-                    variant="destructive"
-                  >
-                    ❌ Cancella Tutto l'Inventario
-                  </Button>
-                </>
-              )}
-              </div>
-          </div>
-        </CardHeader>
-        <CardContent>
+      <CollapsibleCard
+        title="Prodotti nell'inventario"
+        subtitle="Visualizzazione e gestione prodotti"
+        icon={ShoppingCart}
+        iconColor="text-green-600"
+        iconBgColor="bg-green-100"
+        count={filteredProducts.length}
+      >
                 {filteredProducts.length === 0 ? (
             <div className="text-center py-8">
               <Package className="h-12 w-12 mx-auto mb-3 text-gray-400" />
@@ -1228,8 +1233,7 @@ const Inventory = () => {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* Gestione Reparti e Punti di Conservazione */}
       <Card>
@@ -1301,14 +1305,14 @@ const Inventory = () => {
 
       {/* 3. Aggiunta prodotti rapidi */}
       {!showAddForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Aggiunta prodotti rapidi
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <CollapsibleCard
+          title="Aggiunta Rapida Prodotti"
+          subtitle="Aggiungi prodotti per categoria"
+          icon={Package}
+          iconColor="text-purple-600"
+          iconBgColor="bg-purple-100"
+          count={CATEGORIES.length}
+        >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {CATEGORIES.map(category => {
                 const categoryProducts = DEFAULT_PRODUCTS.filter(p => p.category === category.id)
@@ -1375,19 +1379,18 @@ const Inventory = () => {
                 <p className="text-sm">Seleziona una categoria sopra per vedere i prodotti disponibili</p>
               </div>
             )}
-          </CardContent>
-        </Card>
+        </CollapsibleCard>
       )}
 
       {/* 3. Ordini e Spesa */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Ordini e Spesa
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapsibleCard
+        title="Ordini e Spesa"
+        subtitle="Gestione ordini e lista della spesa"
+        icon={ShoppingCart}
+        iconColor="text-orange-600"
+        iconBgColor="bg-orange-100"
+        count={shoppingItems.length + orders.length}
+      >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Lista della Spesa */}
             <div className="space-y-4">
@@ -1491,19 +1494,18 @@ const Inventory = () => {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* 4. Ingredienti già utilizzati */}
       {showUsedIngredients && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-gray-600" />
-              Ingredienti già Utilizzati ({usedIngredients.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <CollapsibleCard
+          title="Ingredienti già utilizzati"
+          subtitle="Prodotti consumati e utilizzati"
+          icon={Package}
+          iconColor="text-gray-600"
+          iconBgColor="bg-gray-100"
+          count={usedIngredients.length}
+        >
             {usedIngredients.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
                 <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -1550,137 +1552,12 @@ const Inventory = () => {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </CollapsibleCard>
       )}
 
       {/* 5. Categorie Personalizzate */}
       <CustomCategoryManager />
 
-      {/* Form per aggiungere/modificare prodotto */}
-      {showAddForm && (
-      <Card>
-        <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-5 w-5" />
-              {editingProduct ? 'Modifica Prodotto' : 'Aggiungi Prodotto'}
-            </CardTitle>
-        </CardHeader>
-        <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Nome Prodotto *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder="Es. Pomodori San Marzano"
-                    required
-                  />
-            </div>
-                
-                <div>
-                  <Label htmlFor="category">Categoria *</Label>
-                  <select
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => handleInputChange('category', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Seleziona categoria</option>
-                    {CATEGORIES.map(category => (
-                      <option key={category.id} value={category.id}>{category.name}</option>
-                    ))}
-                  </select>
-                        </div>
-                        
-                <div>
-                  <Label htmlFor="department">Reparto *</Label>
-                  <select
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => handleInputChange('department', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Seleziona reparto</option>
-                    {departments.map(dept => (
-                      <option key={dept.id} value={dept.name}>{dept.name}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="conservationPoint">Punto di Conservazione *</Label>
-                  <select
-                    id="conservationPoint"
-                    value={formData.conservationPoint}
-                    onChange={(e) => handleInputChange('conservationPoint', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Seleziona punto di conservazione</option>
-                    {conservationPoints.map(point => (
-                      <option key={point.id} value={point.name}>{point.name}</option>
-                    ))}
-                  </select>
-                </div>
-                
-                <div>
-                  <Label htmlFor="expiryDate">Data di Scadenza *</Label>
-                  <Input
-                    id="expiryDate"
-                    type="date"
-                    value={formData.expiryDate}
-                    onChange={(e) => handleInputChange('expiryDate', e.target.value)}
-                    required
-                  />
-                              </div>
-                              </div>
-              
-              <div>
-                <Label>Allergeni</Label>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-                  {ALLERGENS.map(allergen => (
-                    <label key={allergen.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={formData.allergens.includes(allergen.id)}
-                        onChange={() => handleAllergenToggle(allergen.id)}
-                        className="rounded"
-                      />
-                      <span className="text-sm">{allergen.name}</span>
-                    </label>
-                  ))}
-                              </div>
-                          </div>
-                          
-              <div>
-                <Label htmlFor="notes">Note</Label>
-                <textarea
-                  id="notes"
-                  value={formData.notes}
-                  onChange={(e) => handleInputChange('notes', e.target.value)}
-                  placeholder="Note aggiuntive sul prodotto..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                />
-                      </div>
-                      
-              <div className="flex justify-end gap-2">
-                <Button type="button" onClick={resetForm} variant="outline">
-                  Annulla
-                        </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  {editingProduct ? 'Aggiorna' : 'Aggiungi'} Prodotto
-                        </Button>
-                      </div>
-            </form>
-        </CardContent>
-      </Card>
-      )}
 
       {/* Bulk Delete Modal */}
       {showBulkDelete && (

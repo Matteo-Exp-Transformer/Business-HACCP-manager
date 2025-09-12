@@ -18,13 +18,12 @@ import {
   CheckCircle,
   AlertCircle,
   BookOpen,
-  Truck,
   Download
 } from 'lucide-react'
 import { createCloudSimulator } from '../utils/cloudSimulator'
 import HaccpManual from './HaccpManual'
-import Suppliers from './Suppliers'
 import BackupPanel from './BackupPanel'
+import CollapsibleCard from './CollapsibleCard'
 
 function DataSettings({ 
   currentUser, 
@@ -33,10 +32,10 @@ function DataSettings({
 }) {
   const [showHaccpManual, setShowHaccpManual] = useState(false)
   const [settings, setSettings] = useState({
-    // Cosa salvare sul telefono
+    // Cosa salvare sul dispositivo
     keepPhotosLocal: false,        // False = solo online
-    keepDocsLocal: true,           // True = anche sul telefono
-    keepDataLocal: true,           // True = backup sul telefono
+    keepDocsLocal: true,           // True = anche sul dispositivo
+    keepDataLocal: true,           // True = backup sul dispositivo
     
     // Cosa condividere automaticamente  
     autoShareTemperatures: true,
@@ -44,7 +43,7 @@ function DataSettings({
     autoShareCleaning: true,
     autoShareStaff: isAdmin,       // Solo admin condivide staff
     
-    // Quanto tenere sul telefono
+    // Quanto tenere sul dispositivo
     keepDaysLocal: 7,              // Quanti giorni di dati
     maxPhotosLocal: isAdmin ? 100 : 20  // Quante foto max
   })
@@ -153,7 +152,7 @@ function DataSettings({
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">📱 Gestione Dati</h1>
-        <p className="text-gray-600">Decidi cosa tenere sul tuo telefono e cosa condividere</p>
+        <p className="text-gray-600">Decidi cosa tenere sul tuo dispositivo e cosa condividere</p>
       </div>
 
       {/* Storage Overview */}
@@ -187,26 +186,26 @@ function DataSettings({
       </Card>
 
       {/* Photo & Files Storage */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5" />
-            Foto e Documenti
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleCard
+        title="Foto e Documenti"
+        subtitle="Gestione foto e documenti locali"
+        icon={Image}
+        iconColor="text-purple-600"
+        iconBgColor="bg-purple-100"
+        count={0}
+      >
           <SettingToggle
             icon={Camera}
-            title="Salva Foto sul Telefono"
-            description="Le foto delle etichette rimangono sul tuo telefono anche senza internet. Occupa più spazio ma è più veloce."
+            title="Salva Foto sul Dispositivo"
+            description="Le foto delle etichette rimangono sul tuo dispositivo anche senza internet. Occupa più spazio ma è più veloce."
             value={settings.keepPhotosLocal}
             onChange={(value) => updateSetting('keepPhotosLocal', value)}
           />
           
           <SettingToggle
             icon={FileText}
-            title="Salva Documenti sul Telefono"
-            description="Tieni una copia di ricette, procedure e documenti sul telefono per consultarli anche offline."
+            title="Salva Documenti sul Dispositivo"
+            description="Tieni una copia di ricette, procedure e documenti sul dispositivo per consultarli anche offline."
             value={settings.keepDocsLocal}
             onChange={(value) => updateSetting('keepDocsLocal', value)}
           />
@@ -214,7 +213,7 @@ function DataSettings({
           <StorageOption
             icon={HardDrive}
             title="Quante Foto Tenere"
-            description="Numero massimo di foto da tenere salvate sul telefono"
+            description="Numero massimo di foto da tenere salvate sul dispositivo"
             current={settings.maxPhotosLocal}
             onChange={(value) => updateSetting('maxPhotosLocal', value)}
             options={[
@@ -223,18 +222,17 @@ function DataSettings({
               { value: 100, label: '100 foto' }
             ]}
           />
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* Data Sharing */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wifi className="h-5 w-5" />
-            Condivisione Automatica
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleCard
+        title="Condivisione Automatica"
+        subtitle="Impostazioni condivisione dati"
+        icon={Wifi}
+        iconColor="text-green-600"
+        iconBgColor="bg-green-100"
+        count={0}
+      >
           <div className="p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
               💡 <strong>Cosa significa:</strong> Se attivi queste opzioni, le modifiche che fai verranno condivise automaticamente con i colleghi appena hai internet.
@@ -273,22 +271,21 @@ function DataSettings({
             onChange={(value) => updateSetting('autoShareStaff', value)}
             adminOnly={true}
           />
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* Local Data Retention */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HardDrive className="h-5 w-5" />
-            Quanto Tenere sul Telefono
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <CollapsibleCard
+        title="Quanto Tenere sul Telefono"
+        subtitle="Gestione spazio di archiviazione locale"
+        icon={HardDrive}
+        iconColor="text-orange-600"
+        iconBgColor="bg-orange-100"
+        count={0}
+      >
           <StorageOption
             icon={HardDrive}
             title="Giorni di Dati da Tenere"
-            description="Quanti giorni di temperature, pulizie e inventario tenere salvati sul telefono"
+            description="Quanti giorni di temperature, pulizie e inventario tenere salvati sul dispositivo"
             current={settings.keepDaysLocal}
             onChange={(value) => updateSetting('keepDaysLocal', value)}
             options={[
@@ -304,22 +301,24 @@ function DataSettings({
               <div>
                 <p className="text-sm font-medium text-gray-900">Perché è importante?</p>
                 <ul className="text-xs text-gray-600 mt-1 space-y-1">
-                  <li>• 📱 <strong>Meno giorni</strong> = telefono più veloce e più spazio libero</li>
+                  <li>• 📱 <strong>Meno giorni</strong> = dispositivo più veloce e più spazio libero</li>
                   <li>• 📊 <strong>Più giorni</strong> = puoi vedere dati anche senza internet</li>
                   <li>• ☁️ <strong>Tutti i dati</strong> rimangono sempre salvati online</li>
                 </ul>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>🚀 Azioni Rapide</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapsibleCard
+        title="Azioni Rapide"
+        subtitle="Azioni rapide per la gestione dati"
+        icon={Settings}
+        iconColor="text-blue-600"
+        iconBgColor="bg-blue-100"
+        count={0}
+      >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button 
               variant="outline" 
@@ -367,18 +366,17 @@ function DataSettings({
               Sincronizza Ora
             </Button>
           </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* Backup e Export Dati */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Backup e Export Dati
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapsibleCard
+        title="Backup e Export Dati"
+        subtitle="Gestione backup e esportazione dati"
+        icon={Download}
+        iconColor="text-red-600"
+        iconBgColor="bg-red-100"
+        count={0}
+      >
           <div className="space-y-4">
             <p className="text-gray-600">
               💾 Gestisci il backup e l'export dei dati HACCP per garantire la sicurezza e la tracciabilità.
@@ -387,38 +385,17 @@ function DataSettings({
             
             <BackupPanel currentUser={currentUser} isAdmin={isAdmin} />
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Gestione Fornitori */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Truck className="h-5 w-5" />
-            Gestione Fornitori
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              📋 Gestisci i fornitori per garantire la tracciabilità HACCP e la sicurezza alimentare.
-              Mantieni aggiornate le informazioni sui fornitori per la compliance normativa.
-            </p>
-            
-            <Suppliers currentUser={currentUser} />
-          </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* Manuale HACCP */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            Manuale HACCP
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapsibleCard
+        title="Manuale HACCP"
+        subtitle="Documentazione e guide HACCP"
+        icon={BookOpen}
+        iconColor="text-indigo-600"
+        iconBgColor="bg-indigo-100"
+        count={0}
+      >
           <div className="space-y-4">
             <p className="text-gray-600">
               Consulta la guida completa per normative HACCP e procedure operative.
@@ -434,8 +411,7 @@ function DataSettings({
               Apri Manuale HACCP
             </Button>
           </div>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
     </div>
 
     {/* Modal Manuale HACCP */}

@@ -24,6 +24,7 @@ import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Plus, Edit, Trash2, Thermometer, AlertTriangle, CheckCircle, Package } from 'lucide-react'
 import TemperatureInput from './ui/TemperatureInput'
+import CollapsibleCard from './CollapsibleCard'
 
 function CustomCategoryManager({ customCategories = [], setCustomCategories, currentUser, showCustomCategoryManager, setShowCustomCategoryManager }) {
   const [showAddForm, setShowAddForm] = useState(false)
@@ -188,15 +189,14 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Package className="h-5 w-5" />
-          Categorie Personalizzate
-        </CardTitle>
-        <p className="text-sm text-gray-600">Crea nuove categorie di prodotti specifiche per la tua attività</p>
-      </CardHeader>
-      <CardContent>
+    <CollapsibleCard
+      title="Categorie Personalizzate"
+      subtitle="Crea nuove categorie di prodotti specifiche per la tua attività"
+      icon={Package}
+      iconColor="text-indigo-600"
+      iconBgColor="bg-indigo-100"
+      count={customCategories.length}
+    >
         <div className="space-y-6">
           {/* Pulsante aggiungi */}
           <div className="flex justify-end">
@@ -424,8 +424,7 @@ function CustomCategoryManager({ customCategories = [], setCustomCategories, cur
         </Card>
       )}
         </div>
-      </CardContent>
-    </Card>
+    </CollapsibleCard>
   )
 }
 

@@ -22,7 +22,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Sparkles, CheckCircle, Clock, Thermometer, AlertTriangle, User } from 'lucide-react'
+import { Trash2, Sparkles, CheckCircle, Clock, Thermometer, AlertTriangle, User, Calendar, List, Settings } from 'lucide-react'
+import CollapsibleCard from './CollapsibleCard'
 import TemperatureInput from './ui/TemperatureInput'
 
 function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, currentUser, refrigerators = [], setRefrigerators }) {
@@ -288,18 +289,15 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
 
   return (
     <div className="space-y-6">
-      {/* Add Cleaning Task Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            Nuove Attività / Mansioni
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            📋 Crea nuove attività di pulizia e sanificazione per mantenere la conformità HACCP
-          </p>
-        </CardHeader>
-        <CardContent>
+      {/* Add Cleaning Task Form - Scheda Collassabile */}
+      <CollapsibleCard
+        title="Nuove Attività / Mansioni"
+        subtitle="Crea nuove attività di pulizia e sanificazione"
+        icon={Sparkles}
+        iconColor="text-green-600"
+        iconBgColor="bg-green-100"
+        count={safeCleaning.length}
+      >
           <form onSubmit={addCleaningTask} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
@@ -370,21 +368,17 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
               ✨ Aggiungi Attività
             </Button>
           </form>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
-      {/* Pending Tasks with Tabs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-yellow-600" />
-            Attività da Svolgere ({pendingTasks.length})
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            📋 Organizza e monitora le attività di pulizia e sanificazione per mantenere la conformità HACCP
-          </p>
-        </CardHeader>
-        <CardContent>
+      {/* Pending Tasks with Tabs - Scheda Collassabile */}
+      <CollapsibleCard
+        title="Attività da Svolgere"
+        subtitle="Organizza e monitora le attività di pulizia"
+        icon={Clock}
+        iconColor="text-yellow-600"
+        iconBgColor="bg-yellow-100"
+        count={pendingTasks.length}
+      >
           {pendingTasks.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <CheckCircle className="h-12 w-12 mx-auto mb-3 text-gray-400" />
@@ -513,20 +507,21 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
-      {/* Completed Tasks */}
+      {/* Completed Tasks - Scheda Collassabile */}
       {completedTasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Attività Completate ({completedTasks.length})
-              </span>
-              {isAdmin && (
-                <Button
+        <CollapsibleCard
+          title="Attività Completate"
+          subtitle="Storico delle attività completate"
+          icon={CheckCircle}
+          iconColor="text-green-600"
+          iconBgColor="bg-green-100"
+          count={completedTasks.length}
+        >
+          {isAdmin && (
+            <div className="flex justify-end mb-4">
+              <Button
                   variant="outline"
                   size="sm"
                   onClick={() => {
@@ -539,14 +534,9 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                   <Trash2 className="h-4 w-4 mr-2" />
                   Elimina Tutte
                 </Button>
-              )}
-            </CardTitle>
-            <p className="text-sm text-gray-600">
-              📊 Storico delle attività completate - Mantiene traccia di tutto il lavoro svolto per la conformità HACCP
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
+              </div>
+            )}
+          <div className="space-y-3">
               {completedTasks.map(task => (
                 <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-50">
                   <div className="flex-1">
@@ -573,27 +563,23 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+        </CollapsibleCard>
       )}
 
-      {/* Temperature Registration Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Thermometer className="h-5 w-5" />
-            Registra Temperatura Frigorifero/Freezer
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            🌡️ Monitora le temperature per garantire la sicurezza alimentare e la conformità HACCP
-          </p>
+      {/* Temperature Registration Form - Scheda Collassabile */}
+      <CollapsibleCard
+        title="Registra Temperatura"
+        subtitle="Monitoraggio temperature frigoriferi"
+        icon={Thermometer}
+        iconColor="text-blue-600"
+        iconBgColor="bg-blue-100"
+        count={safeTemperatures.length}
+      >
           {currentUser && (
             <p className="text-sm text-gray-600">
               📝 Registrando come: <span className="font-medium">{currentUser.name}</span> ({currentUser.department})
             </p>
           )}
-        </CardHeader>
-        <CardContent>
           <form onSubmit={addTemperature} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -667,8 +653,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
               📊 Registra Temperatura
             </Button>
           </form>
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -751,7 +736,6 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
           </CardContent>
         </Card>
       </div>
-
 
     </div>
   )
