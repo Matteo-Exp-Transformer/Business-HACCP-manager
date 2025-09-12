@@ -80,6 +80,17 @@ const DepartmentsStep = ({
   // RIMOSSO: useEffect che causava loop infinito
   // updateFormData viene chiamato solo quando necessario (add/edit/delete)
 
+  // Aggiorna il formData globale quando cambia la lista dei reparti
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      departments: {
+        list: departments,
+        enabledCount: departments.filter(d => d.enabled).length
+      }
+    }));
+  }, [departments, setFormData]);
+
   // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
   return (
