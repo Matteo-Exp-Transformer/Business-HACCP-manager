@@ -4,7 +4,6 @@ import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Plus, X, Thermometer, AlertTriangle, Edit } from 'lucide-react';
 import { CONSERVATION_POINT_RULES } from '../../utils/haccpRules';
-import { useScrollToForm } from '../../hooks/useScrollToForm';
 
 const ConservationStep = ({ 
   formData, 
@@ -31,16 +30,6 @@ const ConservationStep = ({
   // Usa i dati reali da formData
   const departments = formData.departments?.list || [];
   const staffMembers = formData.staff?.staffMembers || [];
-  
-  // Hook per scroll automatico al form
-  const { formRef, scrollToForm } = useScrollToForm(showAddForm, 'conservation-add-form');
-  
-  // Effetto per scroll automatico quando il form si apre
-  useEffect(() => {
-    if (showAddForm) {
-      scrollToForm();
-    }
-  }, [showAddForm, scrollToForm]);
   
   // Debug: log dei reparti per verificare il problema
   console.log('🔍 ConservationStep - formData:', formData);
@@ -549,7 +538,7 @@ const ConservationStep = ({
 
       {/* Form Aggiungi Punto */}
       {showAddForm && (
-        <div ref={formRef} id="conservation-add-form" className="border rounded-lg p-4 bg-white">
+        <div className="border rounded-lg p-4 bg-white">
           <h4 className="font-medium text-gray-900 mb-4">
             {editingPoint ? 'Modifica Punto di Conservazione' : 'Aggiungi Nuovo Punto di Conservazione'}
           </h4>
