@@ -88,6 +88,17 @@ const DepartmentsStep = ({
     }));
   }, [departments, enabledCount, setFormData]);
 
+  // Aggiorna il formData globale quando cambia la lista dei reparti
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      departments: {
+        list: departments,
+        enabledCount: departments.filter(d => d.enabled).length
+      }
+    }));
+  }, [departments, setFormData]);
+
   // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
   return (
