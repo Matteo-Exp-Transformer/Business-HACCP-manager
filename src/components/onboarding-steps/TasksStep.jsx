@@ -6,6 +6,7 @@ import { Plus, X, ClipboardList, AlertTriangle, Edit, Trash2 } from 'lucide-reac
 import MaintenanceForm from '../MaintenanceForm';
 import { supabaseService } from '../../services/supabaseService';
 import { MAINTENANCE_TASK_TYPES } from '../../utils/maintenanceConstants';
+import { useScrollToForm } from '../../hooks/useScrollToForm';
 
 const TasksStep = ({ 
   formData, 
@@ -37,6 +38,23 @@ const TasksStep = ({
   // Stati per le manutenzioni salvate
   const [savedMaintenances, setSavedMaintenances] = useState([]);
   const [loadingMaintenances, setLoadingMaintenances] = useState(false);
+
+  // Hook per scroll automatico ai form
+  const { formRef: genericFormRef, scrollToForm: scrollToGenericForm } = useScrollToForm(showAddForm, 'tasks-generic-form');
+  const { formRef: maintenanceFormRef, scrollToForm: scrollToMaintenanceForm } = useScrollToForm(showMaintenanceForm, 'tasks-maintenance-form');
+
+  // Effetti per scroll automatico quando i form si aprono
+  useEffect(() => {
+    if (showAddForm) {
+      scrollToGenericForm();
+    }
+  }, [showAddForm, scrollToGenericForm]);
+
+  useEffect(() => {
+    if (showMaintenanceForm) {
+      scrollToMaintenanceForm();
+    }
+  }, [showMaintenanceForm, scrollToMaintenanceForm]);
 
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
@@ -665,7 +683,7 @@ const TasksStep = ({
 
       {/* Form Aggiungi Attività */}
       {showAddForm && (
-        <div className="border rounded-lg p-4 bg-white">
+        <div ref={genericFormRef} id="tasks-generic-form" className="border rounded-lg p-4 bg-white">
           <h4 className="font-medium text-gray-900 mb-4">Aggiungi Nuova Attività</h4>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -818,6 +836,7 @@ const TasksStep = ({
 
        {/* Form di Manutenzione */}
        <MaintenanceForm
+         ref={maintenanceFormRef}
          conservationPoint={selectedConservationPoint}
          staffMembers={formData.staff?.staffMembers || []}
          onSave={handleMaintenanceSave}

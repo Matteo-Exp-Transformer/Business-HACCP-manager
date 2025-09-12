@@ -3,6 +3,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Plus, X, Edit, Trash2 } from 'lucide-react';
+import { useScrollToForm } from '../../hooks/useScrollToForm';
 
 const StaffStep = ({ 
   formData, 
@@ -18,6 +19,17 @@ const StaffStep = ({
   const [staffMembers, setStaffMembers] = useState(formData.staff?.staffMembers || []);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
+
+  // Hook per scroll automatico al form
+  const { formRef, scrollToForm } = useScrollToForm(showAddForm, 'staff-add-form');
+
+  // Effetto per scroll automatico quando il form si apre
+  useEffect(() => {
+    if (showAddForm) {
+      scrollToForm();
+    }
+  }, [showAddForm, scrollToForm]);
+
   const [errors, setErrors] = useState({});
   const [localFormData, setLocalFormData] = useState({
     name: '',
@@ -333,7 +345,7 @@ const StaffStep = ({
 
       {/* Form Aggiungi/Modifica */}
       {showAddForm && (
-        <div className="border rounded-lg p-4 bg-white">
+        <div ref={formRef} id="staff-add-form" className="border rounded-lg p-4 bg-white">
           <h4 className="font-medium text-gray-900 mb-4">
             {editingMember ? 'Modifica Membro' : 'Aggiungi Nuovo Membro'}
           </h4>

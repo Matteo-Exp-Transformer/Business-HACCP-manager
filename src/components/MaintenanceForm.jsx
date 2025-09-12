@@ -73,14 +73,14 @@ const getAvailableStaff = (staffMembers, selectedRole = null, selectedCategory =
   return filteredMembers;
 };
 
-const MaintenanceForm = ({ 
+const MaintenanceForm = React.forwardRef(({ 
   conservationPoint,
   staffMembers = [],
   onSave,
   onCancel,
   isOpen = false,
   existingData = null
-}) => {
+}, ref) => {
   const [maintenanceData, setMaintenanceData] = useState({
     [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
       frequency: '',
@@ -542,7 +542,7 @@ const MaintenanceForm = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      <div ref={ref} id="tasks-maintenance-form" className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Configura Manutenzione</h1>
           <p className="text-2xl text-gray-700">
@@ -609,6 +609,8 @@ const MaintenanceForm = ({
       </div>
     </div>
   );
-};
+});
+
+MaintenanceForm.displayName = 'MaintenanceForm';
 
 export default MaintenanceForm;

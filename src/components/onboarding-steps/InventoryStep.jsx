@@ -3,6 +3,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Plus, X, Package, AlertTriangle, Edit } from 'lucide-react';
+import { useScrollToForm } from '../../hooks/useScrollToForm';
 
 const InventoryStep = ({ 
   formData, 
@@ -25,6 +26,16 @@ const InventoryStep = ({
     position: '',
     allergens: []
   });
+
+  // Hook per scroll automatico al form
+  const { formRef, scrollToForm } = useScrollToForm(showAddForm, 'inventory-add-form');
+
+  // Effetto per scroll automatico quando il form si apre
+  useEffect(() => {
+    if (showAddForm) {
+      scrollToForm();
+    }
+  }, [showAddForm, scrollToForm]);
 
   // Ottieni i punti di conservazione reali dall'onboarding
   const getConservationPoints = () => {
@@ -345,7 +356,7 @@ const InventoryStep = ({
 
       {/* Form Aggiungi Prodotto */}
       {showAddForm && (
-        <div className="border rounded-lg p-4 bg-white">
+        <div ref={formRef} id="inventory-add-form" className="border rounded-lg p-4 bg-white">
           <h4 className="font-medium text-gray-900 mb-4">
             {editingProduct ? 'Modifica Prodotto' : 'Aggiungi Nuovo Prodotto'}
           </h4>
