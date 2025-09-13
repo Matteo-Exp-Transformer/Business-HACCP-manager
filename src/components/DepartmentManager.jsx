@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs'
 import Departments from './Departments'
 import CleaningDepartments from './CleaningDepartments'
 import { Building2, Sparkles, Settings } from 'lucide-react'
+import { errorLog } from '../utils/debug'
 
 function DepartmentManager() {
   const [departments, setDepartments] = useState([])
@@ -19,7 +20,7 @@ function DepartmentManager() {
       try {
         setDepartments(JSON.parse(deptData))
       } catch (error) {
-        console.error('Error loading departments:', error)
+        errorLog('Error loading departments:', error)
         // Initialize with default departments if error
         const defaultDepartments = [
           {
@@ -48,7 +49,7 @@ function DepartmentManager() {
       try {
         setCleaning(JSON.parse(cleanData))
       } catch (error) {
-        console.error('Error loading cleaning data:', error)
+        errorLog('Error loading cleaning data:', error)
         setCleaning([])
       }
     }

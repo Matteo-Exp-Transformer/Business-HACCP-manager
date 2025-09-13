@@ -12,6 +12,7 @@ import {
   getFrequenciesForTaskType,
   getTaskTypeDisplayName
 } from '../utils/maintenanceConstants';
+import { debugLog, maintenanceLog, errorLog } from '../utils/debug';
 
 // Funzioni helper per filtri progressivi
 const getAvailableRoles = (staffMembers) => {
@@ -116,14 +117,14 @@ const MaintenanceForm = React.forwardRef(({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Log per debug
-  console.log('🔍 MaintenanceForm - Available data:', {
+  debugLog('🔍 MaintenanceForm - Available data:', {
     staffMembers: staffMembers.length
   });
 
   // Reset form quando si apre
   useEffect(() => {
     if (isOpen) {
-      console.log('🔍 MaintenanceForm opened with data:', {
+      debugLog('🔍 MaintenanceForm opened with data:', {
         conservationPoint,
         staffMembers: staffMembers.length,
         staffMembersData: staffMembers,
@@ -132,7 +133,7 @@ const MaintenanceForm = React.forwardRef(({
       
       if (existingData) {
         // Carica dati esistenti per modifica
-        console.log('📝 Caricamento dati esistenti per modifica');
+        debugLog('📝 Caricamento dati esistenti per modifica');
         setMaintenanceData(existingData);
         
         // Imposta useCustomDays basato sui dati esistenti
@@ -143,7 +144,7 @@ const MaintenanceForm = React.forwardRef(({
         });
       } else {
         // Reset per nuovo punto di conservazione
-        console.log('🆕 Reset per nuovo punto di conservazione');
+        debugLog('🆕 Reset per nuovo punto di conservazione');
         setMaintenanceData({
           [MAINTENANCE_TASK_TYPES.TEMPERATURE_MONITORING]: {
             frequency: '',
@@ -181,7 +182,7 @@ const MaintenanceForm = React.forwardRef(({
 
   // Aggiorna un campo specifico per un tipo di attività con reset automatico
   const updateMaintenanceField = (taskType, field, value) => {
-    console.log(`🔄 updateMaintenanceField: ${taskType}.${field} = ${value}`);
+    maintenanceLog(`🔄 updateMaintenanceField: ${taskType}.${field} = ${value}`);
     
     setMaintenanceData(prev => {
       const currentTask = prev[taskType];
@@ -272,14 +273,14 @@ const MaintenanceForm = React.forwardRef(({
 
     // Se non sono selezionati ruolo e categoria, mostra tutti i dipendenti
     if (!role && !category) {
-      console.log('🔍 getFilteredStaff Debug: Mostrando tutti i dipendenti');
+      debugLog('🔍 getFilteredStaff Debug: Mostrando tutti i dipendenti');
       return staffMembers;
     }
 
     // Usa la nuova funzione helper per filtrare
     const filtered = getAvailableStaff(staffMembers, role, category);
     
-    console.log('🔍 getFilteredStaff Debug:', {
+    debugLog('🔍 getFilteredStaff Debug:', {
       taskType,
       role,
       category,
@@ -336,7 +337,7 @@ const MaintenanceForm = React.forwardRef(({
 
       await onSave(maintenanceTasks);
     } catch (error) {
-      console.error('Errore durante il salvataggio:', error);
+      errorLog('Errore durante il salvataggio:', error);
     } finally {
       setIsSubmitting(false);
     }

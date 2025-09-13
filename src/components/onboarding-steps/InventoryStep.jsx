@@ -3,6 +3,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Plus, X, Package, AlertTriangle, Edit } from 'lucide-react';
+import { useScrollToForm } from '../../hooks/useScrollToForm';
 
 const InventoryStep = ({ 
   formData, 
@@ -17,6 +18,17 @@ const InventoryStep = ({
   const [products, setProducts] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+
+  // Hook per scroll automatico al form
+  const { formRef, scrollToForm } = useScrollToForm(showAddForm, 'inventory-step-form');
+  
+  // Effetto per scroll automatico quando il form si apre
+  useEffect(() => {
+    if (showAddForm) {
+      scrollToForm();
+    }
+  }, [showAddForm, scrollToForm]);
+
   const [validationErrors, setValidationErrors] = useState({});
   const [localFormData, setLocalFormData] = useState({
     name: '',
@@ -241,6 +253,141 @@ const InventoryStep = ({
           </Button>
         </div>
 
+        {/* Form Aggiungi Prodotto - Posizionato subito dopo il pulsante */}
+        {showAddForm && (
+          <div ref={formRef} id="inventory-step-form" className="border rounded-lg p-4 bg-white mb-6">
+            <h4 className="font-medium text-gray-900 mb-4">
+              {editingProduct ? 'Modifica Prodotto' : 'Aggiungi Nuovo Prodotto'}
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Nome Prodotto *</Label>
+                <Input
+                  id="name"
+                  value={localFormData.name}
+                  onChange={(e) => {
+                    setLocalFormData(prev => ({ ...prev, name: e.target.value }));
+                    markStepAsUnconfirmed(currentStep);
+                  }}
+                  placeholder="Es. Mozzarella, Prosciutto, Pomodori"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="type">Tipo Prodotto *</Label>
+                <select
+                  id="type"
+                  value={localFormData.type}
+                  onChange={(e) => {
+                    setLocalFormData(prev => ({ ...prev, type: e.target.value }));
+                    markStepAsUnconfirmed(currentStep);
+                  }}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Seleziona tipo</option>
+                  {PRODUCT_TYPES.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <Label htmlFor="expiryDate">Data di Scadenza *</Label>
+                <Input
+                  id="expiryDate"
+                  type="date"
+                  value={localFormData.expiryDate}
+                  onChange={(e) => {
+                    setLocalFormData(prev => ({ ...prev, expiryDate: e.target.value }));
+                    markStepAsUnconfirmed(currentStep);
+                  }}
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="position">Posizione di Conservazione *</Label>
+                <select
+                  id="position"
+                  value={localFormData.position}
+                  onChange={(e) => {
+                    setLocalFormData(prev => ({ ...prev, position: e.target.value }));
+                    markStepAsUnconfirmed(currentStep);
+                  }}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Seleziona posizione</option>
+                  {getConservationPoints().map(point => (
+                    <option key={point.id} value={point.id}>
+                      {point.name} ({point.targetTemp}°C)
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="md:col-span-2">
+                <Label>Allergeni</Label>
+                <div className="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {ALLERGENS.map(allergen => (
+                    <label key={allergen.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localFormData.allergens.includes(allergen.id)}
+                        onChange={() => toggleAllergen(allergen.id)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm">
+                        {allergen.icon} {allergen.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            {/* Validazione HACCP in tempo reale */}
+            {localFormData.type && localFormData.position && (
+              <div className="mt-4 p-3 rounded-lg bg-gray-50">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="font-medium">Validazione HACCP:</span>
+                </div>
+                {(() => {
+                  const compliance = checkHACCPCompliance(localFormData.type, localFormData.position);
+                  return (
+                    <div className={`mt-2 flex items-center gap-2 ${
+                      compliance.compliant ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {compliance.compliant ? '✅' : '⚠️'}
+                      <span className="text-sm">{compliance.message}</span>
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddForm(false);
+                  resetForm();
+                }}
+              >
+                Annulla
+              </Button>
+              <Button
+                onClick={handleAddProduct}
+                disabled={!localFormData.name || !localFormData.type || !localFormData.expiryDate || !localFormData.position}
+              >
+                {editingProduct ? 'Salva Modifiche' : 'Aggiungi Prodotto'}
+              </Button>
+            </div>
+          </div>
+        )}
+
         {products.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
@@ -321,130 +468,6 @@ const InventoryStep = ({
         )}
       </div>
 
-      {/* Form Aggiungi Prodotto */}
-      {showAddForm && (
-        <div className="border rounded-lg p-4 bg-white">
-          <h4 className="font-medium text-gray-900 mb-4">
-            {editingProduct ? 'Modifica Prodotto' : 'Aggiungi Nuovo Prodotto'}
-          </h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Nome Prodotto *</Label>
-              <Input
-                id="name"
-                value={localFormData.name}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Es. Acqua nat 0,5"
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="type">Tipologia *</Label>
-              <select
-                id="type"
-                value={localFormData.type}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, type: e.target.value }))}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleziona tipologia</option>
-                {PRODUCT_TYPES.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <Label htmlFor="expiryDate">Data di Scadenza *</Label>
-              <Input
-                id="expiryDate"
-                type="date"
-                value={localFormData.expiryDate}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, expiryDate: e.target.value }))}
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="position">Posizione *</Label>
-              <select
-                id="position"
-                value={localFormData.position}
-                onChange={(e) => setLocalFormData(prev => ({ ...prev, position: e.target.value }))}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleziona posizione</option>
-                                 {getConservationPoints().map(point => (
-                   <option key={point.id} value={point.id}>
-                     {point.name} ({point.minTemp}°C - {point.maxTemp}°C)
-                   </option>
-                 ))}
-              </select>
-            </div>
-          </div>
-          
-                     {/* Allergeni */}
-           <div className="mt-4">
-             <Label>Allergeni</Label>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-2">
-              {ALLERGENS.map(allergen => (
-                <label key={allergen.id} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={localFormData.allergens.includes(allergen.id)}
-                    onChange={() => toggleAllergen(allergen.id)}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm">
-                    {allergen.icon} {allergen.name}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-          
-          {/* Validazione HACCP in tempo reale */}
-          {localFormData.type && localFormData.position && (
-            <div className="mt-4 p-3 rounded-lg bg-gray-50">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" />
-                <span className="font-medium">Validazione HACCP:</span>
-              </div>
-              {(() => {
-                const compliance = checkHACCPCompliance(localFormData.type, localFormData.position);
-                return (
-                  <div className={`mt-2 flex items-center gap-2 ${
-                    compliance.compliant ? 'text-green-600' : 'text-red-600'
-                  }`}>
-                    {compliance.compliant ? '✅' : '⚠️'}
-                    <span className="text-sm">{compliance.message}</span>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
-          
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddForm(false);
-                resetForm();
-              }}
-            >
-              Annulla
-            </Button>
-                         <Button
-               onClick={handleAddProduct}
-               disabled={!localFormData.name || !localFormData.type || !localFormData.expiryDate || !localFormData.position}
-             >
-               {editingProduct ? 'Salva Modifiche' : 'Aggiungi Prodotto'}
-             </Button>
-          </div>
-        </div>
-      )}
-
       {/* Validazione */}
       <div className={`p-4 rounded-lg ${
         canProceed ? 'bg-green-50 border border-green-200' : 'bg-yellow-50 border border-yellow-200'
@@ -476,19 +499,19 @@ const InventoryStep = ({
         </div>
       </div>
 
-             {/* Errori di validazione */}
-       {Object.keys(validationErrors).length > 0 && (
-         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-           <div className="text-sm text-red-800">
-             <p className="font-medium">❌ Errori di validazione:</p>
-             {Object.entries(validationErrors).map(([key, error]) => (
-               <p key={key}>• {error}</p>
-             ))}
-           </div>
-         </div>
-       )}
+      {/* Errori di validazione */}
+      {Object.keys(validationErrors).length > 0 && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="text-sm text-red-800">
+            <p className="font-medium">❌ Errori di validazione:</p>
+            {Object.entries(validationErrors).map(([key, error]) => (
+              <p key={key}>• {error}</p>
+            ))}
+          </div>
+        </div>
+      )}
 
-       {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
+      {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
     </div>
   );
 };

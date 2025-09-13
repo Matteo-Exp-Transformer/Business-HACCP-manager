@@ -3,6 +3,7 @@ import { X, User, Plus, Eye, EyeOff } from 'lucide-react'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
+import { errorLog, debugLog } from '../utils/debug'
 
 function Login({ isOpen, onClose, onLogin, users, onAddUser }) {
   const [selectedUser, setSelectedUser] = useState('')
@@ -58,7 +59,7 @@ function Login({ isOpen, onClose, onLogin, users, onAddUser }) {
         setDepartments(allDepartments)
         setSuggestedDepartments(suggestedDepartments)
       } catch (error) {
-        console.error('Errore nel caricamento reparti:', error)
+        errorLog('Errore nel caricamento reparti:', error)
         setDepartments(suggestedDepartments)
         setSuggestedDepartments(suggestedDepartments)
       }
@@ -72,7 +73,7 @@ function Login({ isOpen, onClose, onLogin, users, onAddUser }) {
       if (adminUser) {
         setSelectedUser(adminUser.id)
         setPin('0000')
-        console.log('✅ Login precompilato: Admin / 0000')
+        debugLog('✅ Login precompilato: Admin / 0000')
       }
     }
   }, [users, selectedUser])

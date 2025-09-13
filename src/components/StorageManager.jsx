@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
+import CollapsibleCard from './CollapsibleCard'
 import { 
   HardDrive, 
   Archive, 
@@ -12,6 +13,10 @@ import {
   Download,
   Upload
 } from 'lucide-react'
+import { useModals } from '../hooks/useModals'
+import AlertModal from './ui/AlertModal'
+import ConfirmModal from './ui/ConfirmModal'
+import PromptModal from './ui/PromptModal'
 
 function StorageManager({ 
   temperatures, 
@@ -31,6 +36,14 @@ function StorageManager({
     refrigerators: 0,
     totalSize: 0
   })
+  
+  // Initialize modals
+  const {
+    alertModal, confirmModal, promptModal,
+    closeAlert, closeConfirm, closePrompt,
+    alertSuccess, alertError, alertWarning,
+    confirmDelete, confirmAction
+  } = useModals()
 
   // Calcola le statistiche dello storage
   useEffect(() => {
@@ -160,9 +173,9 @@ function StorageManager({
     const totalArchived = archivedTemps.length + archivedCleaning.length + expiredLabels.length
     
     if (totalArchived > 0) {
-      alert(`🗂️ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• ${expiredLabels.length} etichette prodotti scaduti\n\n💾 Controllo scadenze temporaneamente disabilitato`)
+      alertSuccess(`🗂️ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• ${expiredLabels.length} etichette prodotti scaduti\n\n💾 Controllo scadenze temporaneamente disabilitato`)
     } else {
-      alert(`✅ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• Controllo etichette scadute: disabilitato`)
+      alertSuccess(`✅ Archiviazione completata!\n\n📊 Elementi archiviati:\n• ${archivedTemps.length} registrazioni temperature\n• ${archivedCleaning.length} attività completate\n• Controllo etichette scadute: disabilitato`)
     }
   }
 
@@ -198,14 +211,17 @@ function StorageManager({
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HardDrive className="h-5 w-5" />
-            Gestione Storage
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <CollapsibleCard
+        title="Gestione Storage"
+        subtitle="Monitoraggio spazio e archiviazione dati"
+        icon={HardDrive}
+        iconColor="text-gray-600"
+        iconBgColor="bg-gray-100"
+        count={storageStats.temperatures + storageStats.cleaning + storageStats.products + storageStats.refrigerators}
+        testId="storage-manager"
+        defaultExpanded={true}
+      >
+        <div className="space-y-6">
           {/* Grafico a torta dello storage */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
@@ -390,13 +406,16 @@ function StorageManager({
                 variant="outline"
                 className="flex items-center gap-2"
                 onClick={() => {
-                  if (confirm('Sei sicuro di voler eliminare tutti i dati? Questa azione non può essere annullata.')) {
-                    setTemperatures([])
-                    setCleaning([])
-                    setProducts([])
-                    setRefrigerators([])
-                    alert('Tutti i dati sono stati eliminati.')
-                  }
+                  confirmDelete(
+                    'Sei sicuro di voler eliminare tutti i dati? Questa azione non può essere annullata.',
+                    () => {
+                      setTemperatures([])
+                      setCleaning([])
+                      setProducts([])
+                      setRefrigerators([])
+                      alertSuccess('Tutti i dati sono stati eliminati.')
+                    }
+                  )
                 }}
               >
                 <Trash2 className="h-4 w-4" />
@@ -404,8 +423,44 @@ function StorageManager({
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleCard>
+
+      {/* Modal Components */}
+      <AlertModal 
+        isOpen={alertModal.isOpen} 
+        onClose={closeAlert} 
+        title={alertModal.title} 
+        message={alertModal.message} 
+        type={alertModal.type} 
+        confirmText={alertModal.confirmText} 
+        onConfirm={alertModal.onConfirm} 
+      />
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen} 
+        onClose={closeConfirm} 
+        title={confirmModal.title} 
+        message={confirmModal.message} 
+        type={confirmModal.type} 
+        confirmText={confirmModal.confirmText} 
+        cancelText={confirmModal.cancelText} 
+        onConfirm={confirmModal.onConfirm} 
+        onCancel={confirmModal.onCancel} 
+      />
+      <PromptModal 
+        isOpen={promptModal.isOpen} 
+        onClose={closePrompt} 
+        title={promptModal.title} 
+        message={promptModal.message} 
+        placeholder={promptModal.placeholder} 
+        defaultValue={promptModal.defaultValue} 
+        type={promptModal.type} 
+        confirmText={promptModal.confirmText} 
+        cancelText={promptModal.cancelText} 
+        validation={promptModal.validation} 
+        onConfirm={promptModal.onConfirm} 
+        onCancel={promptModal.onCancel} 
+      />
     </div>
   )
 }

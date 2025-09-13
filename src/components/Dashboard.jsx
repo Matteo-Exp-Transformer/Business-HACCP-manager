@@ -20,6 +20,7 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { CheckCircle, AlertTriangle, Package, Calendar } from 'lucide-react'
+import { errorLog } from '../utils/debug'
 
 function Dashboard({ temperatures = [], cleaning = [], staff = [], products = [], currentUser }) {
   // Statistiche semplici
@@ -29,6 +30,7 @@ function Dashboard({ temperatures = [], cleaning = [], staff = [], products = []
 
   return (
     <div className="space-y-6">
+      {/* @lock:start(Home-KPI) DO NOT EDIT – KPI remain plain cards */}
       {/* Statistiche Principali */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -79,7 +81,9 @@ function Dashboard({ temperatures = [], cleaning = [], staff = [], products = []
           </CardContent>
         </Card>
       </div>
+      {/* @lock:end(Home-KPI) */}
 
+      {/* @lock:start(Home-Welcome) DO NOT EDIT – Welcome section */}
       {/* Benvenuto */}
       <Card>
         <CardHeader>
@@ -103,7 +107,7 @@ function Dashboard({ temperatures = [], cleaning = [], staff = [], products = []
             try {
               businessInfo = JSON.parse(savedOnboarding);
             } catch (error) {
-              console.error('Errore parsing onboarding data:', error);
+              errorLog('Errore parsing onboarding data:', error);
               return null;
             }
             
@@ -156,7 +160,9 @@ function Dashboard({ temperatures = [], cleaning = [], staff = [], products = []
           })()}
         </CardContent>
       </Card>
+      {/* @lock:end(Home-Welcome) */}
       
+      {/* @lock:start(Home-News) DO NOT EDIT – HACCP news */}
       {/* Nuove funzionalità */}
       <Card>
         <CardHeader>
@@ -193,6 +199,7 @@ function Dashboard({ temperatures = [], cleaning = [], staff = [], products = []
           </div>
         </CardContent>
       </Card>
+      {/* @lock:end(Home-News) */}
     </div>
   )
 }

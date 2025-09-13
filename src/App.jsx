@@ -30,7 +30,9 @@ import React, { useState, useEffect } from 'react'
 import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, QrCode, Bot, RotateCcw } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import Cleaning from './components/Cleaning'
+import ConservationPoints from './components/ConservationPoints'
 import PuntidiConservazione from './components/PuntidiConservazione'
+import Management from './components/Management'
 import Gestione from './components/Gestione'
 import Inventory from './components/Inventory'
 import ProductLabels from './components/ProductLabels'
@@ -48,6 +50,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './components/ui/Card'
 import { Button } from './components/ui/Button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/Tabs'
 import { initializeDataSchemas, initializeDevModeIfRequested } from './utils/dataSchemas'
+import { debugLog, haccpLog, migrationLog } from './utils/debug'
 import DevModeBanner from './components/DevModeBanner'
 import OnboardingWizard from './components/OnboardingWizard'
 import BottomSheetGuide from './components/BottomSheetGuide'
@@ -55,6 +58,10 @@ import HeaderButtons from './components/HeaderButtons'
 import DevButtons from './components/DevButtons'
 import DataButtons from './components/DataButtons'
 import { shouldBypassOnboarding } from './utils/devMode'
+import { useModals } from './hooks/useModals'
+import AlertModal from './components/ui/AlertModal'
+import ConfirmModal from './components/ui/ConfirmModal'
+import PromptModal from './components/ui/PromptModal'
 // import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
 function App() {
@@ -78,6 +85,14 @@ function App() {
     const saved = localStorage.getItem('haccp-last-check')
     return saved ? JSON.parse(saved) : {}
   })
+
+  // Modal system
+  const {
+    alertModal, confirmModal, promptModal,
+    closeAlert, closeConfirm, closePrompt,
+    alertSuccess, alertError, alertWarning,
+    confirmDelete, confirmAction
+  } = useModals()
 
   // Sistema sincronizzazione cloud
   const [pendingChanges, setPendingChanges] = useState([])
@@ -156,9 +171,9 @@ function App() {
     
     // Se i reparti sono corrotti o non ci sono reparti, carica dall'onboarding
     if (corruptedDepartments || departments.length === 0) {
-      console.log('🧹 Rilevati reparti corrotti, ricaricamento dall\'onboarding...')
+      debugLog('🧹 Rilevati reparti corrotti, ricaricamento dall\'onboarding...')
       const onboardingData = localStorage.getItem('haccp-onboarding-new') || localStorage.getItem('haccp-onboarding')
-      console.log('🔍 Dati onboarding trovati:', typeof onboardingData, onboardingData)
+      debugLog('🔍 Dati onboarding trovati:', typeof onboardingData, onboardingData)
       
       if (onboardingData) {
         try {
@@ -198,7 +213,7 @@ function App() {
             // Salva i reparti corretti
             setDepartments(departments)
             localStorage.setItem('haccp-departments', JSON.stringify(departments))
-            console.log('✅ Reparti corretti caricati dall\'onboarding:', departments)
+            debugLog('✅ Reparti corretti caricati dall\'onboarding:', departments)
           }
         } catch (error) {
           console.warn('Errore nel caricamento reparti dall\'onboarding:', error)
@@ -242,7 +257,7 @@ function App() {
           if (departments.length === 0 || JSON.stringify(departments) !== JSON.stringify(precompiledDepartments)) {
             setDepartments(precompiledDepartments)
             localStorage.setItem('haccp-departments', JSON.stringify(precompiledDepartments))
-            console.log('✅ Reparti precompilati caricati:', precompiledDepartments)
+            debugLog('✅ Reparti precompilati caricati:', precompiledDepartments)
           }
         }
       } catch (error) {
@@ -262,28 +277,31 @@ function App() {
 
   // Funzione per resettare completamente l'app (solo in modalità sviluppo)
   const resetApp = () => {
-    if (window.confirm('⚠️ ATTENZIONE: Questo cancellerà TUTTI i dati dell\'app!\n\nSei sicuro di voler procedere?')) {
-      // Pulisce tutto il localStorage
-      localStorage.clear()
-      sessionStorage.clear()
-      
-      // Pulisce anche i dati specifici dell'onboarding
-      localStorage.removeItem('haccp-onboarding')
-      localStorage.removeItem('haccp-onboarding-new')
-      
-      // Ricarica la pagina
-      window.location.reload()
-    }
+    confirmDelete(
+      '⚠️ ATTENZIONE: Questo cancellerà TUTTI i dati dell\'app!\n\nSei sicuro di voler procedere?',
+      () => {
+        // Pulisce tutto il localStorage
+        localStorage.clear()
+        sessionStorage.clear()
+
+        // Pulisce anche i dati specifici dell'onboarding
+        localStorage.removeItem('haccp-onboarding')
+        localStorage.removeItem('haccp-onboarding-new')
+
+        // Ricarica la pagina
+        window.location.reload()
+      }
+    )
   }
 
 
 
   // Funzione per precompilare l'onboarding con i dati di test
   const prefillOnboarding = () => {
-    console.log('🔄 Precompilando onboarding con dati di test...')
+    debugLog('🔄 Precompilando onboarding con dati di test...')
     
     // Pulisce COMPLETAMENTE tutti i dati esistenti per evitare conflitti
-    console.log('🧹 Pulizia completa localStorage...')
+    debugLog('🧹 Pulizia completa localStorage...')
     localStorage.clear()
     sessionStorage.clear()
     
@@ -450,6 +468,91 @@ function App() {
           }
         ],
         count: 1
+      },
+      maintenance: {
+        list: [
+          // Manutenzioni per Frigo A
+          {
+            id: 'maintenance_001',
+            conservation_point_id: 'conservation-1',
+            conservation_point_name: 'Frigo A',
+            task_type: 'temperature_monitoring',
+            task_name: 'Monitoraggio Temperatura',
+            frequency: 'daily',
+            assigned_role: 'Responsabile',
+            assigned_employee: 'Matteo Cavallaro',
+            instructions: 'Verificare temperatura ogni 4 ore e registrare su registro HACCP',
+            is_mandatory: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'maintenance_002',
+            conservation_point_id: 'conservation-1',
+            conservation_point_name: 'Frigo A',
+            task_type: 'cleaning',
+            task_name: 'Pulizia e Sanificazione',
+            frequency: 'weekly',
+            assigned_role: 'Responsabile',
+            assigned_employee: 'Matteo Cavallaro',
+            instructions: 'Pulizia completa con detergente e sanificazione con alcool',
+            is_mandatory: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'maintenance_003',
+            conservation_point_id: 'conservation-1',
+            conservation_point_name: 'Frigo A',
+            task_type: 'defrosting',
+            task_name: 'Sbrinamento',
+            frequency: 'monthly',
+            assigned_role: 'Responsabile',
+            assigned_employee: 'Matteo Cavallaro',
+            instructions: 'Sbrinamento completo e pulizia delle serpentine',
+            is_mandatory: true,
+            created_at: new Date().toISOString()
+          },
+          // Manutenzioni per Frigo Bancone 1
+          {
+            id: 'maintenance_004',
+            conservation_point_id: 'conservation-2',
+            conservation_point_name: 'Frigo Bancone 1',
+            task_type: 'temperature_monitoring',
+            task_name: 'Monitoraggio Temperatura',
+            frequency: 'daily',
+            assigned_role: 'Banconisti',
+            assigned_employee: 'Eddy TheQueen',
+            instructions: 'Verificare temperatura ogni 2 ore durante il servizio',
+            is_mandatory: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'maintenance_005',
+            conservation_point_id: 'conservation-2',
+            conservation_point_name: 'Frigo Bancone 1',
+            task_type: 'cleaning',
+            task_name: 'Pulizia e Sanificazione',
+            frequency: 'daily',
+            assigned_role: 'Banconisti',
+            assigned_employee: 'Eddy TheQueen',
+            instructions: 'Pulizia giornaliera con detergente neutro',
+            is_mandatory: true,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: 'maintenance_006',
+            conservation_point_id: 'conservation-2',
+            conservation_point_name: 'Frigo Bancone 1',
+            task_type: 'defrosting',
+            task_name: 'Sbrinamento',
+            frequency: 'weekly',
+            assigned_role: 'Responsabile',
+            assigned_employee: 'Matteo Cavallaro',
+            instructions: 'Sbrinamento settimanale e controllo funzionamento',
+            is_mandatory: true,
+            created_at: new Date().toISOString()
+          }
+        ],
+        count: 6
       },
       products: {
         productsList: [
@@ -810,69 +913,72 @@ function App() {
     // Salva le manutenzioni precompilate
     localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(maintenanceTasksWithCompanyId));
     
-    console.log('✅ Onboarding precompilato con i tuoi dati')
-    console.log('✅ Dati di accesso precompilati: Admin / 0000')
-    console.log('✅ Manutenzioni precompilate: 21 attività per 7 punti di conservazione')
-    console.log('🔑 Company ID utilizzato:', companyId)
-    console.log('💾 Manutenzioni salvate in localStorage:', maintenanceTasksWithCompanyId.length, 'task')
-    console.log('🔍 Verifica localStorage:', JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]').length, 'task trovati')
+    debugLog('✅ Onboarding precompilato con i tuoi dati')
+    debugLog('✅ Dati di accesso precompilati: Admin / 0000')
+    debugLog('✅ Manutenzioni precompilate: 21 attività per 7 punti di conservazione')
+    debugLog('🔑 Company ID utilizzato:', companyId)
+    debugLog('💾 Manutenzioni salvate in localStorage:', maintenanceTasksWithCompanyId.length, 'task')
+    debugLog('🔍 Verifica localStorage:', JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]').length, 'task trovati')
     
     // Mostra conferma
-    alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- 21 Attività di manutenzione preconfigurate\n- 1 Attività generica (Carico Frigoriferi Bancone)\n- Acqua nat 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
+    alertSuccess('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- 21 Attività di manutenzione preconfigurate\n- 1 Attività generica (Carico Frigoriferi Bancone)\n- Acqua nat 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
   }
 
   // Funzione per resettare completamente l'onboarding
   const resetOnboarding = () => {
-    if (window.confirm('⚠️ ATTENZIONE: Questo cancellerà TUTTI i dati dell\'onboarding e dell\'app!\n\nSei sicuro di voler procedere?')) {
-      // Pulisce tutti i dati dell'onboarding
-      localStorage.removeItem('haccp-onboarding')
-      localStorage.removeItem('haccp-onboarding-new')
-      
-      // Pulisce tutti i dati dell'app
-      localStorage.removeItem('haccp-departments')
-      localStorage.removeItem('haccp-staff')
-      localStorage.removeItem('haccp-refrigerators')
-      localStorage.removeItem('haccp-cleaning')
-      localStorage.removeItem('haccp-products')
-      localStorage.removeItem('haccp-users')
-      localStorage.removeItem('haccp-temperatures')
-      localStorage.removeItem('haccp-product-labels')
-      localStorage.removeItem('haccp-maintenance-tasks')
-      
-      // Reset degli stati dell'app
-      setDepartments([])
-      setStaff([])
-      setRefrigerators([])
-      setCleaning([])
-      setProducts([])
-      setUsers([])
-      setTemperatures([])
-      setProductLabels([])
-      setOnboardingCompleted(false)
-      
-      console.log('🧹 Onboarding e app completamente resettati')
-      
-      // Ricrea i dati di accesso predefiniti
-      const defaultUsers = [
-        {
-          id: 'admin-1',
-          name: 'Admin',
-          pin: '0000',
-          role: 'admin',
-          department: 'Amministrazione',
-          createdAt: new Date().toISOString(),
-          isActive: true
-        }
-      ]
-      
-      localStorage.setItem('haccp-users', JSON.stringify(defaultUsers))
-      localStorage.setItem('haccp-current-user', JSON.stringify(defaultUsers[0]))
-      
-      console.log('✅ Dati di accesso ricreati: Admin / 0000')
-      
-      // Ricarica la pagina per applicare le modifiche
-      window.location.reload()
-    }
+    confirmDelete(
+      '⚠️ ATTENZIONE: Questo cancellerà TUTTI i dati dell\'onboarding e dell\'app!\n\nSei sicuro di voler procedere?',
+      () => {
+        // Pulisce tutti i dati dell'onboarding
+        localStorage.removeItem('haccp-onboarding')
+        localStorage.removeItem('haccp-onboarding-new')
+        
+        // Pulisce tutti i dati dell'app
+        localStorage.removeItem('haccp-departments')
+        localStorage.removeItem('haccp-staff')
+        localStorage.removeItem('haccp-refrigerators')
+        localStorage.removeItem('haccp-cleaning')
+        localStorage.removeItem('haccp-products')
+        localStorage.removeItem('haccp-users')
+        localStorage.removeItem('haccp-temperatures')
+        localStorage.removeItem('haccp-product-labels')
+        localStorage.removeItem('haccp-maintenance-tasks')
+        
+        // Reset degli stati dell'app
+        setDepartments([])
+        setStaff([])
+        setRefrigerators([])
+        setCleaning([])
+        setProducts([])
+        setUsers([])
+        setTemperatures([])
+        setProductLabels([])
+        setOnboardingCompleted(false)
+        
+        console.log('🧹 Onboarding e app completamente resettati')
+        
+        // Ricrea i dati di accesso predefiniti
+        const defaultUsers = [
+          {
+            id: 'admin-1',
+            name: 'Admin',
+            pin: '0000',
+            role: 'admin',
+            department: 'Amministrazione',
+            createdAt: new Date().toISOString(),
+            isActive: true
+          }
+        ]
+        
+        localStorage.setItem('haccp-users', JSON.stringify(defaultUsers))
+        localStorage.setItem('haccp-current-user', JSON.stringify(defaultUsers[0]))
+        
+        console.log('✅ Dati di accesso ricreati: Admin / 0000')
+        
+        // Ricarica la pagina per applicare le modifiche
+        window.location.reload()
+      }
+    )
   }
 
 
@@ -1428,9 +1534,9 @@ function App() {
           setProductLabels(data.productLabels)
           localStorage.setItem('haccp-product-labels', JSON.stringify(data.productLabels))
         }
-        alert('Dati importati con successo!')
+        alertSuccess('Dati importati con successo!')
       } catch (error) {
-        alert('Errore durante l\'importazione del file')
+        alertError('Errore durante l\'importazione del file')
         console.error('Import error:', error)
       }
     }
@@ -1596,13 +1702,13 @@ function App() {
       // Naviga alla sezione appropriata per risolvere il prerequisito
       switch (requirement) {
         case 'departments':
-          setActiveTab('staff') // Staff ha la gestione dipartimenti
+          setActiveTab('management') // Management ha la gestione dipartimenti
           break
         case 'refrigerators':
           setActiveTab('refrigerators')
           break
         case 'staff':
-          setActiveTab('staff')
+          setActiveTab('management')
           break
         default:
           setActiveTab('dashboard')
@@ -1831,7 +1937,7 @@ function App() {
           setActiveTab(newTab)
           updateLastCheck(newTab)
         }}>
-          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-4 sm:grid-cols-6 md:grid-cols-9' : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8'} gap-1 mb-8`}>
+          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5'} gap-1 mb-8`}>
             <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Home">
               <BarChart3 className="h-4 w-4" />
               <span className="sm:hidden">Home</span>
@@ -1856,44 +1962,18 @@ function App() {
               <span className="hidden sm:inline">Inventario</span>
               <NotificationDot hasNotification={notifications.inventory > 0} />
             </TabsTrigger>
-            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Gestione Etichette">
-              <QrCode className="h-4 w-4" />
-              <span className="sm:hidden text-xs">Etichette</span>
-              <span className="hidden sm:inline">Gestione Etichette</span>
-              <NotificationDot hasNotification={notifications.labels > 0} />
-            </TabsTrigger>
-            <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-sm" title="IA Assistant">
-              <Bot className="h-4 w-4" />
-              <span className="sm:hidden text-xs">IA</span>
-              <span className="hidden sm:inline">IA Assistant</span>
+            <TabsTrigger value="management" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Gestione e AI">
+              <Users className="h-4 w-4" />
+              <span className="sm:hidden text-xs">Gestione</span>
+              <span className="hidden sm:inline">Gestione e AI</span>
+              <NotificationDot hasNotification={notifications.staff > 0} />
             </TabsTrigger>
             <TabsTrigger value="data-settings" className="flex items-center gap-1 md:gap-2 text-sm" title="Impostazioni e Dati">
               <Settings className="h-4 w-4" />
               <span className="sm:hidden text-xs">Settings</span>
               <span className="hidden sm:inline">Impostazioni e Dati</span>
             </TabsTrigger>
-            {isAdmin() && (
-              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Gestione">
-                <Users className="h-4 w-4" />
-                <span className="sm:hidden text-xs">Staff</span>
-                <span className="hidden sm:inline">Gestione</span>
-                <NotificationDot hasNotification={notifications.staff > 0} />
-              </TabsTrigger>
-            )}
             <div className="flex flex-col gap-1">
-              {isAdmin() && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setActiveTab('staff')}
-                  className="flex items-center gap-1 md:gap-2 text-sm h-9 px-3"
-                  title="Impostazioni"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span className="sm:hidden text-xs">Settings</span>
-                  <span className="hidden sm:inline">Impostazioni</span>
-                </Button>
-              )}
               <Button 
                 variant="outline" 
                 size="sm"
@@ -1983,30 +2063,6 @@ function App() {
             />
           </TabsContent>
 
-          {/* Sezione: Gestione Etichette (ex Product Labels) - Creazione/modifica etichette */}
-          <TabsContent value="labels">
-            <ProductLabels 
-              productLabels={productLabels}
-              setProductLabels={setProductLabels}
-              products={products}
-              currentUser={currentUser}
-            />
-          </TabsContent>
-
-          {/* Sezione: IA Assistant (ex AI Assistant) - Assistente IA */}
-          <TabsContent value="ai-assistant">
-            <AIAssistantSection 
-              currentUser={currentUser}
-              products={products}
-              temperatures={temperatures}
-              cleaning={cleaning}
-              staff={staff}
-              onAction={(action) => {
-                console.log('AI Action:', action)
-                // Qui implementeremo le azioni dell'IA
-              }}
-            />
-          </TabsContent>
 
           {/* Sezione: Impostazioni e Dati (ex Settings/Data) - Configurazioni, backup, manuale HACCP */}
           <TabsContent value="data-settings">
@@ -2020,9 +2076,9 @@ function App() {
             />
           </TabsContent>
 
-          {/* Sezione: Gestione (Admin only) - Gestione staff, utenti e configurazioni avanzate */}
+          {/* Sezione: Gestione e AI (Admin only) - Gestione staff, utenti e configurazioni avanzate */}
           {isAdmin() && (
-            <TabsContent value="staff">
+            <TabsContent value="management">
               <div className="space-y-6">
                 <Gestione 
                   staff={staff} 
@@ -2039,6 +2095,11 @@ function App() {
                     setDepartments(newDepartments)
                     trackDataChange('departments', newDepartments)
                   }}
+                  products={products}
+                  temperatures={temperatures}
+                  cleaning={cleaning}
+                  productLabels={productLabels}
+                  setProductLabels={setProductLabels}
                 />
                 <StorageManager
                   temperatures={temperatures}
@@ -2108,6 +2169,42 @@ function App() {
           missingRequirements={validation.missingRequirements}
           suggestions={validation.getSuggestions()}
           onFixRequirement={handleFixRequirement}
+        />
+
+        {/* Modal Components */}
+        <AlertModal
+          isOpen={alertModal.isOpen}
+          onClose={closeAlert}
+          title={alertModal.title}
+          message={alertModal.message}
+          type={alertModal.type}
+          confirmText={alertModal.confirmText}
+          onConfirm={alertModal.onConfirm}
+        />
+        <ConfirmModal
+          isOpen={confirmModal.isOpen}
+          onClose={closeConfirm}
+          title={confirmModal.title}
+          message={confirmModal.message}
+          type={confirmModal.type}
+          confirmText={confirmModal.confirmText}
+          cancelText={confirmModal.cancelText}
+          onConfirm={confirmModal.onConfirm}
+          onCancel={confirmModal.onCancel}
+        />
+        <PromptModal
+          isOpen={promptModal.isOpen}
+          onClose={closePrompt}
+          title={promptModal.title}
+          message={promptModal.message}
+          placeholder={promptModal.placeholder}
+          defaultValue={promptModal.defaultValue}
+          type={promptModal.type}
+          confirmText={promptModal.confirmText}
+          cancelText={promptModal.cancelText}
+          validation={promptModal.validation}
+          onConfirm={promptModal.onConfirm}
+          onCancel={promptModal.onCancel}
         />
       </div>
     </div>

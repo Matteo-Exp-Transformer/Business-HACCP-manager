@@ -23,6 +23,11 @@ import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Plus, Edit, Trash2, Building2, Users, MapPin, AlertCircle } from 'lucide-react'
+import { useModals } from '../hooks/useModals'
+import AlertModal from './ui/AlertModal'
+import ConfirmModal from './ui/ConfirmModal'
+import PromptModal from './ui/PromptModal'
+import { debugLog, warnLog, haccpLog } from '../utils/debug'
 
 // Funzione per creare i reparti standard
 const createStandardDepartments = () => {
@@ -84,6 +89,14 @@ function Departments({ currentUser, departments, setDepartments }) {
     manager: '',
     notes: ''
   })
+  
+  // Initialize modals
+  const {
+    alertModal, confirmModal, promptModal,
+    closeAlert, closeConfirm, closePrompt,
+    alertSuccess, alertError, alertWarning,
+    confirmDelete, confirmAction
+  } = useModals()
 
   // Carica i reparti esistenti dal localStorage
   useEffect(() => {
@@ -96,18 +109,18 @@ function Departments({ currentUser, departments, setDepartments }) {
         const onboarding = JSON.parse(onboardingCompleted)
         isOnboardingComplete = onboarding && onboarding.completed === true
       } catch (error) {
-        console.warn('Errore nel parsing dati onboarding:', error)
+        warnLog('Errore nel parsing dati onboarding:', error)
         isOnboardingComplete = false
       }
     }
 
     if (isOnboardingComplete) {
       // Onboarding completato - carica i reparti dall'onboarding
-      console.log('✅ Onboarding completato, caricamento reparti...')
+      debugLog('✅ Onboarding completato, caricamento reparti...')
       loadDepartmentsFromOnboarding()
     } else {
       // Onboarding non completato - sezione vuota
-      console.log('⏳ Onboarding in corso, sezione reparti vuota')
+      debugLog('⏳ Onboarding in corso, sezione reparti vuota')
       setDepartments([])
     }
   }, []) // Array vuoto per eseguire solo al mount
@@ -135,7 +148,7 @@ function Departments({ currentUser, departments, setDepartments }) {
             }))
           
           if (departmentsFromOnboarding.length > 0) {
-            console.log('✅ Reparti caricati dall\'onboarding:', departmentsFromOnboarding)
+            haccpLog('✅ Reparti caricati dall\'onboarding:', departmentsFromOnboarding)
             setDepartments(departmentsFromOnboarding)
             // Salva i reparti caricati dall'onboarding
             localStorage.setItem('haccp-departments', JSON.stringify(departmentsFromOnboarding))
@@ -143,18 +156,18 @@ function Departments({ currentUser, departments, setDepartments }) {
           }
         }
       } catch (error) {
-        console.warn('Errore nel caricamento reparti dall\'onboarding:', error)
+        warnLog('Errore nel caricamento reparti dall\'onboarding:', error)
       }
     }
     
     // Se non ci sono reparti dall'onboarding, crea quelli standard
-    console.log('⚠️ Nessun reparto dall\'onboarding, creando reparti standard')
+    debugLog('⚠️ Nessun reparto dall\'onboarding, creando reparti standard')
     setDepartments(createStandardDepartments())
   }
 
   // Funzione per pulire e ricaricare i reparti
   const clearAndReloadDepartments = () => {
-    console.log('🧹 Pulizia reparti corrotti...')
+    debugLog('🧹 Pulizia reparti corrotti...')
     // Rimuovi i dati corrotti
     localStorage.removeItem('haccp-departments')
     // Ricarica dall'onboarding
@@ -182,7 +195,7 @@ function Departments({ currentUser, departments, setDepartments }) {
     e.preventDefault()
     
     if (!formData.name.trim()) {
-      alert('Il nome del reparto è obbligatorio')
+      alertError('Il nome del reparto è obbligatorio')
       return
     }
 
@@ -192,7 +205,7 @@ function Departments({ currentUser, departments, setDepartments }) {
     )
     
     if (existingDept && (!editingDepartment || existingDept.id !== editingDepartment.id)) {
-      alert('Un reparto con questo nome esiste già')
+      alertError('Un reparto con questo nome esiste già')
       return
     }
 
@@ -243,9 +256,12 @@ function Departments({ currentUser, departments, setDepartments }) {
   }
 
   const handleDelete = (departmentId) => {
-    if (confirm('Sei sicuro di voler eliminare questo reparto? Questa azione non può essere annullata.')) {
-      setDepartments(departments.filter(dept => dept.id !== departmentId))
-    }
+    confirmDelete(
+      'Sei sicuro di voler eliminare questo reparto? Questa azione non può essere annullata.',
+      () => {
+        setDepartments(departments.filter(dept => dept.id !== departmentId))
+      }
+    )
   }
 
   return (
@@ -382,6 +398,41 @@ function Departments({ currentUser, departments, setDepartments }) {
         </Card>
       )}
 
+      {/* Modal Components */}
+      <AlertModal 
+        isOpen={alertModal.isOpen} 
+        onClose={closeAlert} 
+        title={alertModal.title} 
+        message={alertModal.message} 
+        type={alertModal.type} 
+        confirmText={alertModal.confirmText} 
+        onConfirm={alertModal.onConfirm} 
+      />
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen} 
+        onClose={closeConfirm} 
+        title={confirmModal.title} 
+        message={confirmModal.message} 
+        type={confirmModal.type} 
+        confirmText={confirmModal.confirmText} 
+        cancelText={confirmModal.cancelText} 
+        onConfirm={confirmModal.onConfirm} 
+        onCancel={confirmModal.onCancel} 
+      />
+      <PromptModal 
+        isOpen={promptModal.isOpen} 
+        onClose={closePrompt} 
+        title={promptModal.title} 
+        message={promptModal.message} 
+        placeholder={promptModal.placeholder} 
+        defaultValue={promptModal.defaultValue} 
+        type={promptModal.type} 
+        confirmText={promptModal.confirmText} 
+        cancelText={promptModal.cancelText} 
+        validation={promptModal.validation} 
+        onConfirm={promptModal.onConfirm} 
+        onCancel={promptModal.onCancel} 
+      />
     </div>
   )
 }
