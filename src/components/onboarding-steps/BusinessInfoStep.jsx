@@ -3,6 +3,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { MapPin, Info, CheckCircle, XCircle } from 'lucide-react';
+import { errorLog } from '../../utils/debug';
 
 const BusinessInfoStep = ({ 
   formData, 
@@ -156,7 +157,7 @@ const BusinessInfoStep = ({
                       throw new Error('Errore nel reverse geocoding');
                     }
                   } catch (error) {
-                    console.error('Errore geolocalizzazione:', error);
+                    errorLog('Errore geolocalizzazione:', error);
                     alert('Errore nella geolocalizzazione: ' + error.message);
                     
                     // Ripristina il pulsante

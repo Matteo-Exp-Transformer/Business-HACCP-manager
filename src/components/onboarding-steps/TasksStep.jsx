@@ -7,6 +7,7 @@ import MaintenanceForm from '../MaintenanceForm';
 import { supabaseService } from '../../services/supabaseService';
 import { MAINTENANCE_TASK_TYPES } from '../../utils/maintenanceConstants';
 import { useScrollToForm } from '../../hooks/useScrollToForm';
+import { debugLog, maintenanceLog } from '../../utils/debug';
 
 const TasksStep = ({ 
   formData, 
@@ -58,17 +59,17 @@ const TasksStep = ({
 
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
-    console.log('🔄 TasksStep: Caricamento dati...');
-    console.log('📋 formData.tasks:', formData.tasks);
+    debugLog('🔄 TasksStep: Caricamento dati...');
+    debugLog('📋 formData.tasks:', formData.tasks);
     
     // Controlla sia la struttura standard che quella di precompilazione
     const tasksList = formData.tasks?.list || formData.tasks?.tasksList || [];
     
     if (tasksList.length > 0) {
-      console.log('✅ Caricando tasks:', tasksList);
+      debugLog('✅ Caricando tasks:', tasksList);
       setTasks(tasksList);
     } else {
-      console.log('⚠️ Nessun task trovato in formData.tasks');
+      debugLog('⚠️ Nessun task trovato in formData.tasks');
     }
   }, [formData.tasks]);
 
@@ -101,10 +102,10 @@ const TasksStep = ({
           savedMaintenances: groupedMaintenancesArray
         }));
         
-        console.log('✅ Manutenzioni caricate:', groupedMaintenancesArray);
+        maintenanceLog('✅ Manutenzioni caricate:', groupedMaintenancesArray);
       }
     } catch (error) {
-      console.error('❌ Errore nel caricamento manutenzioni:', error);
+      errorLog('❌ Errore nel caricamento manutenzioni:', error);
     } finally {
       setLoadingMaintenances(false);
     }
@@ -113,12 +114,50 @@ const TasksStep = ({
   // Carica manutenzioni quando il componente si monta
   useEffect(() => {
     loadSavedMaintenances();
+    loadPrecompiledMaintenances();
   }, []);
+
+  // Carica manutenzioni precompilate dal localStorage
+  const loadPrecompiledMaintenances = () => {
+    try {
+      const precompiledMaintenances = localStorage.getItem('haccp-maintenance-tasks');
+      if (precompiledMaintenances) {
+        const maintenanceTasks = JSON.parse(precompiledMaintenances);
+        
+        // Raggruppa per punto di conservazione
+        const groupedMaintenances = maintenanceTasks.reduce((acc, maintenance) => {
+          const pointId = maintenance.conservation_point_id;
+          if (!acc[pointId]) {
+            acc[pointId] = {
+              conservation_point_id: pointId,
+              conservation_point_name: maintenance.conservation_point_name,
+              tasks: []
+            };
+          }
+          acc[pointId].tasks.push(maintenance);
+          return acc;
+        }, {});
+        
+        const groupedMaintenancesArray = Object.values(groupedMaintenances);
+        setSavedMaintenances(groupedMaintenancesArray);
+        
+        // Salva le manutenzioni in formData per la validazione
+        setFormData(prev => ({
+          ...prev,
+          savedMaintenances: groupedMaintenancesArray
+        }));
+        
+        maintenanceLog('✅ Manutenzioni precompilate caricate:', groupedMaintenancesArray);
+      }
+    } catch (error) {
+      errorLog('❌ Errore nel caricamento manutenzioni precompilate:', error);
+    }
+  };
 
   // Ricarica manutenzioni quando i dati dell'onboarding cambiano
   useEffect(() => {
     if (formData.conservation?.points?.length > 0) {
-      console.log('🔄 Ricaricamento manutenzioni per punti di conservazione...');
+      debugLog('🔄 Ricaricamento manutenzioni per punti di conservazione...');
       loadSavedMaintenances();
     }
   }, [formData.conservation?.points]);
@@ -126,14 +165,14 @@ const TasksStep = ({
   // Precompila il form quando viene aperto
   useEffect(() => {
     if (showAddForm) {
-      console.log('🔄 Form aperto, controllando dati disponibili...');
-      console.log('📋 formData.tasks:', formData.tasks);
-      console.log('📋 tasks locali:', tasks);
+      debugLog('🔄 Form aperto, controllando dati disponibili...');
+      debugLog('📋 formData.tasks:', formData.tasks);
+      debugLog('📋 tasks locali:', tasks);
       
       // Se ci sono task locali, usali per precompilare
       if (tasks.length > 0) {
         const firstTask = tasks[0];
-        console.log('🔄 Precompilando con task locale:', firstTask);
+        debugLog('🔄 Precompilando con task locale:', firstTask);
         setLocalFormData({
           name: firstTask.name || '',
           assignedRole: firstTask.assignedRole || '',
@@ -155,7 +194,7 @@ const TasksStep = ({
                              taskName.includes('temperature') ||
                              taskName.includes('temperatura') ||
                              taskName.includes('monitoraggio');
-    console.log(`🌡️ Task "${task.name}": isTemperatureTask=${isTemperatureTask}`);
+    debugLog(`🌡️ Task "${task.name}": isTemperatureTask=${isTemperatureTask}`);
     return isTemperatureTask;
   }).length;
   
@@ -167,10 +206,10 @@ const TasksStep = ({
   // Totale task di temperatura (generici + manutenzioni)
   const temperatureTasksCount = genericTemperatureTasks + maintenanceTemperatureTasks;
   
-  console.log(`📊 Temperature tasks count: ${temperatureTasksCount}, Total tasks: ${tasks.length}`);
-  console.log(`🌡️ Generic temperature tasks: ${genericTemperatureTasks}`);
-  console.log(`🌡️ Maintenance temperature tasks: ${maintenanceTemperatureTasks}`);
-  console.log('📋 All tasks:', tasks);
+  debugLog(`📊 Temperature tasks count: ${temperatureTasksCount}, Total tasks: ${tasks.length}`);
+  debugLog(`🌡️ Generic temperature tasks: ${genericTemperatureTasks}`);
+  debugLog(`🌡️ Maintenance temperature tasks: ${maintenanceTemperatureTasks}`);
+  debugLog('📋 All tasks:', tasks);
 
   // Aggiorna formData quando cambiano i tasks locali
   useEffect(() => {
@@ -215,14 +254,14 @@ const TasksStep = ({
   // Ottieni i punti di conservazione effettivamente aggiunti
   const getConservationPoints = () => {
     const points = formData.conservation?.points || [];
-    console.log('🏢 Conservation points:', points);
+    debugLog('🏢 Conservation points:', points);
     return points;
   };
 
   // Controlla se esistono TUTTE e 3 le attività obbligatorie per un punto di conservazione
   const hasTaskForConservationPoint = (point) => {
-    console.log(`🔍 Checking point ${point.id} (${point.name}) for maintenance tasks...`);
-    console.log(`📋 Saved maintenances:`, savedMaintenances);
+    debugLog(`🔍 Checking point ${point.id} (${point.name}) for maintenance tasks...`);
+    debugLog(`📋 Saved maintenances:`, savedMaintenances);
     
     // Controlla prima nelle manutenzioni salvate nel database
     const hasMaintenanceTasks = savedMaintenances.some(maintenanceGroup => 
@@ -231,11 +270,11 @@ const TasksStep = ({
     );
     
     if (hasMaintenanceTasks) {
-      console.log(`✅ Point ${point.id} (${point.name}) has maintenance tasks in database`);
+      debugLog(`✅ Point ${point.id} (${point.name}) has maintenance tasks in database`);
       return true;
     }
     
-    console.log(`❌ Point ${point.id} (${point.name}) has NO maintenance tasks in database`);
+    debugLog(`❌ Point ${point.id} (${point.name}) has NO maintenance tasks in database`);
     
     // Controlla nelle tasks esistenti (attività generiche)
     const pointTasks = tasks.filter(task => {
@@ -269,7 +308,7 @@ const TasksStep = ({
              taskName.includes('defrosting');
     });
     
-    console.log(`🔍 Checking point ${point.id} (${point.name}): hasTemperatureTask=${hasTemperatureTask}, hasSanitizationTask=${hasSanitizationTask}, hasDefrostingTask=${hasDefrostingTask}`);
+    debugLog(`🔍 Checking point ${point.id} (${point.name}): hasTemperatureTask=${hasTemperatureTask}, hasSanitizationTask=${hasSanitizationTask}, hasDefrostingTask=${hasDefrostingTask}`);
     
     // Restituisce true solo se esistono TUTTE e 3 le attività
     return hasTemperatureTask && hasSanitizationTask && hasDefrostingTask;
@@ -338,10 +377,10 @@ const TasksStep = ({
         frequency: localFormData.frequency
       };
       
-      console.log('➕ Aggiungendo nuova attività:', newTask);
+      debugLog('➕ Aggiungendo nuova attività:', newTask);
       setTasks(prev => {
         const updatedTasks = [...prev, newTask];
-        console.log('📋 Lista attività aggiornata:', updatedTasks);
+        debugLog('📋 Lista attività aggiornata:', updatedTasks);
         return updatedTasks;
       });
       resetForm();
@@ -358,13 +397,13 @@ const TasksStep = ({
   // Funzioni per gestire il form di manutenzione
   const handleMaintenanceSave = async (maintenanceTasks) => {
     try {
-      console.log('💾 Salvataggio manutenzioni:', maintenanceTasks);
+      maintenanceLog('💾 Salvataggio manutenzioni:', maintenanceTasks);
       
       // Salva le manutenzioni tramite il servizio
       const result = await supabaseService.saveMaintenanceTasks(maintenanceTasks);
       
       if (result.success) {
-        console.log('✅ Manutenzioni salvate con successo');
+        maintenanceLog('✅ Manutenzioni salvate con successo');
         
         // Ricarica le manutenzioni salvate per aggiornare la lista
         await loadSavedMaintenances();
@@ -377,11 +416,11 @@ const TasksStep = ({
         // Mostra messaggio di successo
         alert('Manutenzioni configurate con successo!');
       } else {
-        console.error('❌ Errore nel salvataggio:', result.error);
+        errorLog('❌ Errore nel salvataggio:', result.error);
         alert('Errore nel salvataggio delle manutenzioni');
       }
     } catch (error) {
-      console.error('❌ Errore durante il salvataggio:', error);
+      errorLog('❌ Errore durante il salvataggio:', error);
       alert('Errore durante il salvataggio delle manutenzioni');
     }
   };
@@ -390,6 +429,19 @@ const TasksStep = ({
     setShowMaintenanceForm(false);
     setSelectedConservationPoint(null);
     setExistingMaintenanceData(null);
+  };
+
+  // Funzione per convertire frequenze italiane in inglesi
+  const convertFrequencyToEnglish = (frequency) => {
+    const frequencyMap = {
+      'Giornalmente': 'daily',
+      'Settimanale': 'weekly', 
+      'Mensile': 'monthly',
+      'Semestrale': 'semiannual',
+      'Annuale': 'annual',
+      'Giorni specifici': 'custom_days'
+    };
+    return frequencyMap[frequency] || frequency;
   };
 
   // Gestisce la modifica delle manutenzioni
@@ -429,7 +481,7 @@ const TasksStep = ({
       const taskType = task.task_type;
       if (existingData[taskType]) {
         existingData[taskType] = {
-          frequency: task.frequency || '',
+          frequency: convertFrequencyToEnglish(task.frequency) || '',
           selected_days: task.selected_days || [],
           assigned_role: task.assigned_role || '',
           assigned_category: task.assigned_category || '',
@@ -451,18 +503,18 @@ const TasksStep = ({
         const result = await supabaseService.deleteMaintenanceTasksByConservationPoint(maintenanceGroup.conservation_point_id);
         
         if (result.success) {
-          console.log('✅ Manutenzioni eliminate con successo');
+          maintenanceLog('✅ Manutenzioni eliminate con successo');
           
           // Ricarica le manutenzioni salvate
           await loadSavedMaintenances();
           
           alert('Manutenzioni eliminate con successo!');
         } else {
-          console.error('❌ Errore nell\'eliminazione:', result.error);
+          errorLog('❌ Errore nell\'eliminazione:', result.error);
           alert('Errore nell\'eliminazione delle manutenzioni');
         }
       } catch (error) {
-        console.error('❌ Errore durante l\'eliminazione:', error);
+        errorLog('❌ Errore durante l\'eliminazione:', error);
         alert('Errore durante l\'eliminazione delle manutenzioni');
       }
     }
@@ -527,7 +579,7 @@ const TasksStep = ({
         const conservationPoints = getConservationPoints();
         const missingTasks = conservationPoints.filter(point => !hasTaskForConservationPoint(point));
         
-        console.log('🔍 Missing tasks check:', {
+        debugLog('🔍 Missing tasks check:', {
           conservationPoints: conservationPoints.map(p => ({ id: p.id, name: p.name })),
           missingTasks: missingTasks.map(p => ({ id: p.id, name: p.name })),
           allTasks: tasks.map(t => ({ name: t.name, assignedRole: t.assignedRole }))
@@ -590,37 +642,37 @@ const TasksStep = ({
               <div key={maintenanceGroup.conservation_point_id} className="border rounded-lg p-4 bg-yellow-50 border-yellow-200">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <h4 className="text-xl font-bold text-yellow-900 mb-4">
-                      Attività di Manutenzione ({maintenanceGroup.conservation_point_name})
+                    <h4 className="text-base font-semibold text-yellow-900 mb-3">
+                      Manutenzioni ({maintenanceGroup.conservation_point_name})
                     </h4>
                     
                     <div className="space-y-3">
                       {maintenanceGroup.tasks.map(task => (
                         <div key={task.id} className="text-base">
-                          <div className="font-bold text-gray-800 mb-2">{task.task_name}:</div>
-                          <div className="flex flex-wrap items-center gap-4 text-gray-600">
+                          <div className="font-medium text-gray-800 mb-2">{task.task_name}:</div>
+                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
                             <div className="flex items-center">
-                              <span className="font-semibold">Frequenza:</span> 
-                              <span className="ml-1 text-gray-700 font-semibold">
+                              <span className="font-medium">Frequenza:</span> 
+                              <span className="ml-1 text-gray-700">
                                 {formatFrequencyLabel(task.frequency, task.selected_days)}
                               </span>
                             </div>
                             {task.assigned_role && (
                               <div className="flex items-center">
-                                <span className="font-semibold">Ruolo:</span> 
-                                <span className="ml-1 text-gray-700 font-semibold">{task.assigned_role}</span>
+                                <span className="font-medium">Ruolo:</span> 
+                                <span className="ml-1 text-gray-700">{task.assigned_role}</span>
                               </div>
                             )}
                             {task.assigned_category && (
                               <div className="flex items-center">
-                                <span className="font-semibold">Categoria:</span> 
-                                <span className="ml-1 text-gray-700 font-semibold">{task.assigned_category}</span>
+                                <span className="font-medium">Categoria:</span> 
+                                <span className="ml-1 text-gray-700">{task.assigned_category}</span>
                               </div>
                             )}
                             {task.assigned_staff_ids && task.assigned_staff_ids.length > 0 && (
                               <div className="flex items-center">
-                                <span className="font-semibold">Dipendenti:</span> 
-                                <span className="ml-1 text-gray-700 font-semibold">
+                                <span className="font-medium">Staff:</span> 
+                                <span className="ml-1 text-gray-700">
                                   {getSelectedStaffNames(task.assigned_staff_ids)}
                                 </span>
                               </div>

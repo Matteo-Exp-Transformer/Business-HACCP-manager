@@ -15,7 +15,7 @@ export const useScrollToForm = (isFormVisible, formId = 'add-form') => {
       setTimeout(() => {
         formRef.current?.scrollIntoView({
           behavior: 'smooth',
-          block: 'start',
+          block: 'center',
           inline: 'nearest'
         });
       }, 100);

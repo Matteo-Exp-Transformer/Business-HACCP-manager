@@ -24,11 +24,23 @@ import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Trash2, Sparkles, CheckCircle, Clock, Thermometer, AlertTriangle, User } from 'lucide-react'
 import TemperatureInput from './ui/TemperatureInput'
+import { useModals } from '../hooks/useModals'
+import AlertModal from './ui/AlertModal'
+import ConfirmModal from './ui/ConfirmModal'
+import PromptModal from './ui/PromptModal'
 
 function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, currentUser, refrigerators = [], setRefrigerators }) {
   // Controlli di sicurezza per le props
   const safeCleaning = cleaning || []
   const safeTemperatures = temperatures || []
+  
+  // Initialize modals
+  const {
+    alertModal, confirmModal, promptModal,
+    closeAlert, closeConfirm, closePrompt,
+    alertSuccess, alertError, alertWarning,
+    confirmDelete, confirmAction
+  } = useModals()
   
   // Data migration: ensure all cleaning tasks have required fields
   useEffect(() => {
@@ -83,7 +95,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
     e.preventDefault()
     
     if (!formData.task || !formData.assignee || !formData.frequency) {
-      alert('⚠️ Attenzione: Per aggiungere una nuova attività devi compilare tutti i campi richiesti.\n\n• Attività: descrivi cosa fare\n• Assegnato a: chi è responsabile\n• Frequenza: ogni quanto ripetere')
+      alertError('⚠️ Attenzione: Per aggiungere una nuova attività devi compilare tutti i campi richiesti.\n\n• Attività: descrivi cosa fare\n• Assegnato a: chi è responsabile\n• Frequenza: ogni quanto ripetere')
       return
     }
 
@@ -110,14 +122,14 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
     })
     
     // Mostra conferma positiva
-    alert('✅ Perfetto! La nuova attività è stata aggiunta con successo.\n\nOra apparirà nella lista delle attività da svolgere e potrai monitorarne il progresso.')
+    alertSuccess('✅ Perfetto! La nuova attività è stata aggiunta con successo.\n\nOra apparirà nella lista delle attività da svolgere e potrai monitorarne il progresso.')
   }
 
   const addTemperature = (e) => {
     e.preventDefault()
     
     if (!tempFormData.location || !tempFormData.temperatureMin || !tempFormData.temperatureMax) {
-      alert('🌡️ Attenzione: Per registrare una temperatura devi compilare tutti i campi richiesti.\n\n• Frigorifero/Freezer: seleziona il punto di conservazione\n• Range Temperatura: inserisci i valori minimo e massimo')
+      alertError('🌡️ Attenzione: Per registrare una temperatura devi compilare tutti i campi richiesti.\n\n• Frigorifero/Freezer: seleziona il punto di conservazione\n• Range Temperatura: inserisci i valori minimo e massimo')
       return
     }
 
@@ -125,13 +137,13 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
     const tempMax = parseFloat(tempFormData.temperatureMax)
     
     if (isNaN(tempMin) || isNaN(tempMax)) {
-      alert('❌ Errore: I valori delle temperature devono essere numeri validi.\n\nEsempi corretti:\n• Min: -2, Max: 4\n• Min: 0, Max: 8\n• Min: -18, Max: -15')
+      alertError('❌ Errore: I valori delle temperature devono essere numeri validi.\n\nEsempi corretti:\n• Min: -2, Max: 4\n• Min: 0, Max: 8\n• Min: -18, Max: -15')
       return
     }
 
     // Validazione logica delle temperature
     if (tempMin > tempMax) {
-      alert('⚠️ Attenzione: La temperatura minima non può essere maggiore della massima.\n\nCorreggi i valori:\n• Min: deve essere inferiore o uguale a Max\n• Esempio: Min: -2, Max: 4')
+      alertError('⚠️ Attenzione: La temperatura minima non può essere maggiore della massima.\n\nCorreggi i valori:\n• Min: deve essere inferiore o uguale a Max\n• Esempio: Min: -2, Max: 4')
       return
     }
 
@@ -165,7 +177,7 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
         ? '⚠️ Attenzione: temperatura al limite' 
         : '🚨 Attenzione: temperatura critica'
     
-    alert(`🌡️ Temperatura registrata con successo!\n\n${statusMessage}\n\n• Frigorifero: ${newTemperature.refrigeratorName}\n• Range: ${tempMin}°C - ${tempMax}°C\n• Data: ${newTemperature.date}`)
+    alertSuccess(`🌡️ Temperatura registrata con successo!\n\n${statusMessage}\n\n• Frigorifero: ${newTemperature.refrigeratorName}\n• Range: ${tempMin}°C - ${tempMax}°C\n• Data: ${newTemperature.date}`)
   }
 
   const toggleTaskCompletion = (id) => {
@@ -530,9 +542,12 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
                   variant="outline"
                   size="sm"
                   onClick={() => {
-                    if (confirm('⚠️ Attenzione: Sei sicuro di voler eliminare tutte le attività completate?\n\nQuesta azione non può essere annullata e rimuoverà la cronologia delle attività svolte.')) {
-                      setCleaning(safeCleaning.filter(task => !task.completed))
-                    }
+                    confirmDelete(
+                      '⚠️ Attenzione: Sei sicuro di voler eliminare tutte le attività completate?\n\nQuesta azione non può essere annullata e rimuoverà la cronologia delle attività svolte.',
+                      () => {
+                        setCleaning(safeCleaning.filter(task => !task.completed))
+                      }
+                    )
                   }}
                   className="text-red-600 hover:text-red-700"
                 >
@@ -752,7 +767,41 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
         </Card>
       </div>
 
-
+      {/* Modal Components */}
+      <AlertModal 
+        isOpen={alertModal.isOpen} 
+        onClose={closeAlert} 
+        title={alertModal.title} 
+        message={alertModal.message} 
+        type={alertModal.type} 
+        confirmText={alertModal.confirmText} 
+        onConfirm={alertModal.onConfirm} 
+      />
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen} 
+        onClose={closeConfirm} 
+        title={confirmModal.title} 
+        message={confirmModal.message} 
+        type={confirmModal.type} 
+        confirmText={confirmModal.confirmText} 
+        cancelText={confirmModal.cancelText} 
+        onConfirm={confirmModal.onConfirm} 
+        onCancel={confirmModal.onCancel} 
+      />
+      <PromptModal 
+        isOpen={promptModal.isOpen} 
+        onClose={closePrompt} 
+        title={promptModal.title} 
+        message={promptModal.message} 
+        placeholder={promptModal.placeholder} 
+        defaultValue={promptModal.defaultValue} 
+        type={promptModal.type} 
+        confirmText={promptModal.confirmText} 
+        cancelText={promptModal.cancelText} 
+        validation={promptModal.validation} 
+        onConfirm={promptModal.onConfirm} 
+        onCancel={promptModal.onCancel} 
+      />
     </div>
   )
 }

@@ -6,6 +6,7 @@ import { Label } from './ui/Label'
 import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X } from 'lucide-react'
 import { getConservationSuggestions, getOptimalTemperature } from '../utils/temperatureDatabase'
 import TemperatureInput from './ui/TemperatureInput'
+import { errorLog, debugLog } from '../utils/debug'
 
 // Categorie predefinite per i punti di conservazione (sincronizzate con Inventory.jsx)
 const STORAGE_CATEGORIES = [
@@ -60,7 +61,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
       try {
         setCustomCategories(JSON.parse(savedCategories))
       } catch (error) {
-        console.error('Errore nel caricamento delle categorie personalizzate:', error)
+        errorLog('Errore nel caricamento delle categorie personalizzate:', error)
       }
     }
   }, [])
@@ -111,7 +112,7 @@ function Refrigerators({ temperatures, setTemperatures, currentUser, refrigerato
 
     setCustomCategories(prev => {
       const updated = [...prev, newCategory]
-      console.log('🔍 Categorie aggiornate:', updated)
+      debugLog('🔍 Categorie aggiornate:', updated)
       return updated
     })
     

@@ -18,6 +18,7 @@
  */
 
 import React, { useState, useEffect } from 'react'
+import { errorLog } from '../utils/debug'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
@@ -157,7 +158,7 @@ function AdvancedReporting({
 
       setReportData(report)
     } catch (error) {
-      console.error('Errore generazione report:', error)
+      errorLog('Errore generazione report:', error)
       alert('Errore durante la generazione del report. Riprova.')
     } finally {
       setIsGenerating(false)
@@ -518,7 +519,7 @@ function AdvancedReporting({
       doc.save(fileName)
       
     } catch (error) {
-      console.error('Errore esportazione PDF:', error)
+      errorLog('Errore esportazione PDF:', error)
       alert('Errore durante l\'esportazione del PDF. Riprova.')
     }
   }
@@ -567,7 +568,7 @@ function AdvancedReporting({
       document.body.removeChild(link)
       
     } catch (error) {
-      console.error('Errore esportazione CSV:', error)
+      errorLog('Errore esportazione CSV:', error)
       alert('Errore durante l\'esportazione del CSV. Riprova.')
     }
   }

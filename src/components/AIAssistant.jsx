@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { debugLog, errorLog } from '../utils/debug'
 import { 
   MessageCircle, 
   Send, 
@@ -44,20 +45,20 @@ function AIAssistant({
   const forceMinimizedRef = useRef(true) // Force minimized state
   const gracePeriodRef = useRef(true) // Grace period - no opening allowed
 
-  console.log('🚀 AIAssistant: Component rendering, isMinimized:', isMinimized, 'isMounted:', isMounted, 'isVisible:', isVisible)
+  debugLog('🚀 AIAssistant: Component rendering, isMinimized:', isMinimized, 'isMounted:', isMounted, 'isVisible:', isVisible)
 
   // Force minimized state on first mount to prevent auto-opening
   useEffect(() => {
-    console.log('🎯 AIAssistant: useEffect triggered - setting up component')
+    debugLog('🎯 AIAssistant: useEffect triggered - setting up component')
     // Force minimized and delay mounting to prevent flash
     setIsMinimized(true)
     forceMinimizedRef.current = true
     gracePeriodRef.current = true
     setIsVisible(false) // Start completely hidden
     
-    console.log('⏰ AIAssistant: Starting mount timer (500ms)')
+    debugLog('⏰ AIAssistant: Starting mount timer (500ms)')
     setTimeout(() => {
-      console.log('✅ AIAssistant: Mount timer complete - making visible')
+      debugLog('✅ AIAssistant: Mount timer complete - making visible')
       setIsMounted(true)
       setIsMinimized(true) // Double check after mounting
       forceMinimizedRef.current = true
@@ -65,31 +66,31 @@ function AIAssistant({
     }, 500) // Longer delay
     
     // Grace period - absolutely no opening for 2 seconds
-    console.log('🚫 AIAssistant: Starting grace period (2000ms)')
+    debugLog('🚫 AIAssistant: Starting grace period (2000ms)')
     setTimeout(() => {
       gracePeriodRef.current = false
-      console.log('🎉 AIAssistant: Grace period ended, chat can now be opened by user')
+      debugLog('🎉 AIAssistant: Grace period ended, chat can now be opened by user')
     }, 2000)
   }, [])
 
   // Track state changes for debugging
   useEffect(() => {
-    console.log('📊 AIAssistant: State changed - isMinimized:', isMinimized, 'isMounted:', isMounted, 'isVisible:', isVisible, 'forceMinimized:', forceMinimizedRef.current, 'gracePeriod:', gracePeriodRef.current)
+    debugLog('📊 AIAssistant: State changed - isMinimized:', isMinimized, 'isMounted:', isMounted, 'isVisible:', isVisible, 'forceMinimized:', forceMinimizedRef.current, 'gracePeriod:', gracePeriodRef.current)
   }, [isMinimized, isMounted, isVisible])
 
   // Override setIsMinimized to prevent auto-opening on first load
   const handleSetMinimized = (value) => {
-    console.log('AIAssistant: handleSetMinimized called with:', value, 'gracePeriod:', gracePeriodRef.current, 'forceMinimized:', forceMinimizedRef.current)
+    debugLog('AIAssistant: handleSetMinimized called with:', value, 'gracePeriod:', gracePeriodRef.current, 'forceMinimized:', forceMinimizedRef.current)
     
     // Absolutely no opening during grace period
     if (value === false && gracePeriodRef.current) {
-      console.log('AIAssistant: BLOCKED - Still in grace period, no opening allowed')
+      debugLog('AIAssistant: BLOCKED - Still in grace period, no opening allowed')
       return
     }
     
     // Only allow opening if user explicitly clicks (not on auto-mount)
     if (value === false && forceMinimizedRef.current) {
-      console.log('AIAssistant: Preventing auto-open, first user click required')
+      debugLog('AIAssistant: Preventing auto-open, first user click required')
       return // Don't even set it
     }
     forceMinimizedRef.current = false // First click allows future opening
@@ -127,7 +128,7 @@ function AIAssistant({
       }
       
       recognitionInstance.onerror = (event) => {
-        console.error('Speech recognition error:', event.error)
+        errorLog('Speech recognition error:', event.error)
         setIsListening(false)
         addMessage('assistant', '❌ Errore nel riconoscimento vocale. Riprova!', 'system')
       }

@@ -14,6 +14,7 @@
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
+import { errorLog, warnLog } from '../utils/debug'
 import { 
   Download, 
   Upload, 
@@ -65,7 +66,7 @@ function BackupPanel({ currentUser, isAdmin = false }) {
         const parsed = JSON.parse(saved)
         setBackupSettings(prev => ({ ...prev, ...parsed }))
       } catch (error) {
-        console.error('Errore nel caricamento impostazioni backup:', error)
+        errorLog('Errore nel caricamento impostazioni backup:', error)
       }
     }
 
@@ -75,7 +76,7 @@ function BackupPanel({ currentUser, isAdmin = false }) {
       try {
         setBackupHistory(JSON.parse(history))
       } catch (error) {
-        console.error('Errore nel caricamento cronologia backup:', error)
+        errorLog('Errore nel caricamento cronologia backup:', error)
       }
     }
   }, [])
@@ -120,7 +121,7 @@ function BackupPanel({ currentUser, isAdmin = false }) {
           try {
             exportData.data[key] = JSON.parse(data)
           } catch (error) {
-            console.warn(`Errore nel parsing ${key}:`, error)
+            warnLog(`Errore nel parsing ${key}:`, error)
             exportData.data[key] = data // Salva come stringa se non è JSON valido
           }
         }
@@ -153,7 +154,7 @@ function BackupPanel({ currentUser, isAdmin = false }) {
       alert('✅ Export completato con successo!\n\n📁 File scaricato nella cartella Download\n💾 Tutti i dati HACCP sono stati esportati')
 
     } catch (error) {
-      console.error('Errore durante export:', error)
+      errorLog('Errore durante export:', error)
       alert('❌ Errore durante l\'export dei dati\n\nControlla la console per maggiori dettagli')
     } finally {
       setIsExporting(false)
@@ -222,7 +223,7 @@ function BackupPanel({ currentUser, isAdmin = false }) {
             }
             importedCount++
           } catch (error) {
-            console.warn(`Errore nell'import di ${key}:`, error)
+            warnLog(`Errore nell'import di ${key}:`, error)
           }
         }
       }
@@ -254,7 +255,7 @@ function BackupPanel({ currentUser, isAdmin = false }) {
       }, 2000)
 
     } catch (error) {
-      console.error('Errore durante import:', error)
+      errorLog('Errore durante import:', error)
       alert(`❌ Errore durante l'import:\n\n${error.message}\n\nControlla che il file sia un backup HACCP valido.`)
     } finally {
       setIsImporting(false)
@@ -286,7 +287,7 @@ function BackupPanel({ currentUser, isAdmin = false }) {
       localStorage.setItem('haccp-backup-history', JSON.stringify([autoBackupRecord, ...backupHistory.slice(0, 9)]))
 
     } catch (error) {
-      console.error('Errore backup automatico:', error)
+      errorLog('Errore backup automatico:', error)
     }
   }
 
