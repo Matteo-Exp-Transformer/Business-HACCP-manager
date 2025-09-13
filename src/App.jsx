@@ -16,18 +16,17 @@
  * @critical Sicurezza alimentare - Coordinamento Moduli
  * @version 1.1 - Aggiornato con nomenclatura HACCP italiana
  * 
- * STRUTTURA SEZIONI (Glossario HACCP):
+ * STRUTTURA SEZIONI (Glossario HACCP) - LAYOUT RIVOLUZIONARIO:
  * - Home (ex Dashboard) – overview e statistiche
  * - Punti di Conservazione (ex Frigoriferi) – gestione frigoriferi/freezer
  * - Attività e Mansioni (ex Cleaning/Tasks) – mansioni staff e checklist
  * - Inventario (ex Inventory) – prodotti e stock
- * - Gestione Etichette (ex Product Labels) – creazione/modifica etichette
- * - IA Assistant (ex AI Assistant) – assistente IA
+ * - Gestione e AI (ex Staff) – staff, reparti, fornitori, IA Assistant, etichette (con tab interne)
  * - Impostazioni e Dati (ex Settings/Data) – configurazioni, backup, manuale HACCP
  */
 
 import React, { useState, useEffect } from 'react'
-import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, QrCode, Bot, RotateCcw } from 'lucide-react'
+import { BarChart3, Thermometer, Sparkles, Users, Package, LogIn, LogOut, Settings, QrCode, Bot, RotateCcw, Building2, Truck, Database } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import Cleaning from './components/Cleaning'
 import PuntidiConservazione from './components/PuntidiConservazione'
@@ -41,6 +40,9 @@ import StorageManager from './components/StorageManager'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
 import SyncManager from './components/SyncManager'
 import DataSettings from './components/DataSettings'
+import Departments from './components/Departments'
+import Suppliers from './components/Suppliers'
+import CollapsibleCard from './components/CollapsibleCard'
 
 import Login from './components/Login'
 import PDFExport from './components/PDFExport'
@@ -53,12 +55,12 @@ import OnboardingWizard from './components/OnboardingWizard'
 import BottomSheetGuide from './components/BottomSheetGuide'
 import HeaderButtons from './components/HeaderButtons'
 import DevButtons from './components/DevButtons'
-import DataButtons from './components/DataButtons'
 import { shouldBypassOnboarding } from './utils/devMode'
 // import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [activeSubTab, setActiveSubTab] = useState('staff-management') // Per Gestione e AI
   const [temperatures, setTemperatures] = useState([])
   const [cleaning, setCleaning] = useState([])
   const [refrigerators, setRefrigerators] = useState([])
@@ -1066,8 +1068,7 @@ function App() {
       dashboard: 0,
       cleaning: 0,
       inventory: 0,
-      labels: 0,
-      staff: 0,
+      staff: 0, // Include notifiche per staff, reparti, IA Assistant e etichette
       refrigerators: 0
     }
     
@@ -1095,12 +1096,12 @@ function App() {
     
     notifications.inventory += expiringProducts + newProducts
     
-    // Notifiche per Etichette (nuove etichette)
+    // Notifiche per Etichette (consolidate in staff)
     const lastCheckLabels = lastCheck.labels || '2000-01-01T00:00:00.000Z'
     const newLabels = productLabels.filter(label => 
       new Date(label.createdAt || '2000-01-01') > new Date(lastCheckLabels)
     ).length
-    notifications.labels += newLabels
+    notifications.staff += newLabels
     
     // Notifiche per Staff (nuovi membri)
     const lastCheckStaff = lastCheck.staff || '2000-01-01T00:00:00.000Z'
@@ -1350,6 +1351,33 @@ function App() {
   // Funzione per verificare se l'utente è admin
   const isAdmin = () => currentUser && currentUser.role === 'admin'
 
+  // Funzioni per la navigazione gerarchica
+  const handleMainTabChange = (newTab) => {
+    // Controlla se la sezione è accessibile
+    const access = validation.canAccessSection(newTab)
+    if (!access.isEnabled) {
+      handleMissingRequirements(newTab)
+      return
+    }
+    
+    setActiveTab(newTab)
+    updateLastCheck(newTab)
+    
+    // Reset sottosezione quando si cambia tab principale
+    if (newTab !== 'staff') {
+      setActiveSubTab('staff-management')
+    } else {
+      // Se si va sulla tab staff, mantieni la sottosezione attuale o imposta default
+      if (!activeSubTab) {
+        setActiveSubTab('staff-management')
+      }
+    }
+  }
+
+  const handleSubTabChange = (newSubTab) => {
+    setActiveSubTab(newSubTab)
+  }
+
   // Calcola statistiche per la dashboard
   const getQuickStats = () => {
     const tempOk = temperatures.filter(t => t.status === 'ok').length
@@ -1375,67 +1403,6 @@ function App() {
 
   const quickStats = getQuickStats()
 
-  // Export all data
-  const exportData = () => {
-    const data = {
-  temperatures,
-  cleaningTasks: cleaning,
-  staff,
-  products,
-  departments,
-  productLabels,
-  exportDate: new Date().toISOString()
-}
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `haccp-data-${new Date().toISOString().split('T')[0]}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-  }
-
-  // Import data
-  const importData = (event) => {
-    const file = event.target.files[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result)
-        if (data.temperatures) {
-          setTemperatures(data.temperatures)
-          localStorage.setItem('haccp-temperatures', JSON.stringify(data.temperatures))
-        }
-        if (data.cleaningTasks) {
-          setCleaning(data.cleaningTasks)
-          localStorage.setItem('haccp-cleaning', JSON.stringify(data.cleaningTasks))
-        }
-        if (data.staff) {
-          setStaff(data.staff)
-          localStorage.setItem('haccp-staff', JSON.stringify(data.staff))
-        }
-        if (data.products) {
-          setProducts(data.products)
-          localStorage.setItem('haccp-products', JSON.stringify(data.products))
-        }
-		if (data.departments) {
-		  setDepartments(data.departments)
-		  localStorage.setItem('haccp-departments', JSON.stringify(data.departments))
-		}
-        if (data.productLabels) {
-          setProductLabels(data.productLabels)
-          localStorage.setItem('haccp-product-labels', JSON.stringify(data.productLabels))
-        }
-        alert('Dati importati con successo!')
-      } catch (error) {
-        alert('Errore durante l\'importazione del file')
-        console.error('Import error:', error)
-      }
-    }
-    reader.readAsText(file)
-  }
 
   // Controlla se mostrare l'onboarding
   useEffect(() => {
@@ -1666,44 +1633,6 @@ function App() {
             </Card>
           </div>
 
-          {/* Export/Import */}
-          <div className="max-w-md mx-auto mb-4">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex gap-2 justify-center">
-                  <Button
-                    onClick={exportData}
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Esporta
-                  </Button>
-                  <label className="cursor-pointer">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-2"
-                      asChild
-                    >
-                      <span className="flex items-center gap-2">
-                        <Upload className="h-4 w-4" />
-                        Importa
-                      </span>
-                    </Button>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={importData}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Ultimo utente e pulsante login */}
           <div className="max-w-md mx-auto">
             {users.length > 1 && (
@@ -1810,102 +1739,73 @@ function App() {
               onResetOnboarding={resetOnboarding}
               isDevMode={process.env.NODE_ENV === 'development'}
             />
-            
-            {/* Pulsanti dati */}
-            <DataButtons
-              onExportData={exportData}
-              onImportData={importData}
-            />
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <Tabs value={activeTab} onValueChange={(newTab) => {
-          // Controlla se la sezione è accessibile
-          const access = validation.canAccessSection(newTab)
-          if (!access.isEnabled) {
-            handleMissingRequirements(newTab)
-            return
-          }
-          
-          setActiveTab(newTab)
-          updateLastCheck(newTab)
-        }}>
-          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-4 sm:grid-cols-6 md:grid-cols-9' : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8'} gap-1 mb-8`}>
+        {/* Navigation Tabs - Layout Rivoluzionario */}
+        <Tabs value={activeTab} onValueChange={handleMainTabChange}>
+          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 sm:grid-cols-6' : 'grid-cols-3 sm:grid-cols-5'} gap-1 mb-8`}>
+            {/* Tab 1: Home */}
             <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Home">
               <BarChart3 className="h-4 w-4" />
               <span className="sm:hidden">Home</span>
               <span className="hidden sm:inline">Home</span>
               <NotificationDot hasNotification={notifications.dashboard > 0} />
             </TabsTrigger>
+            
+            {/* Tab 2: Punti di Conservazione */}
             <TabsTrigger value="refrigerators" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Punti di Conservazione">
               <Thermometer className="h-4 w-4" />
               <span className="sm:hidden text-xs">Frigo</span>
               <span className="hidden sm:inline">Punti di Conservazione</span>
               <NotificationDot hasNotification={notifications.refrigerators > 0} />
             </TabsTrigger>
+            
+            {/* Tab 3: Attività e Mansioni */}
             <TabsTrigger value="cleaning" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Attività e Mansioni">
               <Sparkles className="h-4 w-4" />
               <span className="sm:hidden text-xs">Attività</span>
               <span className="hidden sm:inline">Attività e Mansioni</span>
               <NotificationDot hasNotification={notifications.cleaning > 0} />
             </TabsTrigger>
+            
+            {/* Tab 4: Inventario */}
             <TabsTrigger value="inventory" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Inventario">
               <Package className="h-4 w-4" />
               <span className="sm:hidden text-xs">Stock</span>
               <span className="hidden sm:inline">Inventario</span>
               <NotificationDot hasNotification={notifications.inventory > 0} />
             </TabsTrigger>
-            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Gestione Etichette">
-              <QrCode className="h-4 w-4" />
-              <span className="sm:hidden text-xs">Etichette</span>
-              <span className="hidden sm:inline">Gestione Etichette</span>
-              <NotificationDot hasNotification={notifications.labels > 0} />
-            </TabsTrigger>
-            <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-sm" title="IA Assistant">
-              <Bot className="h-4 w-4" />
-              <span className="sm:hidden text-xs">IA</span>
-              <span className="hidden sm:inline">IA Assistant</span>
-            </TabsTrigger>
+            
+            {/* Tab 5: Gestione e AI (Admin only) */}
+            {isAdmin() && (
+              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Gestione e AI">
+                <Users className="h-4 w-4" />
+                <span className="sm:hidden text-xs">Gestione</span>
+                <span className="hidden sm:inline">Gestione e AI</span>
+                <NotificationDot hasNotification={notifications.staff > 0} />
+              </TabsTrigger>
+            )}
+            
+            {/* Tab 6: Impostazioni e Dati */}
             <TabsTrigger value="data-settings" className="flex items-center gap-1 md:gap-2 text-sm" title="Impostazioni e Dati">
               <Settings className="h-4 w-4" />
               <span className="sm:hidden text-xs">Settings</span>
               <span className="hidden sm:inline">Impostazioni e Dati</span>
             </TabsTrigger>
-            {isAdmin() && (
-              <TabsTrigger value="staff" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Gestione">
-                <Users className="h-4 w-4" />
-                <span className="sm:hidden text-xs">Staff</span>
-                <span className="hidden sm:inline">Gestione</span>
-                <NotificationDot hasNotification={notifications.staff > 0} />
-              </TabsTrigger>
-            )}
-            <div className="flex flex-col gap-1">
-              {isAdmin() && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setActiveTab('staff')}
-                  className="flex items-center gap-1 md:gap-2 text-sm h-9 px-3"
-                  title="Impostazioni"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span className="sm:hidden text-xs">Settings</span>
-                  <span className="hidden sm:inline">Impostazioni</span>
-                </Button>
-              )}
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={handleLogout}
-                className="flex items-center gap-1 md:gap-2 text-sm h-9 px-3"
-                title="Esci"
-              >
-                <LogOut className="h-4 w-4" />
-                <span className="sm:hidden text-xs">Exit</span>
-                <span className="hidden sm:inline">Esci</span>
-              </Button>
-            </div>
+            
+            {/* Logout Button */}
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleLogout}
+              className="flex items-center gap-1 md:gap-2 text-sm h-9 px-3"
+              title="Esci"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="sm:hidden text-xs">Exit</span>
+              <span className="hidden sm:inline">Esci</span>
+            </Button>
           </TabsList>
 
           {/* Tab Content - Mappatura Sezioni HACCP */}
@@ -1983,30 +1883,6 @@ function App() {
             />
           </TabsContent>
 
-          {/* Sezione: Gestione Etichette (ex Product Labels) - Creazione/modifica etichette */}
-          <TabsContent value="labels">
-            <ProductLabels 
-              productLabels={productLabels}
-              setProductLabels={setProductLabels}
-              products={products}
-              currentUser={currentUser}
-            />
-          </TabsContent>
-
-          {/* Sezione: IA Assistant (ex AI Assistant) - Assistente IA */}
-          <TabsContent value="ai-assistant">
-            <AIAssistantSection 
-              currentUser={currentUser}
-              products={products}
-              temperatures={temperatures}
-              cleaning={cleaning}
-              staff={staff}
-              onAction={(action) => {
-                console.log('AI Action:', action)
-                // Qui implementeremo le azioni dell'IA
-              }}
-            />
-          </TabsContent>
 
           {/* Sezione: Impostazioni e Dati (ex Settings/Data) - Configurazioni, backup, manuale HACCP */}
           <TabsContent value="data-settings">
@@ -2020,36 +1896,117 @@ function App() {
             />
           </TabsContent>
 
-          {/* Sezione: Gestione (Admin only) - Gestione staff, utenti e configurazioni avanzate */}
+          {/* Sezione: Gestione e AI (Admin only) - Gestione staff, reparti, fornitori, IA Assistant e Etichette */}
           {isAdmin() && (
             <TabsContent value="staff">
               <div className="space-y-6">
-                <Gestione 
-                  staff={staff} 
-                  setStaff={(newStaff) => {
-                    setStaff(newStaff)
-                    trackDataChange('staff', newStaff)
-                  }}
-                  users={users}
-                  setUsers={setUsers}
-                  currentUser={currentUser}
-                  isAdmin={isAdmin()}
-                  departments={onboardingCompleted ? departments : []}
-                  setDepartments={(newDepartments) => {
-                    setDepartments(newDepartments)
-                    trackDataChange('departments', newDepartments)
-                  }}
-                />
-                <StorageManager
-                  temperatures={temperatures}
-                  setTemperatures={setTemperatures}
-                  cleaning={cleaning}
-                  setCleaning={setCleaning}
-                  products={products}
-                  setProducts={setProducts}
-                  refrigerators={refrigerators}
-                  setRefrigerators={setRefrigerators}
-                />
+                {/* Tabs interne per Gestione e AI */}
+                <Tabs value={activeSubTab} onValueChange={handleSubTabChange} className="w-full">
+                  <TabsList className="grid w-full grid-cols-5 mb-6">
+                    <TabsTrigger value="staff-management" className="flex items-center gap-2">
+                      <Users className="h-4 w-4" />
+                      Staff
+                    </TabsTrigger>
+                    <TabsTrigger value="departments" className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4" />
+                      Reparti
+                    </TabsTrigger>
+                    <TabsTrigger value="suppliers" className="flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      Fornitori
+                    </TabsTrigger>
+                    <TabsTrigger value="ai-assistant" className="flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      IA Assistant
+                    </TabsTrigger>
+                    <TabsTrigger value="labels" className="flex items-center gap-2">
+                      <QrCode className="h-4 w-4" />
+                      Etichette
+                    </TabsTrigger>
+                  </TabsList>
+
+                  {/* Sottosezione: Staff Management */}
+                  <TabsContent value="staff-management">
+                    <Gestione 
+                      staff={staff} 
+                      setStaff={(newStaff) => {
+                        setStaff(newStaff)
+                        trackDataChange('staff', newStaff)
+                      }}
+                      users={users}
+                      setUsers={setUsers}
+                      currentUser={currentUser}
+                      isAdmin={isAdmin()}
+                      departments={onboardingCompleted ? departments : []}
+                      setDepartments={(newDepartments) => {
+                        setDepartments(newDepartments)
+                        trackDataChange('departments', newDepartments)
+                      }}
+                    />
+                  </TabsContent>
+
+                  {/* Sottosezione: Departments */}
+                  <TabsContent value="departments">
+                    <Departments 
+                      currentUser={currentUser}
+                      departments={departments}
+                      setDepartments={setDepartments}
+                    />
+                  </TabsContent>
+
+                  {/* Sottosezione: Suppliers */}
+                  <TabsContent value="suppliers">
+                    <Suppliers 
+                      currentUser={currentUser}
+                    />
+                  </TabsContent>
+
+                  {/* Sottosezione: IA Assistant */}
+                  <TabsContent value="ai-assistant">
+                    <AIAssistantSection 
+                      currentUser={currentUser}
+                      products={products}
+                      temperatures={temperatures}
+                      cleaning={cleaning}
+                      staff={staff}
+                      onAction={(action) => {
+                        console.log('AI Action:', action)
+                        // Qui implementeremo le azioni dell'IA
+                      }}
+                    />
+                  </TabsContent>
+
+                  {/* Sottosezione: Etichette */}
+                  <TabsContent value="labels">
+                    <ProductLabels 
+                      productLabels={productLabels}
+                      setProductLabels={setProductLabels}
+                      products={products}
+                      currentUser={currentUser}
+                    />
+                  </TabsContent>
+                </Tabs>
+
+                {/* Gestione Storage - Scheda Collassabile */}
+                <CollapsibleCard
+                  title="Gestione Storage"
+                  subtitle="Gestione dati e storage locale"
+                  icon={Database}
+                  iconColor="text-blue-600"
+                  iconBgColor="bg-blue-100"
+                  count={temperatures.length + cleaning.length + products.length + refrigerators.length}
+                >
+                  <StorageManager
+                    temperatures={temperatures}
+                    setTemperatures={setTemperatures}
+                    cleaning={cleaning}
+                    setCleaning={setCleaning}
+                    products={products}
+                    setProducts={setProducts}
+                    refrigerators={refrigerators}
+                    setRefrigerators={setRefrigerators}
+                  />
+                </CollapsibleCard>
               </div>
             </TabsContent>
           )}
