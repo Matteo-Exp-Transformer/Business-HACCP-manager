@@ -26,6 +26,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs'
 // Select component not available, using native HTML select
 import { Trash2, Users, UserCheck, GraduationCap, Edit3, StickyNote, ArrowRightLeft, RotateCw, Building2 } from 'lucide-react'
 import Departments from './Departments'
+import CollapsibleCard from './CollapsibleCard'
 
 function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, departments, setDepartments }) {
   const [formData, setFormData] = useState({
@@ -824,11 +825,14 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
 
 
       {/* Compact Staff List - Optimized for 35+ employees */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Elenco Staff Completo ({staff.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapsibleCard
+        title="Elenco Staff Completo"
+        subtitle="Visualizzazione completa del personale"
+        icon={Users}
+        iconColor="text-blue-600"
+        iconBgColor="bg-blue-100"
+        count={staff.length}
+      >
           {staff.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -934,16 +938,18 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </CollapsibleCard>
 
       {/* Quick Add Suggestions */}
       {staff.length === 0 && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="text-blue-800">Suggerimenti Ruoli Comuni</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <CollapsibleCard
+          title="Suggerimenti Ruoli Comuni"
+          subtitle="Ruoli tipici per attività HACCP"
+          icon={UserCheck}
+          iconColor="text-blue-800"
+          iconBgColor="bg-blue-100"
+          count={0}
+        >
             <p className="text-sm text-blue-700 mb-3">
               Ecco alcuni ruoli comuni nella ristorazione che potresti voler aggiungere:
             </p>
@@ -958,8 +964,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                 </button>
               ))}
             </div>
-          </CardContent>
-        </Card>
+        </CollapsibleCard>
       )}
 
       {/* Role Reassignment Modal */}

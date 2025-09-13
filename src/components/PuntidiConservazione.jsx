@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X, HelpCircle } from 'lucide-react'
+import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X, HelpCircle, Snowflake, Clock, Wrench } from 'lucide-react'
+import CollapsibleCard from './CollapsibleCard'
 import { getConservationSuggestions, getOptimalTemperature } from '../utils/temperatureDatabase'
 import TemperatureInput from './ui/TemperatureInput'
 import HelpOverlay from './HelpOverlay'
@@ -1525,26 +1526,25 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
 
   return (
     <div className="space-y-6">
-      {/* Section 1: Punti di Conservazione */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Thermometer className="h-5 w-5" />
-              Punti di Conservazione
-            </span>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Aggiungi Punto di Conservazione
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      {/* Section 1: Punti di Conservazione - Scheda Collassabile */}
+      <CollapsibleCard
+        title="Punti di Conservazione"
+        subtitle="Gestione frigoriferi e temperature"
+        icon={Thermometer}
+        iconColor="text-blue-600"
+        iconBgColor="bg-blue-100"
+        count={refrigerators.length}
+      >
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button 
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Aggiungi Punto di Conservazione
+            </Button>
+          </div>
           
           {/* Sezione Categorie Personalizzate */}
           {customCategories.length > 0 && (
@@ -2022,20 +2022,20 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleCard>
 
-      {/* Section 2: Attività Registro Temperature */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Attività Registro Temperature
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {/* Search bar */}
+      {/* Section 2: Attività Registro Temperature - Scheda Collassabile */}
+      <CollapsibleCard
+        title="Attività Registro Temperature"
+        subtitle="Monitoraggio temperature e allarmi"
+        icon={Clock}
+        iconColor="text-orange-600"
+        iconBgColor="bg-orange-100"
+        count={filteredTemperatures.length}
+      >
+        <div className="space-y-4">
+          {/* Search bar */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
               <Input
@@ -2105,20 +2105,19 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                 })}
               </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleCard>
 
-      {/* Section 3: Stato Punti di Conservazione */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Stato Punti di Conservazione
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {refrigerators.length === 0 ? (
+      {/* Section 3: Stato Punti di Conservazione - Scheda Collassabile */}
+      <CollapsibleCard
+        title="Stato Punti di Conservazione"
+        subtitle="Monitoraggio stato e manutenzione"
+        icon={Wrench}
+        iconColor="text-purple-600"
+        iconBgColor="bg-purple-100"
+        count={refrigerators.length}
+      >
+        {refrigerators.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <p>Nessun punto di conservazione registrato</p>
@@ -2193,10 +2192,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-
+      </CollapsibleCard>
 
       {/* Add Refrigerator Modal */}
       {showAddModal && (
