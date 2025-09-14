@@ -20,6 +20,23 @@ import { debugLog, warnLog, haccpLog } from '../utils/debug';
 
 // Funzione per validare la conformità HACCP
 const validateHACCPCompliance = (targetTemp, selectedCategories) => {
+  // Gestisce il caso speciale "Ambiente"
+  if (typeof targetTemp === 'string' && targetTemp.includes('Ambiente')) {
+    // Per ambiente, controlla solo che ci sia "Dispensa Secca"
+    const hasDispensaSecca = selectedCategories.includes('dry_goods');
+    if (hasDispensaSecca) {
+      return { 
+        compliant: true, 
+        message: 'Temperatura ambiente valida per Dispensa Secca'
+      };
+    } else {
+      return { 
+        compliant: false, 
+        message: 'Per temperatura ambiente seleziona solo "Dispensa Secca"'
+      };
+    }
+  }
+  
   const temp = parseFloat(targetTemp);
   
   if (isNaN(temp)) return { compliant: false, message: 'Temperatura non valida' };
@@ -334,9 +351,15 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
                if (!point.targetTemp) {
                  errors[`conservation_${index}_temperature`] = "Temperatura target obbligatoria";
                } else {
-                 const temp = parseFloat(point.targetTemp);
-                 if (isNaN(temp)) {
-                   errors[`conservation_${index}_temperature`] = "Temperatura non valida";
+                 // Gestisce il caso speciale "Ambiente"
+                 if (typeof point.targetTemp === 'string' && point.targetTemp.includes('Ambiente')) {
+                   // Per ambiente, la validazione è OK
+                   debugLog('✅ Ambiente temperature detected, skipping numeric validation');
+                 } else {
+                   const temp = parseFloat(point.targetTemp);
+                   if (isNaN(temp)) {
+                     errors[`conservation_${index}_temperature`] = "Temperatura non valida";
+                   }
                  }
                }
                if (!point.selectedCategories || point.selectedCategories.length === 0) {

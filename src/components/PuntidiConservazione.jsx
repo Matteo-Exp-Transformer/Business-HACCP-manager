@@ -187,8 +187,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     let temp;
     let isAmbiente = false;
     
-    // Controlla se targetTemp è una stringa e se è "ambiente"
-    if (typeof targetTemp === 'string' && targetTemp.toLowerCase().trim() === 'ambiente') {
+    // Controlla se targetTemp è una stringa e se contiene "Ambiente"
+    if (typeof targetTemp === 'string' && targetTemp.includes('Ambiente')) {
       temp = 20; // Valore medio per validazione HACCP
       isAmbiente = true;
     } else {
@@ -457,8 +457,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     let temp;
     let isAmbiente = false;
     
-    // Controlla se targetTemp è una stringa e se è "ambiente"
-    if (typeof targetTemp === 'string' && targetTemp.toLowerCase().trim() === 'ambiente') {
+    // Controlla se targetTemp è una stringa e se contiene "Ambiente"
+    if (typeof targetTemp === 'string' && targetTemp.includes('Ambiente')) {
       temp = 20; // Valore medio per validazione HACCP
       isAmbiente = true;
     } else {
@@ -1230,10 +1230,14 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       }
     }
 
-    // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
+    // Gestisce le categorie in base al tipo di punto
     let finalCategories = formData.selectedCategories || []
-    if (formData.isAbbattitore) {
-      // Aggiungi le categorie specifiche dell'abbattitore
+    
+    if (formData.isAmbiente) {
+      // Per ambiente, forza solo "Dispensa Secca"
+      finalCategories = ['dry_goods']
+    } else if (formData.isAbbattitore) {
+      // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
       const abbattitoreCategories = ['abbattitore_menu', 'abbattitore_esposizione']
       finalCategories = [...finalCategories, ...abbattitoreCategories]
     }
@@ -1369,9 +1373,9 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     if (tempValue) {
       const tempStr = tempValue.toString()
       
-      // Se è il range "da 15°C a 25°C", mostra "ambiente"
-      if (tempStr.includes('da 15°C a 25°C')) {
-        temperature = 'ambiente'
+      // Se è il range "Ambiente (15°C - 27°C)" o "da 15°C a 25°C", mostra vuoto (gestito da checkbox)
+      if (tempStr.includes('Ambiente') || tempStr.includes('da 15°C a 25°C')) {
+        temperature = ''
       } else {
         // Estrae il valore numerico dalla stringa (es. "4°C" -> "4")
         temperature = tempStr.replace('°C', '').trim()
@@ -1397,7 +1401,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       selectedCategories: refrigerator.selectedCategories || [],
       maintenanceData: refrigerator.maintenanceData || {},
       isAbbattitore: refrigerator.isAbbattitore || false,
-      isAmbiente: refrigerator.isAmbiente || false
+      isAmbiente: refrigerator.isAmbiente || (tempValue && tempValue.toString().includes('Ambiente')) || false
     }
     
     console.log('🔍 FormData da impostare:', JSON.stringify(formDataToSet.maintenanceData, null, 2))
@@ -1477,10 +1481,14 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       }
     }
 
-    // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
+    // Gestisce le categorie in base al tipo di punto
     let finalCategories = formData.selectedCategories || []
-    if (formData.isAbbattitore) {
-      // Aggiungi le categorie specifiche dell'abbattitore
+    
+    if (formData.isAmbiente) {
+      // Per ambiente, forza solo "Dispensa Secca"
+      finalCategories = ['dry_goods']
+    } else if (formData.isAbbattitore) {
+      // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
       const abbattitoreCategories = ['abbattitore_menu', 'abbattitore_esposizione']
       finalCategories = [...finalCategories, ...abbattitoreCategories]
     }
@@ -2443,7 +2451,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                       className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                     />
                     <Label htmlFor="isAmbiente" className="text-sm font-medium text-gray-700">
-                      °C Ambiente
+                      °T Ambiente
                     </Label>
                   </div>
                   
@@ -2748,7 +2756,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               
 
               {/* Sezione Manutenzione - Solo per punti che richiedono manutenzione HACCP */}
-              {!isAmbienteTemperature(formData.setTemperature) && (
+              {!isAmbienteTemperature(formData.setTemperature) && !formData.isAmbiente && (
                 <MaintenanceSection
                   conservationPointId={null} // Sarà generato al salvataggio
                   staffMembers={staffMembers}
@@ -2915,7 +2923,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                       className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
                     />
                     <Label htmlFor="isAmbiente" className="text-sm font-medium text-gray-700">
-                      °C Ambiente
+                      °T Ambiente
                     </Label>
                   </div>
                   
@@ -3132,7 +3140,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               </div>
 
               {/* Sezione Manutenzione - Solo per punti che richiedono manutenzione HACCP */}
-              {!isAmbienteTemperature(formData.setTemperature) && (
+              {!isAmbienteTemperature(formData.setTemperature) && !formData.isAmbiente && (
                 <MaintenanceSection
                   conservationPointId={editingRefrigerator?.id}
                   staffMembers={staffMembers}

@@ -38,7 +38,8 @@ const ConservationStep = ({
     location: '',
     targetTemp: '', // Sostituiamo minTemp e maxTemp con targetTemp
     selectedCategories: [],
-    isAbbattitore: false
+    isAbbattitore: false,
+    isAmbiente: false
   });
 
   // Usa i dati reali da formData
@@ -62,16 +63,31 @@ const ConservationStep = ({
       // Calcola SEMPRE la compliance per ogni punto quando i dati vengono caricati
       const pointsWithCompliance = formData.conservation.points.map(point => {
         if (point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) {
+          const compliance = checkHACCPCompliance(point.targetTemp, point.selectedCategories);
           return {
             ...point,
-            compliance: checkHACCPCompliance(point.targetTemp, point.selectedCategories)
+            compliance: {
+              compliant: compliance?.compliant || false,
+              message: compliance?.message || 'Non validato',
+              type: compliance?.type || 'error',
+              color: compliance?.color || 'red'
+            }
           };
         }
-        return point;
+        return {
+          ...point,
+          compliance: {
+            compliant: false,
+            message: 'Non validato',
+            type: 'error',
+            color: 'red'
+          }
+        };
       });
       setConservationPoints(pointsWithCompliance);
     }
   }, [formData.conservation]);
+
 
   // Aggiorna il formData solo quando necessario (rimosso per evitare loop infinito)
   // La funzione handleAddPoint gestisce già l'aggiornamento del formData
@@ -81,12 +97,26 @@ const ConservationStep = ({
     setConservationPoints(prevPoints => 
       prevPoints.map(point => {
         if (point.id === pointId && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) {
+          const compliance = checkHACCPCompliance(point.targetTemp, point.selectedCategories);
           return {
             ...point,
-            compliance: checkHACCPCompliance(point.targetTemp, point.selectedCategories)
+            compliance: {
+              compliant: compliance?.compliant || false,
+              message: compliance?.message || 'Non validato',
+              type: compliance?.type || 'error',
+              color: compliance?.color || 'red'
+            }
           };
         }
-        return point;
+        return {
+          ...point,
+          compliance: {
+            compliant: false,
+            message: 'Non validato',
+            type: 'error',
+            color: 'red'
+          }
+        };
       })
     );
     
@@ -100,12 +130,35 @@ const ConservationStep = ({
       location: '',
       targetTemp: '',
       selectedCategories: [],
-      isAbbattitore: false
+      isAbbattitore: false,
+      isAmbiente: false
     });
     setEditingPoint(null);
   };
 
   const checkHACCPCompliance = (targetTemp, selectedCategories = []) => {
+    // Gestisce il caso speciale "Ambiente"
+    if (typeof targetTemp === 'string' && targetTemp.includes('Ambiente')) {
+      // Per ambiente, controlla solo che ci sia "Dispensa Secca"
+      const hasDispensaSecca = selectedCategories.includes('dry_goods');
+      
+      if (hasDispensaSecca) {
+        return { 
+          compliant: true, 
+          message: '✅ Temperatura ambiente valida per Dispensa Secca', 
+          type: 'compliant',
+          color: 'green'
+        };
+      } else {
+        return { 
+          compliant: false, 
+          message: '⚠️ Per temperatura ambiente seleziona solo "Dispensa Secca"', 
+          type: 'warning',
+          color: 'orange'
+        };
+      }
+    }
+    
     const temp = parseFloat(targetTemp);
     
     if (isNaN(temp)) return { compliant: false, message: 'Temperatura non valida', type: 'error' };
@@ -229,8 +282,8 @@ const ConservationStep = ({
     let temp;
     let isAmbiente = false;
     
-    // Controlla se targetTemp è una stringa e se è "ambiente"
-    if (typeof targetTemp === 'string' && targetTemp.toLowerCase().trim() === 'ambiente') {
+    // Controlla se targetTemp è una stringa e se contiene "Ambiente"
+    if (typeof targetTemp === 'string' && targetTemp.includes('Ambiente')) {
       temp = 20; // Valore medio per validazione HACCP
       isAmbiente = true;
     } else {
@@ -405,19 +458,30 @@ const ConservationStep = ({
   };
 
   const handleAddPoint = () => {
-    if (localFormData.name && localFormData.location && localFormData.targetTemp && localFormData.selectedCategories.length > 0) {
-      // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
+    if (localFormData.name && localFormData.location && (localFormData.targetTemp || localFormData.isAmbiente) && localFormData.selectedCategories.length > 0) {
+      // Gestisce le categorie in base al tipo di punto
       let finalCategories = localFormData.selectedCategories || []
-      if (localFormData.isAbbattitore) {
-        // Aggiungi le categorie specifiche dell'abbattitore
+      
+      if (localFormData.isAmbiente) {
+        // Per ambiente, forza solo "Dispensa Secca"
+        finalCategories = ['dry_goods']
+      } else if (localFormData.isAbbattitore) {
+        // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
         const abbattitoreCategories = ['abbattitore_menu', 'abbattitore_esposizione']
         finalCategories = [...finalCategories, ...abbattitoreCategories]
       }
       
-      const compliance = checkHACCPCompliance(localFormData.targetTemp, finalCategories);
+      // Gestisce il caso speciale "ambiente"
+      let targetTemp = localFormData.targetTemp;
+      if (localFormData.isAmbiente) {
+        targetTemp = 'Ambiente (15°C - 27°C)';
+      }
+      
+      const compliance = checkHACCPCompliance(targetTemp, finalCategories);
       
       const pointData = {
         ...localFormData,
+        targetTemp: targetTemp,
         selectedCategories: finalCategories,
         compliance
       };
@@ -506,7 +570,8 @@ const ConservationStep = ({
         location: point.location,
         targetTemp: point.targetTemp,
         selectedCategories: point.selectedCategories || [],
-        isAbbattitore: point.isAbbattitore || false
+        isAbbattitore: point.isAbbattitore || false,
+        isAmbiente: point.isAmbiente || false
       });
       setEditingPoint(id);
       setShowAddForm(true);
@@ -622,7 +687,7 @@ const ConservationStep = ({
                   min="-30"
                   max="80"
                   step="0.1"
-                  value={localFormData.targetTemp}
+                  value={localFormData.targetTemp || ''}
                   onChange={(e) => {
                     const newTemperature = e.target.value;
                     setLocalFormData(prev => ({ ...prev, targetTemp: newTemperature }));
@@ -658,8 +723,32 @@ const ConservationStep = ({
                   }`}
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer, "ambiente" per temperatura ambiente)
+                  Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer)
                 </p>
+                
+                {/* Checkbox Ambiente */}
+                <div className="mt-4 flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="isAmbiente"
+                    checked={localFormData.isAmbiente || false}
+                    onChange={(e) => {
+                      const isAmbiente = e.target.checked;
+                      setLocalFormData(prev => ({
+                        ...prev,
+                        isAmbiente: isAmbiente,
+                        targetTemp: isAmbiente ? '' : prev.targetTemp,
+                        selectedCategories: isAmbiente ? ['dry_goods'] : prev.selectedCategories,
+                        isAbbattitore: isAmbiente ? false : prev.isAbbattitore
+                      }));
+                      markStepAsUnconfirmed(currentStep);
+                    }}
+                    className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                  />
+                  <Label htmlFor="isAmbiente" className="text-sm font-medium text-gray-700">
+                    °T Ambiente
+                  </Label>
+                </div>
                 
                 {/* Checkbox Abbattitore - appare solo se temperatura è tra -1°C e -90°C */}
                 {(() => {
@@ -687,6 +776,10 @@ const ConservationStep = ({
                 <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
                   {CONSERVATION_POINT_RULES.categories
                     .filter(category => {
+                      // Se ambiente è selezionato, mostra solo "Dispensa Secca"
+                      if (localFormData.isAmbiente) {
+                        return category.id === 'dry_goods' || category.name === 'Dispensa Secca';
+                      }
                       // Nascondi le categorie abbattitore se la checkbox non è spuntata
                       if (category.id === 'abbattitore_menu' || category.id === 'abbattitore_esposizione') {
                         return localFormData.isAbbattitore === true;
@@ -796,7 +889,8 @@ const ConservationStep = ({
                     location: '',
                     targetTemp: '',
                     selectedCategories: [],
-                    isAbbattitore: false
+                    isAbbattitore: false,
+                    isAmbiente: false
                   });
                 }}
               >
@@ -804,7 +898,7 @@ const ConservationStep = ({
               </Button>
               <Button
                 onClick={handleAddPoint}
-                disabled={!localFormData.name || !localFormData.location || !localFormData.targetTemp || localFormData.selectedCategories.length === 0}
+                disabled={!localFormData.name || !localFormData.location || (!localFormData.targetTemp && !localFormData.isAmbiente) || localFormData.selectedCategories.length === 0}
               >
                 {editingPoint ? 'Salva Modifiche' : 'Aggiungi Punto'}
               </Button>
@@ -845,7 +939,7 @@ const ConservationStep = ({
                          }`}>
                            {point.compliance?.type === 'compliant' ? '✅' : 
                             point.compliance?.type === 'warning' ? '⚠️' : '❌'}
-                           <span className="text-xs">{point.compliance?.message || 'Non validato'}</span>
+                           <span className="text-xs">{typeof point.compliance === 'object' && point.compliance?.message ? point.compliance.message : 'Non validato'}</span>
                          </div>
                        </div>
                      </div>
