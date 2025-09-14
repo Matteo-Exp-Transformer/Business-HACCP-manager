@@ -13,6 +13,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Pizza, Coffee, CheckCircle, Info, Thermometer, Building2, Users, HelpCircle, X } from 'lucide-react'
+import { warnLog } from '../utils/debug'
 
 const PRESETS = {
   pizzeria: {
@@ -97,7 +98,7 @@ function PresetSelector({ onPresetSelect, currentPreset = null }) {
         return parsed.selected === presetKey && parsed.applied === true
       }
     } catch (error) {
-      console.warn('Errore nel parsing preset:', error)
+      warnLog('Errore nel parsing preset:', error)
     }
     return false
   }

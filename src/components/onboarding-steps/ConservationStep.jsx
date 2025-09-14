@@ -4,6 +4,8 @@ import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
 import { Plus, X, Thermometer, AlertTriangle, Edit } from 'lucide-react';
 import { CONSERVATION_POINT_RULES } from '../../utils/haccpRules';
+import { debugLog, errorLog, haccpLog } from '../../utils/debug';
+import { useScrollToForm } from '../../hooks/useScrollToForm';
 
 const ConservationStep = ({ 
   formData, 
@@ -18,6 +20,17 @@ const ConservationStep = ({
   const [conservationPoints, setConservationPoints] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingPoint, setEditingPoint] = useState(null);
+
+  // Hook per scroll automatico al form
+  const { formRef, scrollToForm } = useScrollToForm(showAddForm, 'conservation-step-form');
+  
+  // Effetto per scroll automatico quando il form si apre
+  useEffect(() => {
+    if (showAddForm) {
+      scrollToForm();
+    }
+  }, [showAddForm, scrollToForm]);
+
   const [validationErrors, setValidationErrors] = useState({});
   const [localFormData, setLocalFormData] = useState({
     name: '',
@@ -32,15 +45,15 @@ const ConservationStep = ({
   const staffMembers = formData.staff?.staffMembers || [];
   
   // Debug: log dei reparti per verificare il problema
-  console.log('🔍 ConservationStep - formData:', formData);
-  console.log('🔍 ConservationStep - departments:', departments);
+  debugLog('🔍 ConservationStep - formData:', formData);
+  debugLog('🔍 ConservationStep - departments:', departments);
   
   // Ottieni i reparti disponibili, includendo quelli personalizzati
   const availableDepartments = departments.length > 0 ? 
     departments.filter(dept => dept && dept.enabled).map(dept => dept.name || dept) : 
     ['Cucina', 'Bancone', 'Sala', 'Magazzino'];
   
-  console.log('🔍 ConservationStep - availableDepartments:', availableDepartments);
+  debugLog('🔍 ConservationStep - availableDepartments:', availableDepartments);
 
   // Carica dati esistenti quando il componente si monta
   useEffect(() => {
@@ -361,6 +374,13 @@ const ConservationStep = ({
 
   const handleDeletePoint = (id) => {
     const updatedPoints = conservationPoints.filter(point => point.id !== id);
+    
+    debugLog('🗑️ ConservationStep - Eliminando punto:', {
+      pointId: id,
+      pointsBefore: conservationPoints.length,
+      pointsAfter: updatedPoints.length
+    });
+    
     setConservationPoints(updatedPoints);
     
     // Aggiorna il formData
@@ -374,6 +394,15 @@ const ConservationStep = ({
     
     // Marca lo step come non confermato quando viene eliminato un punto
     markStepAsUnconfirmed(currentStep);
+    
+    // Forza il ricalcolo della validazione
+    debugLog('🔄 ConservationStep - Validazione dopo eliminazione:', {
+      remainingPoints: updatedPoints.length,
+      hasNonCompliant: updatedPoints.some(point => !isPointFullyCompliant(point)),
+      canProceed: updatedPoints.length > 0 && 
+        updatedPoints.every(point => point.name && point.location && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) &&
+        !updatedPoints.some(point => !isPointFullyCompliant(point))
+    });
   };
 
   const handleEditPoint = (id) => {
@@ -408,6 +437,16 @@ const ConservationStep = ({
     conservationPoints.every(point => point.name && point.location && point.targetTemp && point.selectedCategories && point.selectedCategories.length > 0) &&
     !hasNonCompliantPoints; // Non può procedere se ci sono punti non compliant
 
+  // Forza il ricalcolo della validazione quando cambia lo stato dei punti
+  useEffect(() => {
+    // Questo useEffect assicura che la validazione venga ricalcolata quando cambia conservationPoints
+    debugLog('🔄 ConservationStep - Punti aggiornati, ricalcolo validazione:', {
+      pointsCount: conservationPoints.length,
+      hasNonCompliant: hasNonCompliantPoints,
+      canProceed: canProceed
+    });
+  }, [conservationPoints, hasNonCompliantPoints, canProceed]);
+
   // Rimuoviamo la funzione handleConfirmData - non più necessaria
 
   return (
@@ -423,13 +462,13 @@ const ConservationStep = ({
           <h4 className="font-medium text-gray-900">Punti di Conservazione</h4>
           <Button
             onClick={() => {
-              console.log('🔄 Pulsante Aggiungi cliccato');
+              debugLog('🔄 Pulsante Aggiungi cliccato');
               try {
                 resetForm();
                 setShowAddForm(true);
-                console.log('✅ Form resettato e showAddForm impostato a true');
+                debugLog('✅ Form resettato e showAddForm impostato a true');
               } catch (error) {
-                console.error('❌ Errore nel pulsante Aggiungi:', error);
+                errorLog('❌ Errore nel pulsante Aggiungi:', error);
               }
             }}
             variant="outline"
@@ -441,6 +480,117 @@ const ConservationStep = ({
             <span className="sm:hidden">Aggiungi Punto</span>
           </Button>
         </div>
+
+        {/* Form Aggiungi Punto - Posizionato subito dopo il pulsante */}
+        {showAddForm && (
+          <div ref={formRef} id="conservation-step-form" className="border rounded-lg p-4 bg-white mb-6">
+            <h4 className="font-medium text-gray-900 mb-4">
+              {editingPoint ? 'Modifica Punto di Conservazione' : 'Aggiungi Nuovo Punto di Conservazione'}
+            </h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="name">Nome Punto di Conservazione *</Label>
+                <Input
+                  id="name"
+                  value={localFormData.name}
+                  onChange={(e) => {
+                    setLocalFormData(prev => ({ ...prev, name: e.target.value }));
+                    markStepAsUnconfirmed(currentStep);
+                  }}
+                  placeholder="Es. Frigo A, Freezer, Abbattitore"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="location">Luogo *</Label>
+                <select
+                  id="location"
+                  value={localFormData.location}
+                  onChange={(e) => {
+                    setLocalFormData(prev => ({ ...prev, location: e.target.value }));
+                    markStepAsUnconfirmed(currentStep);
+                  }}
+                  className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="">Seleziona reparto</option>
+                  {availableDepartments.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <Label htmlFor="targetTemp">Temperatura Punto di Conservazione (°C) *</Label>
+                <Input
+                  id="targetTemp"
+                  type="number"
+                  min="-30"
+                  max="80"
+                  step="0.1"
+                  value={localFormData.targetTemp}
+                  onChange={(e) => {
+                    setLocalFormData(prev => ({ ...prev, targetTemp: e.target.value }));
+                    markStepAsUnconfirmed(currentStep);
+                  }}
+                  placeholder="4"
+                  className="mt-1"
+                />
+              </div>
+              
+              <div className="md:col-span-2">
+                <Label>Categorie Prodotti *</Label>
+                <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {CONSERVATION_POINT_RULES.categories.map(category => (
+                    <label key={category.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localFormData.selectedCategories.includes(category.id)}
+                        onChange={(e) => {
+                          const newCategories = e.target.checked 
+                            ? [...localFormData.selectedCategories, category.id]
+                            : localFormData.selectedCategories.filter(id => id !== category.id);
+                          setLocalFormData(prev => ({ ...prev, selectedCategories: newCategories }));
+                          markStepAsUnconfirmed(currentStep);
+                        }}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                      />
+                      <span className="text-sm">
+                        {category.icon} {category.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAddForm(false);
+                  setEditingPoint(null);
+                  setLocalFormData({
+                    name: '',
+                    location: '',
+                    targetTemp: '',
+                    selectedCategories: [],
+                    isAbbattitore: false
+                  });
+                }}
+              >
+                Annulla
+              </Button>
+              <Button
+                onClick={handleAddPoint}
+                disabled={!localFormData.name || !localFormData.location || !localFormData.targetTemp || localFormData.selectedCategories.length === 0}
+              >
+                {editingPoint ? 'Salva Modifiche' : 'Aggiungi Punto'}
+              </Button>
+            </div>
+          </div>
+        )}
 
         {conservationPoints.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
@@ -536,269 +686,6 @@ const ConservationStep = ({
         )}
       </div>
 
-      {/* Form Aggiungi Punto */}
-      {showAddForm && (
-        <div className="border rounded-lg p-4 bg-white">
-          <h4 className="font-medium text-gray-900 mb-4">
-            {editingPoint ? 'Modifica Punto di Conservazione' : 'Aggiungi Nuovo Punto di Conservazione'}
-          </h4>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="name">Nome Punto di Conservazione *</Label>
-              <Input
-                id="name"
-                value={localFormData.name}
-                onChange={(e) => {
-                  setLocalFormData(prev => ({ ...prev, name: e.target.value }));
-                  // Marca lo step come non confermato quando viene modificato il nome
-                  markStepAsUnconfirmed(currentStep);
-                }}
-                placeholder="Es. Frigo A, Freezer, Abbattitore"
-                className="mt-1"
-              />
-            </div>
-            
-            <div>
-              <Label htmlFor="location">Luogo *</Label>
-              <select
-                id="location"
-                value={localFormData.location}
-                onChange={(e) => {
-                  setLocalFormData(prev => ({ ...prev, location: e.target.value }));
-                  // Marca lo step come non confermato quando viene modificata la posizione
-                  markStepAsUnconfirmed(currentStep);
-                }}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">Seleziona reparto</option>
-                {availableDepartments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
-            </div>
-            
-            <div>
-              <Label htmlFor="targetTemp">Temperatura Punto di Conservazione (°C) *</Label>
-              <Input
-                id="targetTemp"
-                type="number"
-                min="-30"
-                max="80"
-                step="0.1"
-                value={localFormData.targetTemp}
-                onChange={(e) => {
-                  console.log('🌡️ Temperatura cambiata:', e.target.value);
-                  setLocalFormData(prev => ({ ...prev, targetTemp: e.target.value }));
-                  // Marca lo step come non confermato quando viene modificata la temperatura
-                  markStepAsUnconfirmed(currentStep);
-                }}
-                placeholder="4"
-                className={`mt-1 ${
-                  localFormData.targetTemp && localFormData.selectedCategories.length > 0 ? 
-                    (() => {
-                      const compliance = checkHACCPCompliance(localFormData.targetTemp, localFormData.selectedCategories);
-                      return compliance.color === 'green' ? 'border-green-500 focus:border-green-500 focus:ring-green-500' :
-                             compliance.color === 'yellow' ? 'border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500' :
-                             compliance.color === 'red' ? 'border-red-500 focus:border-red-500 focus:ring-red-500' :
-                             'border-gray-300';
-                    })() : 'border-gray-300'
-                }`}
-              />
-              
-              {/* Checkbox Abbattitore - appare solo se temperatura è tra -1°C e -90°C */}
-              {(() => {
-                const tempValue = parseFloat(localFormData.targetTemp);
-                const isInAbbattitoreRange = !isNaN(tempValue) && tempValue >= -90 && tempValue <= -1;
-                return isInAbbattitoreRange ? (
-                  <div className="mt-3 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="isAbbattitore"
-                      checked={localFormData.isAbbattitore || false}
-                      onChange={(e) => {
-                        setLocalFormData(prev => ({ ...prev, isAbbattitore: e.target.checked }));
-                        markStepAsUnconfirmed(currentStep);
-                      }}
-                      className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                    />
-                    <Label htmlFor="isAbbattitore" className="text-lg font-bold text-red-700">
-                      Abbattitore
-                    </Label>
-                  </div>
-                ) : null;
-              })()}
-              
-              {localFormData.targetTemp && localFormData.selectedCategories.length > 0 && (
-                <div className="mt-1">
-                  {(() => {
-                    const compliance = checkHACCPCompliance(localFormData.targetTemp, localFormData.selectedCategories);
-                    return (
-                      <p className={`text-xs ${
-                        compliance.color === 'green' ? 'text-green-600' :
-                        compliance.color === 'yellow' ? 'text-yellow-600' :
-                        compliance.color === 'red' ? 'text-red-600' :
-                        'text-gray-600'
-                      }`}>
-                        {compliance.message}
-                      </p>
-                    );
-                  })()}
-                </div>
-              )}
-            </div>
-
-             <div className="md:col-span-2">
-               <Label htmlFor="categories">Categorie Prodotti Conservati *</Label>
-               <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
-                 {CONSERVATION_POINT_RULES.categories.map(category => {
-                   const compatibility = getCategoryCompatibility(category.id, localFormData.selectedCategories, localFormData.targetTemp);
-                   console.log(`🎨 Category ${category.name}: compatibility=${compatibility}, selected=${localFormData.selectedCategories}, temp=${localFormData.targetTemp}`);
-                   const getCompatibilityStyle = () => {
-                     switch (compatibility) {
-                       case 'selected':
-                         return 'bg-blue-200 border-blue-400 text-blue-900 shadow-sm';
-                       case 'compatible':
-                         return 'bg-green-200 border-green-400 text-green-900 shadow-sm';
-                       case 'tolerance':
-                         return 'bg-yellow-200 border-yellow-400 text-yellow-900 shadow-sm';
-                       case 'incompatible':
-                         return 'bg-red-200 border-red-400 text-red-900 shadow-sm';
-                       default:
-                         return 'bg-gray-100 border-gray-300 text-gray-700';
-                     }
-                   };
-                   
-                   return (
-                     <label key={category.id} className={`flex items-center gap-2 cursor-pointer p-2 rounded border ${getCompatibilityStyle()}`}>
-                       <input
-                         type="checkbox"
-                         checked={localFormData.selectedCategories.includes(category.id)}
-                        onChange={(e) => {
-                          console.log('📦 Categoria cambiata:', category.id, 'checked:', e.target.checked);
-                          if (e.target.checked) {
-                            setLocalFormData(prev => {
-                              const newCategories = [...prev.selectedCategories, category.id];
-                              console.log('✅ Categorie aggiornate:', newCategories);
-                              return {
-                                ...prev,
-                                selectedCategories: newCategories
-                              };
-                            });
-                          } else {
-                            setLocalFormData(prev => {
-                              const newCategories = prev.selectedCategories.filter(id => id !== category.id);
-                              console.log('❌ Categorie aggiornate:', newCategories);
-                              return {
-                                ...prev,
-                                selectedCategories: newCategories
-                              };
-                            });
-                          }
-                          // Marca lo step come non confermato quando vengono modificate le categorie
-                          markStepAsUnconfirmed(currentStep);
-                        }}
-                         className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                       />
-                       <span className="text-sm font-medium">
-                         {category.name}
-                       </span>
-                       {compatibility === 'compatible' && <span className="text-xs">✅</span>}
-                       {compatibility === 'incompatible' && <span className="text-xs">❌</span>}
-                       {compatibility === 'tolerance' && <span className="text-xs">⚠️</span>}
-                     </label>
-                   );
-                 })}
-               </div>
-               <p className="text-sm text-gray-500 mt-1">
-                 Seleziona le categorie di prodotti che verranno conservate in questo punto
-               </p>
-               <div className="mt-2 p-3 bg-gray-50 rounded text-sm border">
-                 <p className="font-medium mb-2">Legenda compatibilità:</p>
-                 <div className="flex flex-wrap gap-3">
-                   <span className="flex items-center gap-2">
-                     <span className="w-4 h-4 bg-green-200 border-2 border-green-400 rounded shadow-sm"></span>
-                     <span className="font-medium text-green-900">Verde: Compatibile con temperatura</span>
-                   </span>
-                   <span className="flex items-center gap-2">
-                     <span className="w-4 h-4 bg-yellow-200 border-2 border-yellow-400 rounded shadow-sm"></span>
-                     <span className="font-medium text-yellow-900">Giallo: Entro i limiti accettabili (0,5°C)</span>
-                   </span>
-                   <span className="flex items-center gap-2">
-                     <span className="w-4 h-4 bg-red-200 border-2 border-red-400 rounded shadow-sm"></span>
-                     <span className="font-medium text-red-900">Rosso: Incompatibile</span>
-                   </span>
-                 </div>
-               </div>
-               {localFormData.selectedCategories.length === 0 && (
-                 <p className="text-sm text-red-500 mt-1">
-                   ⚠️ Seleziona almeno una categoria per procedere
-                 </p>
-               )}
-             </div>
-           </div>
-          
-                     {/* Validazione HACCP in tempo reale */}
-           {localFormData.targetTemp && localFormData.selectedCategories.length > 0 && (
-             <div className="mt-4 p-3 rounded-lg bg-gray-50">
-               <div className="flex items-center gap-2">
-                 <Thermometer className="h-4 w-4" />
-                 <span className="font-medium">Validazione HACCP:</span>
-               </div>
-               {(() => {
-                 const compliance = checkHACCPCompliance(localFormData.targetTemp, localFormData.selectedCategories);
-                 return (
-                   <div className={`mt-2 flex items-center gap-2 ${
-                     compliance.color === 'green' ? 'text-green-600' :
-                     compliance.color === 'yellow' ? 'text-yellow-600' :
-                     'text-red-600'
-                   }`}>
-                     {compliance.type === 'compliant' ? '✅' : 
-                      compliance.type === 'warning' ? '⚠️' : '❌'}
-                     <span className="text-sm">{compliance.message}</span>
-                   </div>
-                 );
-               })()}
-               
-               {/* Suggerimenti temperature ottimali */}
-               {localFormData.selectedCategories.length > 0 && (
-                 <div className="mt-3 p-2 rounded-lg bg-blue-50 border border-blue-200">
-                   <div className="text-sm text-blue-800">
-                     <strong>Suggerimento:</strong> {(() => {
-                       const suggestion = CONSERVATION_POINT_RULES.getOptimalTemperatureSuggestions(localFormData.selectedCategories);
-                       if (suggestion && !suggestion.compatible) {
-                         return suggestion.message;
-                       } else if (suggestion) {
-                         return suggestion.message;
-                       }
-                       return 'Seleziona categorie per ottenere suggerimenti sulle temperature ottimali';
-                     })()}
-                   </div>
-                 </div>
-               )}
-             </div>
-           )}
-          
-          <div className="flex justify-end gap-2 mt-4">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setShowAddForm(false);
-                resetForm();
-              }}
-            >
-              Annulla
-            </Button>
-                         <Button
-               onClick={handleAddPoint}
-               disabled={!localFormData.name || !localFormData.location || !localFormData.targetTemp || localFormData.selectedCategories.length === 0}
-             >
-               {editingPoint ? 'Salva Modifiche' : 'Aggiungi Punto'}
-             </Button>
-          </div>
-        </div>
-      )}
-
       {/* Validazione */}
       <div className={`p-4 rounded-lg ${
         canProceed ? 'bg-green-50 border border-green-200' : hasNonCompliantPoints ? 'bg-red-50 border border-red-200' : 'bg-yellow-50 border border-yellow-200'
@@ -832,19 +719,19 @@ const ConservationStep = ({
         </div>
       </div>
 
-             {/* Errori di validazione */}
-       {Object.keys(validationErrors).length > 0 && (
-         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-           <div className="text-sm text-red-800">
-             <p className="font-medium">❌ Errori di validazione:</p>
-             {Object.entries(validationErrors).map(([key, error]) => (
-               <p key={key}>• {error}</p>
-             ))}
-           </div>
-         </div>
-       )}
+      {/* Errori di validazione */}
+      {Object.keys(validationErrors).length > 0 && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="text-sm text-red-800">
+            <p className="font-medium">❌ Errori di validazione:</p>
+            {Object.entries(validationErrors).map(([key, error]) => (
+              <p key={key}>• {error}</p>
+            ))}
+          </div>
+        </div>
+      )}
 
-       {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
+      {/* Pulsante "Conferma Dati" rimosso - ora si usa solo "Avanti" */}
     </div>
   );
 };

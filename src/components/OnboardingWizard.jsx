@@ -12,6 +12,11 @@ import {
   ClipboardList
 } from 'lucide-react';
 import { CONSERVATION_POINT_RULES } from '../utils/haccpRules';
+import { useModals } from '../hooks/useModals';
+import AlertModal from './ui/AlertModal';
+import ConfirmModal from './ui/ConfirmModal';
+import PromptModal from './ui/PromptModal';
+import { debugLog, warnLog, haccpLog } from '../utils/debug';
 
 // Funzione per validare la conformità HACCP
 const validateHACCPCompliance = (targetTemp, selectedCategories) => {
@@ -150,8 +155,8 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
 
   // Wrapper per setCurrentStep con logging
   const setCurrentStepWithLogging = (newStep) => {
-    console.log(`🚨 setCurrentStep chiamato: ${currentStep} → ${newStep}`);
-    console.log(`🚨 Stack trace:`, new Error().stack);
+    debugLog(`🚨 setCurrentStep chiamato: ${currentStep} → ${newStep}`);
+    debugLog(`🚨 Stack trace:`, new Error().stack);
     setCurrentStep(newStep);
   };
   const [completedSteps, setCompletedSteps] = useState(new Set());
@@ -164,6 +169,14 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
     tasks: {},
     inventory: {}
   });
+  
+  // Initialize modals
+  const {
+    alertModal, confirmModal, promptModal,
+    closeAlert, closeConfirm, closePrompt,
+    alertSuccess, alertError, alertWarning,
+    confirmDelete, confirmAction
+  } = useModals()
 
   // Funzione di validazione globale per tutti gli step
   const validateStep = (stepNumber, data) => {
@@ -295,11 +308,11 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              if (stepNumber === 3) { // Punti di Conservazione
            // ConservationStep salva come { points: [...], count: number }
            const conservationPoints = data.conservation?.points || [];
-           console.log('🔍 OnboardingWizard: Validating step 3 (Conservation)');
-           console.log('🔍 OnboardingWizard: data.conservation:', data.conservation);
-           console.log('🔍 OnboardingWizard: conservationPoints:', conservationPoints);
+          debugLog('🔍 OnboardingWizard: Validating step 3 (Conservation)');
+          debugLog('🔍 OnboardingWizard: data.conservation:', data.conservation);
+          debugLog('🔍 OnboardingWizard: conservationPoints:', conservationPoints);
            if (conservationPoints.length === 0) {
-             console.log('❌ OnboardingWizard: No conservation points found, adding error');
+             debugLog('❌ OnboardingWizard: No conservation points found, adding error');
              errors.conservation = "Devi aggiungere almeno un punto di conservazione";
            } else {
              conservationPoints.forEach((point, index) => {
@@ -366,10 +379,10 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
           const savedMaintenances = data.savedMaintenances || [];
           const conservationPoints = data.conservation?.points || [];
           
-          console.log('🔍 OnboardingWizard Step 4 Validation:');
-          console.log('📋 tasksList:', tasksList.length, 'tasks');
-          console.log('📋 savedMaintenances:', savedMaintenances.length, 'groups');
-          console.log('📋 conservationPoints:', conservationPoints.length);
+          debugLog('🔍 OnboardingWizard Step 4 Validation:');
+          debugLog('📋 tasksList:', tasksList.length, 'tasks');
+          debugLog('📋 savedMaintenances:', savedMaintenances.length, 'groups');
+          debugLog('📋 conservationPoints:', conservationPoints.length);
           
           // Validazione 1: Tutte le manutenzioni obbligatorie per i punti di conservazione
           const temperatureMaintenances = savedMaintenances.flatMap(group => group.tasks).filter(task => 
@@ -380,11 +393,11 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
           // Validazione 2: Almeno 1 attività generale registrata
           const hasGeneralTasks = tasksList.length > 0;
           
-          console.log('🌡️ Maintenance validation:');
-          console.log('📋 temperatureMaintenances:', temperatureMaintenances.length);
-          console.log('📋 conservationPoints:', conservationPoints.length);
-          console.log('📋 hasAllMaintenanceTasks:', hasAllMaintenanceTasks);
-          console.log('📋 hasGeneralTasks:', hasGeneralTasks);
+          debugLog('🌡️ Maintenance validation:');
+          debugLog('📋 temperatureMaintenances:', temperatureMaintenances.length);
+          debugLog('📋 conservationPoints:', conservationPoints.length);
+          debugLog('📋 hasAllMaintenanceTasks:', hasAllMaintenanceTasks);
+          debugLog('📋 hasGeneralTasks:', hasGeneralTasks);
           
           // Validazione completa: entrambi i requisiti devono essere soddisfatti
           if (!hasAllMaintenanceTasks && !hasGeneralTasks) {
@@ -395,7 +408,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
             errors.tasks = "Devi aggiungere almeno un'attività generale";
           } else {
             // Entrambi i requisiti soddisfatti - nessun errore
-            console.log('✅ Step 4 validation passed!');
+            debugLog('✅ Step 4 validation passed!');
           }
            
            // Validazione dettagliata delle attività generali (se presenti)
@@ -428,16 +441,16 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              const taskNames = tasksList.map(task => task.name.toLowerCase().trim());
              const uniqueTaskNames = new Set(taskNames);
              
-             console.log('🔍 Debug nomi attività generali:');
-             console.log('📋 taskNames (generiche):', taskNames);
-             console.log('📋 uniqueTaskNames:', Array.from(uniqueTaskNames));
-             console.log('📋 taskNames.length:', taskNames.length);
-             console.log('📋 uniqueTaskNames.size:', uniqueTaskNames.size);
+             debugLog('🔍 Debug nomi attività generali:');
+             debugLog('📋 taskNames (generiche):', taskNames);
+             debugLog('📋 uniqueTaskNames:', Array.from(uniqueTaskNames));
+             debugLog('📋 taskNames.length:', taskNames.length);
+             debugLog('📋 uniqueTaskNames.size:', uniqueTaskNames.size);
              
              if (taskNames.length !== uniqueTaskNames.size) {
-               console.log('❌ NOMI DUPLICATI TROVATI NELLE ATTIVITÀ GENERALI!');
+               debugLog('❌ NOMI DUPLICATI TROVATI NELLE ATTIVITÀ GENERALI!');
                const duplicates = taskNames.filter((name, index) => taskNames.indexOf(name) !== index);
-               console.log('❌ Duplicati:', duplicates);
+               debugLog('❌ Duplicati:', duplicates);
                errors.taskNames = "I nomi delle attività generali devono essere unici";
              }
              
@@ -450,11 +463,11 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
              if (stepNumber === 5) { // Inventario Prodotti
            // InventoryStep salva come { products: [...], count: number }
            const productsList = data.products?.productsList || data.inventory?.products || [];
-           console.log('🔍 OnboardingWizard: Validating step 5 (Inventory)');
-           console.log('🔍 OnboardingWizard: data.products:', data.products);
-           console.log('🔍 OnboardingWizard: productsList:', productsList);
+          debugLog('🔍 OnboardingWizard: Validating step 5 (Inventory)');
+          debugLog('🔍 OnboardingWizard: data.products:', data.products);
+          debugLog('🔍 OnboardingWizard: productsList:', productsList);
            if (productsList.length === 0) {
-             console.log('❌ OnboardingWizard: No products found, adding error');
+             debugLog('❌ OnboardingWizard: No products found, adding error');
              errors.inventory = "Devi aggiungere almeno un prodotto";
            } else {
              productsList.forEach((product, index) => {
@@ -527,60 +540,60 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
     
     // Debug specifico per step 4 (Mansioni e Attività)
     if (stepNumber === 4) {
-      console.log(`🔍 DEBUG PULSANTE AVANTI - Step 4 (Mansioni e Attività):`);
-      console.log(`🔍 errors:`, errors);
-      console.log(`🔍 errors.length:`, Object.keys(errors).length);
-      console.log(`🔍 isValid:`, isValid);
-      console.log(`🔍 formData.tasks:`, formData.tasks);
-      console.log(`🔍 formData.savedMaintenances:`, formData.savedMaintenances);
-      console.log(`🔍 formData.conservation:`, formData.conservation);
+      debugLog(`🔍 DEBUG PULSANTE AVANTI - Step 4 (Mansioni e Attività):`);
+      debugLog(`🔍 errors:`, errors);
+      debugLog(`🔍 errors.length:`, Object.keys(errors).length);
+      debugLog(`🔍 isValid:`, isValid);
+      debugLog(`🔍 formData.tasks:`, formData.tasks);
+      debugLog(`🔍 formData.savedMaintenances:`, formData.savedMaintenances);
+      debugLog(`🔍 formData.conservation:`, formData.conservation);
       
       // Mostra dettagli degli errori
       if (Object.keys(errors).length > 0) {
-        console.log(`❌ ERRORI DETTAGLIATI STEP 4:`);
+        debugLog(`❌ ERRORI DETTAGLIATI STEP 4:`);
         Object.entries(errors).forEach(([key, value]) => {
-          console.log(`❌ ${key}: ${value}`);
+          debugLog(`❌ ${key}: ${value}`);
         });
       }
     }
     
     // Debug specifico per step 3 (Punti di Conservazione)
     if (stepNumber === 3) {
-      console.log(`🔍 DEBUG PULSANTE AVANTI - Step 3 (Punti di Conservazione):`);
-      console.log(`🔍 errors:`, errors);
-      console.log(`🔍 errors.length:`, Object.keys(errors).length);
-      console.log(`🔍 isValid:`, isValid);
-      console.log(`🔍 formData.conservation:`, formData.conservation);
-      console.log(`🔍 conservation.points:`, formData.conservation?.points);
-      console.log(`🔍 conservation.count:`, formData.conservation?.count);
+      debugLog(`🔍 DEBUG PULSANTE AVANTI - Step 3 (Punti di Conservazione):`);
+      debugLog(`🔍 errors:`, errors);
+      debugLog(`🔍 errors.length:`, Object.keys(errors).length);
+      debugLog(`🔍 isValid:`, isValid);
+      debugLog(`🔍 formData.conservation:`, formData.conservation);
+      debugLog(`🔍 conservation.points:`, formData.conservation?.points);
+      debugLog(`🔍 conservation.count:`, formData.conservation?.count);
       
       // Mostra dettagli degli errori
       if (Object.keys(errors).length > 0) {
-        console.log(`❌ ERRORI DETTAGLIATI:`);
+        debugLog(`❌ ERRORI DETTAGLIATI:`);
         Object.entries(errors).forEach(([key, value]) => {
-          console.log(`❌ ${key}: ${value}`);
+          debugLog(`❌ ${key}: ${value}`);
         });
         
         // Debug specifico per categorie
         if (formData.conservation?.points?.[0]) {
           const point = formData.conservation.points[0];
-          console.log(`🔍 PUNTO DI CONSERVAZIONE DETTAGLIATO:`);
-          console.log(`🔍 point.name:`, point.name);
-          console.log(`🔍 point.location:`, point.location);
-          console.log(`🔍 point.targetTemp:`, point.targetTemp);
-          console.log(`🔍 point.selectedCategories:`, point.selectedCategories);
-          console.log(`🔍 point.selectedCategories type:`, typeof point.selectedCategories);
-          console.log(`🔍 point.selectedCategories length:`, point.selectedCategories?.length);
+          debugLog(`🔍 PUNTO DI CONSERVAZIONE DETTAGLIATO:`);
+          debugLog(`🔍 point.name:`, point.name);
+          debugLog(`🔍 point.location:`, point.location);
+          debugLog(`🔍 point.targetTemp:`, point.targetTemp);
+          debugLog(`🔍 point.selectedCategories:`, point.selectedCategories);
+          debugLog(`🔍 point.selectedCategories type:`, typeof point.selectedCategories);
+          debugLog(`🔍 point.selectedCategories length:`, point.selectedCategories?.length);
           
           // Debug categorie valide
           const validCategories = ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'frozen', 'deep_frozen', 'dry_goods', 'hot_holding', 'chilled_ready', 'fresh_beverages'];
-          console.log(`🔍 CATEGORIE VALIDE:`, validCategories);
-          console.log(`🔍 CATEGORIE SELEZIONATE:`, point.selectedCategories);
+          debugLog(`🔍 CATEGORIE VALIDE:`, validCategories);
+          debugLog(`🔍 CATEGORIE SELEZIONATE:`, point.selectedCategories);
           
           // Controlla ogni categoria selezionata
           point.selectedCategories.forEach((categoryId, index) => {
             const isValid = validCategories.includes(categoryId);
-            console.log(`🔍 Categoria ${index}: "${categoryId}" - ${isValid ? 'VALIDA' : 'NON VALIDA'}`);
+            debugLog(`🔍 Categoria ${index}: "${categoryId}" - ${isValid ? 'VALIDA' : 'NON VALIDA'}`);
           });
         }
       }
@@ -602,17 +615,17 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
 
   // Conferma uno step (chiamato dai componenti figli)
   const confirmStep = (stepNumber) => {
-    console.log(`🔍 confirmStep chiamato per step ${stepNumber}`);
-    console.log(`🔍 Stato prima: currentStep=${currentStep}, confirmedSteps=${Array.from(confirmedSteps)}`);
+    debugLog(`🔍 confirmStep chiamato per step ${stepNumber}`);
+    debugLog(`🔍 Stato prima: currentStep=${currentStep}, confirmedSteps=${Array.from(confirmedSteps)}`);
     
     if (isStepValid(stepNumber)) {
-      console.log(`✅ Step ${stepNumber} valido, marcando come confermato`);
+      debugLog(`✅ Step ${stepNumber} valido, marcando come confermato`);
       setConfirmedSteps(prev => new Set([...prev, stepNumber]));
       // NON aggiungiamo a completedSteps qui - solo quando si naviga
-      console.log(`✅ Step ${stepNumber} confermato con successo`);
+      debugLog(`✅ Step ${stepNumber} confermato con successo`);
       return true; // Step confermato con successo
     } else {
-      console.log(`❌ Step ${stepNumber} non valido`);
+      debugLog(`❌ Step ${stepNumber} non valido`);
       return false; // Step non valido
     }
   };
@@ -640,54 +653,54 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
 
   // Naviga a uno step specifico
   const goToStep = (stepIndex) => {
-    console.log(`🔍 goToStep chiamato per step ${stepIndex}`);
+    debugLog(`🔍 goToStep chiamato per step ${stepIndex}`);
     
     if (stepIndex >= 0 && stepIndex < ONBOARDING_STEPS.length) {
       setCurrentStepWithLogging(stepIndex);
       saveProgress();
-      console.log(`✅ Navigazione diretta completata a step ${stepIndex + 1}`);
+      debugLog(`✅ Navigazione diretta completata a step ${stepIndex + 1}`);
     } else {
-      console.log(`❌ Step ${stepIndex} non valido`);
+      debugLog(`❌ Step ${stepIndex} non valido`);
     }
   };
 
   // Avanza al prossimo step con validazione al click
   const nextStep = () => {
-    console.log(`🔍 nextStep chiamato`);
-    console.log(`🔍 Stato: currentStep=${currentStep}`);
+    debugLog(`🔍 nextStep chiamato`);
+    debugLog(`🔍 Stato: currentStep=${currentStep}`);
     
     if (currentStep < ONBOARDING_STEPS.length - 1) {
       // Valida lo step corrente
       const errors = validateStep(currentStep, formData);
       
       if (Object.keys(errors).length === 0) {
-        console.log(`✅ Step ${currentStep} valido, navigando al prossimo`);
-        // Aggiungi lo step corrente a completedSteps quando si naviga
-        setCompletedSteps(prev => new Set([...prev, ONBOARDING_STEPS[currentStep].id]));
+        debugLog(`✅ Step ${currentStep} valido, navigando al prossimo`);
+        // Aggiungi lo step corrente a completedSteps quando si naviga (evita duplicati)
+        setCompletedSteps(prev => new Set([...prev, currentStep]));
         // Marca lo step come confermato quando si naviga
         setConfirmedSteps(prev => new Set([...prev, currentStep]));
         setCurrentStepWithLogging(currentStep + 1);
         saveProgress();
-        console.log(`✅ Navigazione completata a step ${currentStep + 1}`);
+        debugLog(`✅ Navigazione completata a step ${currentStep + 1}`);
       } else {
-        console.log(`❌ Step ${currentStep} non valido:`, errors);
-        console.log(`❌ Errori dettagliati:`, Object.entries(errors).map(([key, value]) => `${key}: ${value}`));
-        console.log(`❌ Errori completi:`, errors);
-        console.log(`🔍 FormData per step ${currentStep}:`, formData);
+        debugLog(`❌ Step ${currentStep} non valido:`, errors);
+        debugLog(`❌ Errori dettagliati:`, Object.entries(errors).map(([key, value]) => `${key}: ${value}`));
+        debugLog(`❌ Errori completi:`, errors);
+        debugLog(`🔍 FormData per step ${currentStep}:`, formData);
         
         // Debug specifico per step 3 (Punti di Conservazione)
         if (currentStep === 3) {
-          console.log(`🔍 DEBUG STEP 3 (Punti di Conservazione):`);
-          console.log(`🔍 data.conservation:`, formData.conservation);
-          console.log(`🔍 conservation.points:`, formData.conservation?.points);
-          console.log(`🔍 conservation.count:`, formData.conservation?.count);
+          debugLog(`🔍 DEBUG STEP 3 (Punti di Conservazione):`);
+          debugLog(`🔍 data.conservation:`, formData.conservation);
+          debugLog(`🔍 conservation.points:`, formData.conservation?.points);
+          debugLog(`🔍 conservation.count:`, formData.conservation?.count);
         }
         
         // Mostra errori all'utente
-        alert(`Ci sono errori di validazione:\n${Object.values(errors).join('\n')}`);
+        alertError(`Ci sono errori di validazione:\n${Object.values(errors).join('\n')}`);
       }
     } else {
-      console.log(`❌ Ultimo step raggiunto, navigazione non possibile`);
+      debugLog(`❌ Ultimo step raggiunto, navigazione non possibile`);
     }
   };
 
@@ -705,14 +718,14 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
     const errors = validateStep(currentStep, formData);
     
     if (Object.keys(errors).length === 0) {
-      console.log(`✅ Ultimo step valido, completando onboarding`);
-      setCompletedSteps(prev => new Set([...prev, ONBOARDING_STEPS[currentStep].id]));
+      debugLog(`✅ Ultimo step valido, completando onboarding`);
+      setCompletedSteps(prev => new Set([...prev, currentStep]));
       saveProgress();
       onComplete && onComplete(formData);
     } else {
-      console.log(`❌ Ultimo step non valido:`, errors);
+      debugLog(`❌ Ultimo step non valido:`, errors);
       // Mostra errori all'utente
-      alert(`Ci sono errori di validazione:\n${Object.values(errors).join('\n')}`);
+      alertError(`Ci sono errori di validazione:\n${Object.values(errors).join('\n')}`);
     }
   };
 
@@ -727,7 +740,7 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
         setConfirmedSteps(new Set(progress.confirmedSteps || []));
         setFormData(progress.formData || formData);
       } catch (error) {
-        console.warn('Errore nel caricamento progresso onboarding:', error);
+        warnLog('Errore nel caricamento progresso onboarding:', error);
       }
     }
   }, []);
@@ -752,13 +765,13 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
           {/* Progress bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-gray-600">
-              <span>Progresso: {Math.round((completedSteps.size / ONBOARDING_STEPS.length) * 100)}%</span>
+              <span>Progresso: {Math.round(Math.min((completedSteps.size / ONBOARDING_STEPS.length) * 100, 100))}%</span>
               <span>Step {currentStep + 1} di {ONBOARDING_STEPS.length}</span>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-2">
               <div 
                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(completedSteps.size / ONBOARDING_STEPS.length) * 100}%` }}
+                style={{ width: `${Math.min((completedSteps.size / ONBOARDING_STEPS.length) * 100, 100)}%` }}
               ></div>
             </div>
           </div>
@@ -822,6 +835,42 @@ function OnboardingWizard({ isOpen, onClose, onComplete }) {
             )}
           </div>
         </div>
+
+        {/* Modal Components */}
+        <AlertModal 
+          isOpen={alertModal.isOpen} 
+          onClose={closeAlert} 
+          title={alertModal.title} 
+          message={alertModal.message} 
+          type={alertModal.type} 
+          confirmText={alertModal.confirmText} 
+          onConfirm={alertModal.onConfirm} 
+        />
+        <ConfirmModal 
+          isOpen={confirmModal.isOpen} 
+          onClose={closeConfirm} 
+          title={confirmModal.title} 
+          message={confirmModal.message} 
+          type={confirmModal.type} 
+          confirmText={confirmModal.confirmText} 
+          cancelText={confirmModal.cancelText} 
+          onConfirm={confirmModal.onConfirm} 
+          onCancel={confirmModal.onCancel} 
+        />
+        <PromptModal 
+          isOpen={promptModal.isOpen} 
+          onClose={closePrompt} 
+          title={promptModal.title} 
+          message={promptModal.message} 
+          placeholder={promptModal.placeholder} 
+          defaultValue={promptModal.defaultValue} 
+          type={promptModal.type} 
+          confirmText={promptModal.confirmText} 
+          cancelText={promptModal.cancelText} 
+          validation={promptModal.validation} 
+          onConfirm={promptModal.onConfirm} 
+          onCancel={promptModal.onCancel} 
+        />
       </div>
     </div>
   );

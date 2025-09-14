@@ -14,6 +14,7 @@ import {
   getTaskTypeDisplayName,
   getFrequencyDisplayName
 } from '../utils/maintenanceConstants';
+import { debugLog, maintenanceLog } from '../utils/debug';
 
 const MaintenanceSection = ({ 
   conservationPointId,
@@ -49,7 +50,7 @@ const MaintenanceSection = ({
   // Carica dati iniziali
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
-      console.log('🔍 MaintenanceSection - Impostando maintenanceData con:', initialData);
+      debugLog('🔍 MaintenanceSection - Impostando maintenanceData con:', initialData);
       setMaintenanceData(initialData);
     }
   }, [initialData]);
@@ -70,7 +71,7 @@ const MaintenanceSection = ({
 
   // Aggiorna un campo specifico per un tipo di attività con reset automatico
   const updateMaintenanceField = (taskType, field, value) => {
-    console.log(`🔄 updateMaintenanceField: ${taskType}.${field} = ${value}`);
+    maintenanceLog(`🔄 updateMaintenanceField: ${taskType}.${field} = ${value}`);
     
     setMaintenanceData(prev => {
       const currentTask = prev[taskType];
@@ -182,14 +183,14 @@ const MaintenanceSection = ({
 
     // Se non sono selezionati ruolo e categoria, mostra tutti i dipendenti
     if (!role && !category) {
-      console.log('🔍 getFilteredStaff Debug: Mostrando tutti i dipendenti');
+      debugLog('🔍 getFilteredStaff Debug: Mostrando tutti i dipendenti');
       return staffMembers;
     }
 
     // Usa la nuova funzione helper per filtrare
     const filtered = getAvailableStaff(staffMembers, role, category);
     
-    console.log('🔍 getFilteredStaff Debug:', {
+    debugLog('🔍 getFilteredStaff Debug:', {
       taskType,
       role,
       category,

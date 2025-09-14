@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Button } from './ui/Button'
 import { Download, X } from 'lucide-react'
+import { debugLog } from '../utils/debug'
 
 function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState(null)
@@ -49,10 +50,10 @@ function PWAInstallPrompt() {
     const { outcome } = await deferredPrompt.userChoice
 
     if (outcome === 'accepted') {
-      console.log('PWA installata con successo!')
+      debugLog('PWA installata con successo!')
       setIsInstalled(true)
     } else {
-      console.log('Installazione PWA rifiutata')
+      debugLog('Installazione PWA rifiutata')
       localStorage.setItem('pwa-install-rejected', 'true')
     }
 

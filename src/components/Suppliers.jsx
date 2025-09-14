@@ -29,6 +29,11 @@ import {
   Info,
   AlertTriangle
 } from 'lucide-react'
+import { useModals } from '../hooks/useModals'
+import AlertModal from './ui/AlertModal'
+import ConfirmModal from './ui/ConfirmModal'
+import PromptModal from './ui/PromptModal'
+import { errorLog } from '../utils/debug'
 
 // Categorie fornitori disponibili
 const SUPPLIER_CATEGORIES = [
@@ -52,6 +57,14 @@ function Suppliers({ currentUser }) {
     email: '',
     notes: ''
   })
+  
+  // Initialize modals
+  const {
+    alertModal, confirmModal, promptModal,
+    closeAlert, closeConfirm, closePrompt,
+    alertSuccess, alertError, alertWarning,
+    confirmDelete, confirmAction
+  } = useModals()
 
   // Carica fornitori da localStorage
   useEffect(() => {
@@ -60,7 +73,7 @@ function Suppliers({ currentUser }) {
       try {
         setSuppliers(JSON.parse(savedSuppliers))
       } catch (error) {
-        console.error('Errore nel caricamento fornitori:', error)
+        errorLog('Errore nel caricamento fornitori:', error)
         setSuppliers([])
       }
     }
@@ -90,7 +103,7 @@ function Suppliers({ currentUser }) {
     e.preventDefault()
     
     if (!formData.name.trim() || !formData.category) {
-      alert('⚠️ Attenzione: Nome fornitore e categoria sono obbligatori per la tracciabilità HACCP')
+      alertError('⚠️ Attenzione: Nome fornitore e categoria sono obbligatori per la tracciabilità HACCP')
       return
     }
 
@@ -110,11 +123,11 @@ function Suppliers({ currentUser }) {
       setSuppliers(prev => prev.map(s => 
         s.id === editingSupplier.id ? supplierData : s
       ))
-      alert('✅ Fornitore aggiornato con successo!')
+      alertSuccess('✅ Fornitore aggiornato con successo!')
     } else {
       // Crea nuovo fornitore
       setSuppliers(prev => [...prev, supplierData])
-      alert('✅ Nuovo fornitore aggiunto con successo!')
+      alertSuccess('✅ Nuovo fornitore aggiunto con successo!')
     }
 
     resetForm()
@@ -122,10 +135,13 @@ function Suppliers({ currentUser }) {
 
   // Elimina fornitore
   const deleteSupplier = (id) => {
-    if (confirm('⚠️ ATTENZIONE: Stai per eliminare questo fornitore.\n\nQuesta azione non può essere annullata e rimuoverà tutte le informazioni di tracciabilità associate.\n\nProcedere?')) {
-      setSuppliers(prev => prev.filter(s => s.id !== id))
-      alert('🗑️ Fornitore eliminato con successo')
-    }
+    confirmDelete(
+      '⚠️ ATTENZIONE: Stai per eliminare questo fornitore.\n\nQuesta azione non può essere annullata e rimuoverà tutte le informazioni di tracciabilità associate.\n\nProcedere?',
+      () => {
+        setSuppliers(prev => prev.filter(s => s.id !== id))
+        alertSuccess('🗑️ Fornitore eliminato con successo')
+      }
+    )
   }
 
   // Apre form per modifica
@@ -462,6 +478,42 @@ function Suppliers({ currentUser }) {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal Components */}
+      <AlertModal 
+        isOpen={alertModal.isOpen} 
+        onClose={closeAlert} 
+        title={alertModal.title} 
+        message={alertModal.message} 
+        type={alertModal.type} 
+        confirmText={alertModal.confirmText} 
+        onConfirm={alertModal.onConfirm} 
+      />
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen} 
+        onClose={closeConfirm} 
+        title={confirmModal.title} 
+        message={confirmModal.message} 
+        type={confirmModal.type} 
+        confirmText={confirmModal.confirmText} 
+        cancelText={confirmModal.cancelText} 
+        onConfirm={confirmModal.onConfirm} 
+        onCancel={confirmModal.onCancel} 
+      />
+      <PromptModal 
+        isOpen={promptModal.isOpen} 
+        onClose={closePrompt} 
+        title={promptModal.title} 
+        message={promptModal.message} 
+        placeholder={promptModal.placeholder} 
+        defaultValue={promptModal.defaultValue} 
+        type={promptModal.type} 
+        confirmText={promptModal.confirmText} 
+        cancelText={promptModal.cancelText} 
+        validation={promptModal.validation} 
+        onConfirm={promptModal.onConfirm} 
+        onCancel={promptModal.onCancel} 
+      />
     </div>
   )
 }

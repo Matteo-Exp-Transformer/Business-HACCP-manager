@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
+import { errorLog } from '../utils/debug'
 import { 
   Bot, 
   Settings, 
@@ -69,7 +70,7 @@ function AIAssistantSection({
       }
       
       recognitionInstance.onerror = (event) => {
-        console.error('Speech recognition error:', event.error)
+        errorLog('Speech recognition error:', event.error)
         setIsListening(false)
         addMessage('assistant', '❌ Errore nel riconoscimento vocale. Riprova!', 'system')
       }
@@ -287,10 +288,10 @@ ${recentTemps.map(t => `• ${t.location}: ${t.temperature}°C (${t.status})`).j
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Chat Area */}
         <div className="lg:col-span-2">
-          <Card className="h-96">
+          <Card className="h-96 mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bot className="h-5 w-5 text-blue-600" />
@@ -303,7 +304,7 @@ ${recentTemps.map(t => `• ${t.location}: ${t.temperature}°C (${t.status})`).j
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col h-full">
+            <CardContent className="flex flex-col h-full p-6">
               {/* Messages Area */}
               <div className="flex-1 overflow-y-auto space-y-3 mb-4">
                 {messages.map((message) => (
@@ -372,17 +373,17 @@ ${recentTemps.map(t => `• ${t.location}: ${t.temperature}°C (${t.status})`).j
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Automatizzazioni */}
-          <Card>
+          <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-yellow-600" />
                 Automatizzazioni
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="p-6">
+              <div className="space-y-4">
                 {automations.map(automation => (
                   <div key={automation.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex-1">
@@ -403,15 +404,15 @@ ${recentTemps.map(t => `• ${t.location}: ${t.temperature}°C (${t.status})`).j
           </Card>
 
           {/* Quick Actions */}
-          <Card>
+          <Card className="mb-6">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-purple-600" />
                 Azioni Rapide
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
+            <CardContent className="p-6">
+              <div className="space-y-3">
                 <Button
                   variant="outline"
                   size="sm"
@@ -454,15 +455,15 @@ ${recentTemps.map(t => `• ${t.location}: ${t.temperature}°C (${t.status})`).j
 
           {/* Impostazioni Chat */}
           {showSettings && (
-            <Card>
+            <Card className="mb-6">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Settings className="h-5 w-5 text-gray-600" />
                   Impostazioni Chat IA
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
+              <CardContent className="p-6">
+                <div className="space-y-5">
                   <div className="flex items-center justify-between p-3 border rounded-lg">
                     <div className="flex-1">
                       <h4 className="font-medium text-sm">Mostra Icona Chat</h4>

@@ -3,3 +3,6 @@
 [33m04e550e6[m Implementa precompilamento form modifica manutenzione - Form si apre con dati esistenti quando si clicca Modifica - Carica frequenza, ruoli, categorie, dipendenti salvati - Imposta checkbox giorni personalizzati correttamente - Migliora UX per modifica manutenzioni esistenti
 [33ma634df29[m Migliora titolo e visualizzazione dipendenti - Ingrandisce titolo scheda manutenzione (text-xl font-bold) - Mostra nomi completi dipendenti invece di 'X selezionati' - Aggiunge funzione getSelectedStaffNames - Layout più leggibile e informativo
 [33me382584a[m Migliora layout manutenzioni orizzontale - Ingrandisce testo da text-sm a text-base - Dispone Frequenza, Ruolo, Categoria, Dipendenti orizzontalmente - Usa flex-wrap per responsive - Font-bold per titoli attività - Layout più compatto e leggibile
+[33ma6021062[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m docs: add Conservation_Cards_Replication_Guide.md documentation
+[33m8b50e965[m istruzioni agente updated
+[33ma3588f62[m Update Filepergbt.md

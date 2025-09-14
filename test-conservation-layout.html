@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Layout Punti di Conservazione</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .test-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">Test Layout Punti di Conservazione</h1>
+        
+        <!-- Simulazione dati frigoriferi -->
+        <div class="mb-8 p-4 bg-blue-50 rounded-lg">
+            <h2 class="text-lg font-semibold text-blue-900 mb-2">Dati di Test</h2>
+            <p class="text-sm text-blue-800">
+                Simulazione di 7 frigoriferi con diverse temperature per testare il raggruppamento:
+            </p>
+            <ul class="text-sm text-blue-700 mt-2">
+                <li>• Frigo A: 4°C (frigorifero - range 0-8°C)</li>
+                <li>• Frigo Bancone 1: 2°C (frigorifero - range 0-8°C)</li>
+                <li>• Frigo Bancone 2: 3°C (frigorifero - range 0-8°C)</li>
+                <li>• Frigo Bancone 3: 1°C (frigorifero - range 0-8°C)</li>
+                <li>• Frigo B: -18°C (freezer - range -25°C a -16°C)</li>
+                <li>• Frigo C: -20°C (freezer - range -25°C a -16°C)</li>
+                <li>• Frigo D: 20°C (ambiente - range 15-25°C)</li>
+            </ul>
+        </div>
+
+        <!-- Layout a colonne dinamiche -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Colonna Frigoriferi -->
+            <div class="space-y-4">
+                <div class="text-center">
+                    <h3 class="text-lg font-semibold text-blue-600">Frigoriferi</h3>
+                </div>
+                <div class="space-y-3 p-4 rounded-lg border-2 border-blue-300 bg-blue-100">
+                    <div class="test-card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Frigo A</h4>
+                                <p class="text-sm text-gray-500">Nessun dato</p>
+                            </div>
+                            <div class="flex gap-1">
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50">
+                                    ✏️
+                                </button>
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50 text-red-600">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">📍 Cucina</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">🌡️</span>
+                                <span class="text-sm font-medium text-gray-900">4°C</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="test-card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Frigo Bancone 1</h4>
+                                <p class="text-sm text-gray-500">Nessun dato</p>
+                            </div>
+                            <div class="flex gap-1">
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50">
+                                    ✏️
+                                </button>
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50 text-red-600">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">📍 Bancone</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">🌡️</span>
+                                <span class="text-sm font-medium text-gray-900">2°C</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="test-card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Frigo Bancone 2</h4>
+                                <p class="text-sm text-gray-500">Nessun dato</p>
+                            </div>
+                            <div class="flex gap-1">
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50">
+                                    ✏️
+                                </button>
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50 text-red-600">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">📍 Bancone</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">🌡️</span>
+                                <span class="text-sm font-medium text-gray-900">3°C</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="test-card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Frigo Bancone 3</h4>
+                                <p class="text-sm text-gray-500">Nessun dato</p>
+                            </div>
+                            <div class="flex gap-1">
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50">
+                                    ✏️
+                                </button>
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50 text-red-600">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">📍 Bancone</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">🌡️</span>
+                                <span class="text-sm font-medium text-gray-900">1°C</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colonna Freezer -->
+            <div class="space-y-4">
+                <div class="text-center">
+                    <h3 class="text-lg font-semibold text-cyan-600">Freezer</h3>
+                </div>
+                <div class="space-y-3 p-4 rounded-lg border-2 border-cyan-300 bg-cyan-100">
+                    <div class="test-card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Frigo B</h4>
+                                <p class="text-sm text-gray-500">Nessun dato</p>
+                            </div>
+                            <div class="flex gap-1">
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50">
+                                    ✏️
+                                </button>
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50 text-red-600">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">📍 Magazzino</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">🌡️</span>
+                                <span class="text-sm font-medium text-gray-900">-18°C</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="test-card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Frigo C</h4>
+                                <p class="text-sm text-gray-500">Nessun dato</p>
+                            </div>
+                            <div class="flex gap-1">
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50">
+                                    ✏️
+                                </button>
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50 text-red-600">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">📍 Magazzino</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">🌡️</span>
+                                <span class="text-sm font-medium text-gray-900">-20°C</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colonna Abbattitori (vuota) -->
+            <div class="space-y-4">
+                <div class="text-center">
+                    <h3 class="text-lg font-semibold text-orange-600">Abbattitori</h3>
+                </div>
+                <div class="space-y-3 p-4 rounded-lg border-2 border-orange-300 bg-orange-100">
+                    <div class="text-center p-4 rounded-lg bg-orange-50">
+                        <p class="text-sm text-orange-600">Nessun abbattitore configurato</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Colonna Ambiente -->
+            <div class="space-y-4">
+                <div class="text-center">
+                    <h3 class="text-lg font-semibold text-green-600">Ambiente</h3>
+                </div>
+                <div class="space-y-3 p-4 rounded-lg border-2 border-green-300 bg-green-100">
+                    <div class="test-card p-4">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h4 class="font-medium text-gray-900">Frigo D</h4>
+                                <p class="text-sm text-gray-500">Nessun dato</p>
+                            </div>
+                            <div class="flex gap-1">
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50">
+                                    ✏️
+                                </button>
+                                <button class="h-8 w-8 p-0 border border-gray-300 rounded hover:bg-gray-50 text-red-600">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-600">📍 Sala</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">🌡️</span>
+                                <span class="text-sm font-medium text-gray-900">20°C</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pulsante aggiungi -->
+        <div class="mt-6">
+            <button class="w-full border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 flex items-center justify-center gap-2">
+                <span>➕</span>
+                Aggiungi Frigorifero
+            </button>
+        </div>
+    </div>
+</body>
+</html>

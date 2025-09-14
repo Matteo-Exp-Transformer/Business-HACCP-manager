@@ -24,6 +24,10 @@ import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Info } from 'lucide-react'
 import TemperatureInput from './ui/TemperatureInput'
+import { useModals } from '../hooks/useModals'
+import AlertModal from './ui/AlertModal'
+import ConfirmModal from './ui/ConfirmModal'
+import PromptModal from './ui/PromptModal'
 
 function Temperature({ temperatures, setTemperatures, currentUser }) {
   const [formData, setFormData] = useState({
@@ -31,6 +35,14 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
     temperatureMin: '',
     temperatureMax: ''
   })
+  
+  // Initialize modals
+  const {
+    alertModal, confirmModal, promptModal,
+    closeAlert, closeConfirm, closePrompt,
+    alertSuccess, alertError, alertWarning,
+    confirmDelete, confirmAction
+  } = useModals()
   
 
   // Save temperatures to localStorage whenever they change
@@ -51,7 +63,7 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
     e.preventDefault()
     
     if (!formData.location.trim() || !formData.temperatureMin.trim() || !formData.temperatureMax.trim()) {
-      alert('Compila tutti i campi obbligatori')
+      alertError('Compila tutti i campi obbligatori')
       return
     }
 
@@ -59,13 +71,13 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
     const tempMax = parseFloat(formData.temperatureMax)
     
     if (isNaN(tempMin) || isNaN(tempMax)) {
-      alert('Inserisci temperature valide')
+      alertError('Inserisci temperature valide')
       return
     }
 
     // Validazione: temperatura minima deve essere inferiore alla massima
     if (tempMin >= tempMax) {
-      alert('La temperatura minima deve essere inferiore alla temperatura massima')
+      alertError('La temperatura minima deve essere inferiore alla temperatura massima')
       return
     }
 
@@ -398,6 +410,41 @@ function Temperature({ temperatures, setTemperatures, currentUser }) {
         </CardContent>
       </Card>
 
+      {/* Modal Components */}
+      <AlertModal 
+        isOpen={alertModal.isOpen} 
+        onClose={closeAlert} 
+        title={alertModal.title} 
+        message={alertModal.message} 
+        type={alertModal.type} 
+        confirmText={alertModal.confirmText} 
+        onConfirm={alertModal.onConfirm} 
+      />
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen} 
+        onClose={closeConfirm} 
+        title={confirmModal.title} 
+        message={confirmModal.message} 
+        type={confirmModal.type} 
+        confirmText={confirmModal.confirmText} 
+        cancelText={confirmModal.cancelText} 
+        onConfirm={confirmModal.onConfirm} 
+        onCancel={confirmModal.onCancel} 
+      />
+      <PromptModal 
+        isOpen={promptModal.isOpen} 
+        onClose={closePrompt} 
+        title={promptModal.title} 
+        message={promptModal.message} 
+        placeholder={promptModal.placeholder} 
+        defaultValue={promptModal.defaultValue} 
+        type={promptModal.type} 
+        confirmText={promptModal.confirmText} 
+        cancelText={promptModal.cancelText} 
+        validation={promptModal.validation} 
+        onConfirm={promptModal.onConfirm} 
+        onCancel={promptModal.onCancel} 
+      />
     </div>
   )
 }

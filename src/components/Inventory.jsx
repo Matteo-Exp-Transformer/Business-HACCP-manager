@@ -23,6 +23,7 @@ import CollapseCard from './ui/CollapseCard'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
+import { useScrollToForm } from '../hooks/useScrollToForm'
 import { 
   Plus, 
   Search, 
@@ -50,6 +51,13 @@ import {
 import CustomCategoryManager from './CustomCategoryManager'
 import jsPDF from 'jspdf'
 import { getConservationSuggestions, suggestStorageLocation, getOptimalTemperature } from '../utils/temperatureDatabase'
+import { PRODUCT_CATEGORIES, LOCALSTORAGE_KEYS } from '../utils/haccpConstants'
+import { migrateLocalStorageKeys, getLocalStorageData, setLocalStorageData } from '../utils/localStorageMigration'
+import { parseSetTemperature, getRefrigeratorType, getTemperatureStatus, getDisplayTemperature } from '../utils/temperatureHelpers'
+import { useModals } from '../hooks/useModals'
+import AlertModal from './ui/AlertModal'
+import ConfirmModal from './ui/ConfirmModal'
+import PromptModal from './ui/PromptModal'
 
 // Costanti per categorie di prodotti
 const CATEGORIES = [
@@ -93,10 +101,36 @@ const ALLERGENS = [
 ]
 
 const Inventory = () => {
+  // Hook per gestire i modali
+  const {
+    alertModal,
+    confirmModal,
+    promptModal,
+    closeAlert,
+    closeConfirm,
+    closePrompt,
+    alertSuccess,
+    alertError,
+    alertWarning,
+    confirmDelete,
+    promptText
+  } = useModals()
+
   // Stati principali
   const [products, setProducts] = useState([])
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
+
+  // Hook per scroll automatico al form
+  const { formRef, scrollToForm } = useScrollToForm(showAddForm, 'inventory-product-form')
+  
+  // Effetto per scroll automatico quando il form si apre
+  useEffect(() => {
+    if (showAddForm) {
+      scrollToForm()
+    }
+  }, [showAddForm, scrollToForm])
+
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterExpiry, setFilterExpiry] = useState('')
@@ -164,85 +198,49 @@ const Inventory = () => {
 
   // Carica dati dal localStorage
   useEffect(() => {
-    const savedProducts = localStorage.getItem('haccp-inventory')
-    const savedRefrigerators = localStorage.getItem('haccp-refrigerators')
-    const savedSuppliers = localStorage.getItem('haccp-suppliers')
-    const savedOrders = localStorage.getItem('haccp-orders')
+    // Esegui migrazione delle chiavi localStorage
+    migrateLocalStorageKeys()
+    
+    // Carica dati usando le chiavi standardizzate
+    const savedProducts = getLocalStorageData(LOCALSTORAGE_KEYS.INVENTORY)
+    const savedRefrigerators = getLocalStorageData(LOCALSTORAGE_KEYS.REFRIGERATORS)
+    const savedSuppliers = getLocalStorageData(LOCALSTORAGE_KEYS.SUPPLIERS)
+    const savedOrders = getLocalStorageData(LOCALSTORAGE_KEYS.ORDERS)
+    const savedUsedIngredients = getLocalStorageData(LOCALSTORAGE_KEYS.USED_INGREDIENTS)
     
     // Carica dati reparti e punti di conservazione dall'onboarding
-    const savedOnboarding = localStorage.getItem('haccp-onboarding')
+    const savedOnboarding = getLocalStorageData(LOCALSTORAGE_KEYS.ONBOARDING)
     if (savedOnboarding) {
-      try {
-        const onboarding = JSON.parse(savedOnboarding)
-        
-        // Carica reparti attivi
-        if (onboarding.departments?.list) {
-          const activeDepartments = onboarding.departments.list
-            .filter(dept => dept.enabled)
-            .map(dept => ({ id: dept.id, name: dept.name }))
-          setDepartments(activeDepartments)
-        }
-        
-        // Carica punti di conservazione
-        if (onboarding.conservation?.points) {
-          setConservationPoints(onboarding.conservation.points)
-        }
-      } catch (error) {
-        console.error('Errore nel caricamento dati onboarding:', error)
+      // Carica reparti attivi
+      if (savedOnboarding.departments?.list) {
+        const activeDepartments = savedOnboarding.departments.list
+          .filter(dept => dept.enabled)
+          .map(dept => ({ id: dept.id, name: dept.name }))
+        setDepartments(activeDepartments)
+      }
+      
+      // Carica punti di conservazione
+      if (savedOnboarding.conservation?.points) {
+        setConservationPoints(savedOnboarding.conservation.points)
       }
     }
     
-    if (savedProducts) {
-      try {
-        setProducts(JSON.parse(savedProducts))
-      } catch (error) {
-        console.error('Errore nel caricamento inventario:', error)
-      }
-    }
-    
-    if (savedRefrigerators) {
-      try {
-        setRefrigerators(JSON.parse(savedRefrigerators))
-      } catch (error) {
-        console.error('Errore nel caricamento frigoriferi:', error)
-      }
-    }
-    
-    if (savedSuppliers) {
-      try {
-        setSuppliers(JSON.parse(savedSuppliers))
-      } catch (error) {
-        console.error('Errore nel caricamento fornitori:', error)
-      }
-    }
-    
-    if (savedOrders) {
-      try {
-        setOrders(JSON.parse(savedOrders))
-      } catch (error) {
-        console.error('Errore nel caricamento ordini:', error)
-      }
-    }
-    
-    // Carica ingredienti utilizzati
-    const savedUsedIngredients = localStorage.getItem('haccp-used-ingredients')
-    if (savedUsedIngredients) {
-      try {
-        setUsedIngredients(JSON.parse(savedUsedIngredients))
-      } catch (error) {
-        console.error('Errore nel caricamento ingredienti utilizzati:', error)
-      }
-    }
+    // Imposta i dati caricati
+    if (savedProducts) setProducts(savedProducts)
+    if (savedRefrigerators) setRefrigerators(savedRefrigerators)
+    if (savedSuppliers) setSuppliers(savedSuppliers)
+    if (savedOrders) setOrders(savedOrders)
+    if (savedUsedIngredients) setUsedIngredients(savedUsedIngredients)
   }, [])
 
   // Salva prodotti nel localStorage
   useEffect(() => {
-    localStorage.setItem('haccp-inventory', JSON.stringify(products))
+    setLocalStorageData(LOCALSTORAGE_KEYS.INVENTORY, products)
   }, [products])
 
   // Salva ingredienti utilizzati nel localStorage
   useEffect(() => {
-    localStorage.setItem('haccp-used-ingredients', JSON.stringify(usedIngredients))
+    setLocalStorageData(LOCALSTORAGE_KEYS.USED_INGREDIENTS, usedIngredients)
   }, [usedIngredients])
 
   // Rileva prodotti senza punto di conservazione
@@ -264,26 +262,39 @@ const Inventory = () => {
     if (productsInDepartment.length > 0) {
       const confirmMessage = `Il reparto "${departmentToDelete}" contiene ${productsInDepartment.length} prodotti. Vuoi sostituirlo con un altro reparto?`
       
-      if (confirm(confirmMessage)) {
+      confirmDelete(confirmMessage, () => {
         // Mostra modal per selezione nuovo reparto
-        const newDepartment = prompt(`Seleziona il nuovo reparto per i ${productsInDepartment.length} prodotti:\n${departments.map(d => d.name).join('\n')}`)
-        
-        if (newDepartment && departments.find(d => d.name === newDepartment)) {
-          // Aggiorna i prodotti con il nuovo reparto
-          setProducts(prev => prev.map(product => 
-            product.department === departmentToDelete 
-              ? { ...product, department: newDepartment }
-              : product
-          ))
-          
-          // Rimuovi il reparto dalla lista
-          setDepartments(prev => prev.filter(d => d.name !== departmentToDelete))
-          
-          alert(`Reparto "${departmentToDelete}" sostituito con "${newDepartment}" per ${productsInDepartment.length} prodotti.`)
-        } else {
-          alert('Reparto non valido. Operazione annullata.')
-        }
-      }
+        promptText(
+          `Seleziona il nuovo reparto per i ${productsInDepartment.length} prodotti:\n${departments.map(d => d.name).join('\n')}`,
+          (newDepartment) => {
+            if (newDepartment && departments.find(d => d.name === newDepartment)) {
+              // Aggiorna i prodotti con il nuovo reparto
+              setProducts(prev => prev.map(product => 
+                product.department === departmentToDelete 
+                  ? { ...product, department: newDepartment }
+                  : product
+              ))
+              
+              // Rimuovi il reparto dalla lista
+              setDepartments(prev => prev.filter(d => d.name !== departmentToDelete))
+              
+              alertSuccess(`Reparto "${departmentToDelete}" sostituito con "${newDepartment}" per ${productsInDepartment.length} prodotti.`)
+            } else {
+              alertError('Reparto non valido. Operazione annullata.')
+            }
+          },
+          {
+            title: 'Seleziona nuovo reparto',
+            placeholder: 'Nome del nuovo reparto',
+            validation: (value) => {
+              if (!value || !departments.find(d => d.name === value)) {
+                return { isValid: false, error: 'Seleziona un reparto valido dalla lista' }
+              }
+              return { isValid: true, error: '' }
+            }
+          }
+        )
+      })
     } else {
       // Nessun prodotto nel reparto, può essere eliminato direttamente
       setDepartments(prev => prev.filter(d => d.name !== departmentToDelete))
@@ -296,26 +307,39 @@ const Inventory = () => {
     if (productsInPoint.length > 0) {
       const confirmMessage = `Il punto di conservazione "${pointToDelete}" contiene ${productsInPoint.length} prodotti. Vuoi sostituirlo con un altro punto?`
       
-      if (confirm(confirmMessage)) {
+      confirmDelete(confirmMessage, () => {
         // Mostra modal per selezione nuovo punto
-        const newPoint = prompt(`Seleziona il nuovo punto di conservazione per i ${productsInPoint.length} prodotti:\n${conservationPoints.map(p => p.name).join('\n')}`)
-        
-        if (newPoint && conservationPoints.find(p => p.name === newPoint)) {
-          // Aggiorna i prodotti con il nuovo punto
-          setProducts(prev => prev.map(product => 
-            product.conservationPoint === pointToDelete 
-              ? { ...product, conservationPoint: newPoint }
-              : product
-          ))
-          
-          // Rimuovi il punto dalla lista
-          setConservationPoints(prev => prev.filter(p => p.name !== pointToDelete))
-          
-          alert(`Punto di conservazione "${pointToDelete}" sostituito con "${newPoint}" per ${productsInPoint.length} prodotti.`)
-        } else {
-          alert('Punto di conservazione non valido. Operazione annullata.')
-        }
-      }
+        promptText(
+          `Seleziona il nuovo punto di conservazione per i ${productsInPoint.length} prodotti:\n${conservationPoints.map(p => p.name).join('\n')}`,
+          (newPoint) => {
+            if (newPoint && conservationPoints.find(p => p.name === newPoint)) {
+              // Aggiorna i prodotti con il nuovo punto
+              setProducts(prev => prev.map(product => 
+                product.conservationPoint === pointToDelete 
+                  ? { ...product, conservationPoint: newPoint }
+                  : product
+              ))
+              
+              // Rimuovi il punto dalla lista
+              setConservationPoints(prev => prev.filter(p => p.name !== pointToDelete))
+              
+              alertSuccess(`Punto di conservazione "${pointToDelete}" sostituito con "${newPoint}" per ${productsInPoint.length} prodotti.`)
+            } else {
+              alertError('Punto di conservazione non valido. Operazione annullata.')
+            }
+          },
+          {
+            title: 'Seleziona nuovo punto di conservazione',
+            placeholder: 'Nome del nuovo punto di conservazione',
+            validation: (value) => {
+              if (!value || !conservationPoints.find(p => p.name === value)) {
+                return { isValid: false, error: 'Seleziona un punto di conservazione valido dalla lista' }
+              }
+              return { isValid: true, error: '' }
+            }
+          }
+        )
+      })
     } else {
       // Nessun prodotto nel punto, può essere eliminato direttamente
       setConservationPoints(prev => prev.filter(p => p.name !== pointToDelete))
@@ -339,10 +363,11 @@ const Inventory = () => {
     const categoryInfo = CATEGORIES.find(c => c.id === category)
     if (!categoryInfo) return 'Categoria non trovata'
     
-    const appropriateRefrigerator = refrigerators.find(ref => 
-      ref.temperature >= 0 && ref.temperature <= 4 && 
-      categoryInfo.temp.includes('0-4°C')
-    )
+    // Usa i nuovi helper per trovare il frigorifero appropriato
+    const appropriateRefrigerator = refrigerators.find(ref => {
+      const tempInfo = parseSetTemperature(ref)
+      return tempInfo.mode === 'fixed' && tempInfo.value >= 0 && tempInfo.value <= 4
+    })
     
     return appropriateRefrigerator ? appropriateRefrigerator.name : 'Nessun frigorifero appropriato'
   }
@@ -350,17 +375,7 @@ const Inventory = () => {
   // Funzione per calcolare data di scadenza predefinita
   const getDefaultExpiryDate = (category) => {
     const today = new Date()
-    let daysToAdd = 7
-    
-    // Categorie predefinite
-    if (category === 'latticini') daysToAdd = 7
-    else if (category === 'carne') daysToAdd = 3
-    else if (category === 'pesce') daysToAdd = 2
-    else if (category === 'verdure') daysToAdd = 7
-    else if (category === 'frutta') daysToAdd = 7
-    else if (category === 'dispensa') daysToAdd = 365
-    else if (category === 'condimenti') daysToAdd = 730
-    else if (category === 'surgelati') daysToAdd = 180
+    const daysToAdd = PRODUCT_CATEGORIES[category] || 7  // Default 7 giorni se categoria non trovata
     
     const expiryDate = new Date(today)
     expiryDate.setDate(today.getDate() + daysToAdd)
@@ -594,7 +609,7 @@ const Inventory = () => {
     e.preventDefault()
     
     if (!formData.name || !formData.category || !formData.department || !formData.conservationPoint || !formData.expiryDate) {
-      alert('Compila tutti i campi obbligatori')
+      alertError('Compila tutti i campi obbligatori')
       return
     }
 
@@ -1519,9 +1534,9 @@ const Inventory = () => {
                       </Button>
                       <Button
                         onClick={() => {
-                          if (confirm('Sei sicuro di voler eliminare definitivamente questo ingrediente?')) {
+                          confirmDelete('Sei sicuro di voler eliminare definitivamente questo ingrediente?', () => {
                             setUsedIngredients(prev => prev.filter(ing => ing.id !== ingredient.id))
-                          }
+                          })
                         }}
                         size="sm"
                         variant="outline"
@@ -1549,7 +1564,7 @@ const Inventory = () => {
 
       {/* Form per aggiungere/modificare prodotto */}
       {showAddForm && (
-      <Card>
+      <Card ref={formRef} id="inventory-product-form">
         <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Plus className="h-5 w-5" />
@@ -1958,6 +1973,44 @@ const Inventory = () => {
           </div>
         </div>
       )}
+
+      {/* Modali */}
+      <AlertModal
+        isOpen={alertModal.isOpen}
+        onClose={closeAlert}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        confirmText={alertModal.confirmText}
+        onConfirm={alertModal.onConfirm}
+      />
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={closeConfirm}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        confirmText={confirmModal.confirmText}
+        cancelText={confirmModal.cancelText}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={confirmModal.onCancel}
+      />
+
+      <PromptModal
+        isOpen={promptModal.isOpen}
+        onClose={closePrompt}
+        title={promptModal.title}
+        message={promptModal.message}
+        placeholder={promptModal.placeholder}
+        defaultValue={promptModal.defaultValue}
+        type={promptModal.type}
+        confirmText={promptModal.confirmText}
+        cancelText={promptModal.cancelText}
+        validation={promptModal.validation}
+        onConfirm={promptModal.onConfirm}
+        onCancel={promptModal.onCancel}
+      />
     </div>
   )
 }

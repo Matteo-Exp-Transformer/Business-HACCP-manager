@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { FileDown } from 'lucide-react'
 import { Button } from './ui/Button'
+import { errorLog } from '../utils/debug'
 
 function PDFExport({ activeTab, temperatures }) {
   const [showPDFButton, setShowPDFButton] = useState(false)
@@ -87,7 +88,7 @@ function PDFExport({ activeTab, temperatures }) {
       const fileName = `report_Temperature_${new Date().toISOString().slice(0, 10)}.pdf`
       doc.save(fileName)
     } catch (error) {
-      console.error('PDF export error:', error)
+      errorLog('PDF export error:', error)
       alert("Errore durante l'esportazione del PDF. Riprova.")
     }
   }

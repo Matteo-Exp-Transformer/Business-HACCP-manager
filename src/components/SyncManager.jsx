@@ -16,6 +16,7 @@ import {
   Smartphone
 } from 'lucide-react'
 import { createCloudSimulator, prepareDataForCloud } from '../utils/cloudSimulator'
+import { debugLog } from '../utils/debug'
 
 function SyncManager({ 
   currentUser, 
@@ -240,16 +241,16 @@ function SyncManager({
           <Button
             onClick={() => {
               // Add a test pending change
-              console.log('🧪 Testing - adding pending change...')
+              debugLog('🧪 Testing - adding pending change...')
               if (onAddPendingChange) {
                 onAddPendingChange('test', { 
                   action: 'Test manuale', 
                   time: new Date().toLocaleTimeString(),
                   user: currentUser?.name 
                 }, `test_${Date.now()}`)
-                console.log('✅ Test change added!')
+                debugLog('✅ Test change added!')
               } else {
-                console.log('❌ onAddPendingChange not available')
+                debugLog('❌ onAddPendingChange not available')
               }
             }}
             variant="outline"

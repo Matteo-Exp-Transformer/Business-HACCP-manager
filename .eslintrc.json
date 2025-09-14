@@ -1,0 +1,12 @@
+{
+  "extends": [
+    "react-app",
+    "react-app/jest"
+  ],
+  "rules": {
+    "no-warning-comments": ["warn", { 
+      "terms": ["@lock:", "@rule:"], 
+      "location": "anywhere" 
+    }]
+  }
+}
