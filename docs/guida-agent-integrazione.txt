@@ -1,0 +1,75 @@
+==== FILENAME: guida integrazione file agenti - per gli agenti.txt ====
+
+GUIDA DI UTILIZZO DEI FILE PER AGENTI (PER AGENTI UMANI E AUTOMATICI)
+Versione: 1.0
+Obiettivo: standardizzare il comportamento degli agenti nell’app HACCP, con priorità a sicurezza alimentare e tracciabilità.
+
+0) PRINCIPI NON NEGOZIABILI
+- Mai proporre azioni che violano HACCP.
+- Se range/categorie risultano incompatibili → STOP & ESCALATION.
+- Se i dati sono ambigui/incompleti → chiedere conferma o usare fallback documentati.
+
+1) FONTI “VERITÀ”
+- `AGENT_DIRECTIVES.md` → regole operative, limiti, stile, escalation.
+- `HACCP_APP_DOCUMENTATION.md` → architettura, schemi, validazioni, mapping onboarding.
+- `CONSERVATION_POINT_RULES` → categorie standard + tolleranza.
+- `maintenanceConstants` → tipi task e validazioni.
+- Dati runtime: localStorage (`haccp-*`) + `supabaseService` per manutenzione.
+
+2) LESSICO TECNICO (USARE QUELLO DEL GLOSSARIO)
+- “Punto di Conservazione” (non “frigo” generico).
+- “Temperatura ambiente” come input valido (“ambiente” ⇒ 15–25°C).
+- “Compatibilità” vs “Tolleranza” vs “Conflitto”.
+
+3) FLUSSI GUIDATI (STEP BY STEP)
+A) Creazione Punto di Conservazione
+- Richiedi: `name`, `location` (reparto), `setTemperature` (o “ambiente”), `selectedCategories` (max 5).
+- Esegui: validazione HACCP (in-range, in-tolleranza, conflitti).
+- Se conflitto: mostra elenco categorie con ottimali e chiedi conferma esplicita.
+- Se `setTemperature` ∈ [-90, -1] proponi `isAbbattitore`.
+- Registra `maintenanceData` completo (3 task con `frequency`, `assigned_role`, `assigned_category`, `assigned_staff_ids`).
+- Persisti localmente e salva task via `supabaseService`.
+
+B) Modifica Punto
+- Non permettere nomi duplicati.
+- Ricalcola compatibilità se cambia temperatura/categorie.
+- Se cambia manutenzione: wipe-and-recreate task su Supabase (come da codice).
+
+C) Inventario Prodotti
+- Non accettare inserimenti senza: `name`, `category`, `department`, `conservationPoint`, `expiryDate`.
+- Applicare scadenze predefinite se reinserimento da “ingredienti utilizzati”.
+- Sui PDF includere: categoria, reparto, punto, scadenza, allergeni, note.
+
+D) Registro Temperature
+- Associa misurazioni a `location` contenente `refrigerator.name`.
+- Valuta stato: differenza tra misurato e “set”.
+- Soglie: ≤1°C OK; ≤1.5°C Warning; ≥2°C Critico.
+
+4) OUTPUT ATTESI DAGLI AGENTI
+- Messaggi con livello: INFO / WARNING / ERROR.
+- Spiegazioni sintetiche con “cosa, perché, cosa fare ora”.
+- Proposte di correzione (range ottimali, categoria alternativa).
+
+5) ESCALATION
+- Divergenza > tolleranza tra range categoria e target impostato.
+- Modifiche che riducono le garanzie HACCP (disabilitare controlli).
+- Impossibilità di associare un punto a un reparto valido.
+
+6) ESEMPI DI PROMPT INTERNI (TEMPLATE)
+- “Valida nuovo punto: name=…, location=…, temp=…, categories=[…]. Fornisci: stato HACCP, conflitti, suggerimento range comune, proposta isAbbattitore (se -1/−90).”
+- “Aggiorna manutenzione per pointId=…: tre task completi o segnala cosa manca (frequenza, ruolo, categoria, staff).”
+- “Controlla inventario: elenca prodotti senza punto o reparto. Genera azioni correttive.”
+
+7) DO & DON’T
+- DO: citare il file sorgente della regola (es. CONSERVATION_POINT_RULES).
+- DO: usare termini del glossario.
+- DON’T: ignorare warning gialli senza nota esplicita.
+- DON’T: cambiare schema storage senza PR/approvazione.
+
+8) CHECK DI USCITA
+- [ ] Nessun conflitto HACCP aperto.
+- [ ] Manutenzione impostata su 3 task o motivata l’assenza.
+- [ ] Persistenza locale coerente + sync Supabase riuscito.
+- [ ] Log azioni con esito e prossimi step.
+
+FINE

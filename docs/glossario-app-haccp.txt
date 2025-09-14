@@ -1,0 +1,123 @@
+==== FILENAME: glossario app haccp.txt ====
+
+GLOSSARIO APP HACCP
+Versione: 1.0
+Scopo: fornire un linguaggio comune a chi modifica/usa il codice e agli agenti automatici.
+
+# A
+Abbattitore
+- Attrezzatura per abbattimento rapido della temperatura. Nel codice: flag `isAbbattitore` sui “punti di conservazione”.
+- Classificazione: distinta da Freezer/Frigo; compatibile con temperature tra -1°C e -90°C.
+- Impatto: filtri UI, validazioni HACCP, categorie dedicate (es. `abbattitore_menu`, `abbattitore_esposizione`).
+
+Allergeni
+- Lista standard (es. glutine, latte, uova…). Gestiti in inventario come array `allergens`.
+- Uso: filtri, stampa PDF, badge visivi.
+
+Ambiente (Temperatura Ambiente)
+- Range logico 15–25°C. Accettato come input stringa `"ambiente"`.
+- Impatto: validazioni HACCP e compatibilità categorie; resa “da 15°C a 25°C”.
+
+# C
+Categorie (Prodotti / Conservazione)
+- Due insiemi: standard HACCP (`CONSERVATION_POINT_RULES.categories`) + personalizzate (persistenza `customStorageCategories`).
+- Selezione: fino a 5 per punto di conservazione (`selectedCategories`).
+- Compatibilità: calcolata con tolleranza; conflitti segnalati (warning/error).
+
+Compliance HACCP
+- Esito delle regole su temperature/categorie: `compliant` / `warning` / `error`.
+- Colori: verde/giallo/rosso. Messaggi esplicativi in tempo reale nei form.
+
+Conservation Point (Punto di Conservazione)
+- Entità che rappresenta frigo/freezer/abbattitore/ambiente.
+- Campi chiave: `id`, `name`, `setTemperature` (o range), `location` (reparto), `selectedCategories`, `maintenanceData`, `isAbbattitore`.
+- Persistenza: `localStorage` chiave `haccp-refrigerators` + sincronizzazione attività manutenzione via `supabaseService`.
+
+# D
+Departments (Reparti)
+- Lista proveniente dall’onboarding; impatta filtri, grouping e posizione punti.
+- Rinominare/eliminare richiede riassegnazione dei prodotti correlati.
+
+# E
+Export PDF
+- Funzioni stampa (inventario, lista spesa) con `jsPDF` e layout base (titoli, date, righe per prodotto).
+
+Expiry Status (Stato Scadenza)
+- Calcolo sui giorni alla scadenza: `expired`, `critical` (≤3), `warning` (≤7), `ok` (>7).
+- UI: badge colore + filtri.
+
+# F
+Freezer / Frigo / Ambiente (Tipi)
+- Derivati da `getRefrigeratorType()` usando temperatura (o range).
+- Freezer: < -1°C; Frigo: 0–8°C; Ambiente: 15–27°C; Abbattitore: flag esplicito.
+
+# H
+HACCP Rules
+- Sorgente verità per range categoria e tolleranza: `CONSERVATION_POINT_RULES`.
+- Usate in: validazioni form, compatibilità categorie, suggerimenti range ottimali.
+
+# I
+Inventory (Inventario)
+- Gestisce prodotti, tracciabilità, allergeni, reparti, punti, scadenze, ordini.
+- Persistenza: `localStorage` (`haccp-inventory`, ecc.).
+- Funzioni chiave: filtri avanzati, raggruppamenti, “ingredienti utilizzati”, reinserimento.
+
+# L
+LocalStorage Keys (principali)
+- `haccp-inventory`: prodotti.
+- `haccp-refrigerators`: punti di conservazione.
+- `haccp-suppliers`, `haccp-orders`, `haccp-used-ingredients`.
+- `haccp-onboarding`/`haccp-onboarding-new`: dati iniziali (punti, reparti, staff).
+- `customStorageCategories`: categorie personalizzate.
+- Flag: `haccp-onboarding-loaded`.
+
+# M
+Maintenance (Manutenzione)
+- Tre task: `temperature_monitoring`, `sanitization`, `defrosting`.
+- Struttura: `maintenanceData` con `frequency`, `assigned_role`, `assigned_category`, `assigned_staff_ids`.
+- Validazione: `validateMaintenanceConfig`. Persistenza remota via `supabaseService`.
+
+# O
+Onboarding
+- Import di reparti, punti, staff, categorie iniziali. Evitare dupliche caricando una sola volta.
+- Normalizza campi temperatura (accetta `targetTemp`, `setTemperature`, `temperature`, `temp`).
+
+# P
+PDF (Stampe)
+- Inventario e lista spesa: produzioni sinottiche con categorie, reparti, punti, scadenze, note.
+
+Products (Prodotti)
+- Campi tipici: `name`, `category`, `department`, `conservationPoint`, `expiryDate`, `allergens`, `notes`, `lotNumber`, `batchDeliveryDate`, `supplierName`, `associatedOrderId`, `addedAt`.
+
+# R
+Range Tolleranza
+- Dalla config HACCP; permette leggere discrepanze senza errore (stato “tolerance”).
+
+Reinsert Used Ingredient
+- Meccanismo per reinserire rapidamente un prodotto rimosso con scadenza predefinita.
+
+# S
+Supabase Service
+- `supabaseService`: lettura/scrittura attività manutenzione legate a punti (CRUD).
+- Uso asincrono nei `useEffect` di sincronizzazione.
+
+Staff Members
+- Da onboarding o localStorage (`haccp-staff`); utilizzati per assegnazioni manutenzione.
+
+# T
+TemperatureInput
+- Componente UI per range temperatura nelle categorie personalizzate; validazioni e suggerimenti.
+
+Temperatures (Registro)
+- Raccolta misure: `temperatures` con `location`, `temperature`, `timestamp/time`, `userName`.
+- UI “Attività Registro Temperature” + storici per punto.
+
+# U
+UI State & Modali
+- Aggiunta/Modifica Punti, Shopping List, Ordini, Bulk Delete, Cronologia Temperature, HelpOverlay.
+
+# V
+Validazione
+- Multi-livello: campi obbligatori, compatibilità temperatura/categorie, tolleranza, duplicati (nomi punti).
+
+FINE

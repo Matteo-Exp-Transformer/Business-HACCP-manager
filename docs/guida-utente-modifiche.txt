@@ -1,0 +1,69 @@
+==== FILENAME: guida integrazione file agenti - per l'utente.txt ====
+
+GUIDA PER INTEGRARE E UTILIZZARE I FILE PER AGENTI (PER L’UTENTE/DEVELOPER)
+Versione: 1.0
+Obiettivo: aiutarti a MODIFICARE, USARE e SVILUPPARE l’integrazione “file per agenti” in modo sicuro e coerente con HACCP.
+
+1) COSA SONO I “FILE PER AGENTI”
+- Documenti di riferimento (es. `AGENT_DIRECTIVES.md`, `HACCP_APP_DOCUMENTATION.md`, regole HACCP, checklist, playbook).
+- Servono a:
+  • Guidare agenti/assistenti (umani o automatici) su come operare.
+  • Configurare il comportamento dell’app in aree critiche (inventario, manutenzione, temperature).
+
+2) DOVE METTERLI NEL PROGETTO
+- Root del repo (consigliato) o cartella `docs/agent/`.
+- Mantieni nomi stabili e coerenti: 
+  • `AGENT_DIRECTIVES.md`  → direttive comportamentali, limiti, escalation.
+  • `HACCP_APP_DOCUMENTATION.md` → architettura, flussi, dati critici.
+
+3) STRUTTURA MINIMA CONSIGLIATA
+- AGENT_DIRECTIVES.md
+  • Scopo dell’agente, responsabilità, divieti (es. niente override HACCP).
+  • Regole di sicurezza (temperatura, scadenze, allergeni, tracciabilità).
+  • Procedure di escalation (quando fermarsi e chiedere conferma).
+  • Stile output (linguaggio, formato, log).
+
+- HACCP_APP_DOCUMENTATION.md
+  • Mappa dei moduli critici (Inventario, Punti di Conservazione, Manutenzione, Registro Temperature).
+  • Schemi dati (chiavi localStorage, campi essenziali, mapping onboarding).
+  • Validazioni HACCP (range, tolleranza, categorie compatibili).
+  • API interne (es. `supabaseService`) e dove sono invocate.
+  • Flussi aggiornamento/stampa PDF.
+
+4) COME COLLEGARLI ALL’APP
+- Nei componenti critici (es. `Inventory.jsx`, “Punti di Conservazione”) lasciare header di avviso con riferimenti ai file.
+- Nei tool di automazione/agenti, caricare e leggere questi file all’avvio (se usi un orchestratore esterno).
+- Prevedi un toggle “solo-lettura” per ambienti di produzione.
+
+5) FLUSSO DI MODIFICA SICURA (STEP BY STEP)
+- Step 1: Apri `AGENT_DIRECTIVES.md` → aggiorna policy e limiti.
+- Step 2: Allinea `HACCP_APP_DOCUMENTATION.md` (schemi e flussi).
+- Step 3: Aggiorna costanti/validators nel codice (es. `CONSERVATION_POINT_RULES`, `validateMaintenanceConfig`).
+- Step 4: Testa in locale:
+  • Inserimento temperature (incluso “ambiente”).
+  • Aggiunta punto con categorie multiple.
+  • Compatibilità/tolleranza e warning.
+  • CRUD manutenzione e sincronizzazione Supabase.
+- Step 5: Crea tag/branch, apri PR con checklist HACCP (allegare PDF export inventario come prova).
+- Step 6: Deploy canary → osserva errori console e storage.
+
+6) RED FLAG (FERMATI E CHIEDI CONFERMA)
+- Modifiche a range HACCP o tolleranza.
+- Disattivazione validazioni obbligatorie o “bypass”.
+- Cancellazione massiva senza backup.
+- Cambi in `supabaseService` (schema DB/ID azienda).
+
+7) BEST PRACTICES
+- Versionare i file agenti (semver + changelog).
+- Mettere esempi concreti in ogni sezione.
+- Scrivere test di regressione per validazioni.
+- Documentare mapping onboarding → runtime (`targetTemp`/`setTemperature`/`temperature`/`temp`).
+
+8) CHECKLIST PRE-MERGE
+- [ ] Direttive agenti aggiornate.
+- [ ] Documentazione HACCP allineata.
+- [ ] Test manuali UI passati (punti, categorie, PDF).
+- [ ] Sincronizzazione manutenzione testata (create/update/delete).
+- [ ] Nessun warning/blocco in console.
+
+FINE

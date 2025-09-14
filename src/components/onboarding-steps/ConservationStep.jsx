@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { Label } from '../ui/Label';
-import { Plus, X, Thermometer, AlertTriangle, Edit } from 'lucide-react';
+import { Plus, X, Thermometer, AlertTriangle, Edit, CheckCircle } from 'lucide-react';
 import { CONSERVATION_POINT_RULES } from '../../utils/haccpRules';
 import { debugLog, errorLog, haccpLog } from '../../utils/debug';
 import { useScrollToForm } from '../../hooks/useScrollToForm';
@@ -311,6 +311,59 @@ const ConservationStep = ({
     return null;
   };
 
+  // Funzione per ottenere la temperatura ottimale di una categoria
+  const getOptimalTemperatureLocal = (categoryId) => {
+    const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
+    if (category) {
+      return {
+        min: category.minTemp,
+        max: category.maxTemp
+      };
+    }
+    return null;
+  };
+
+  // Funzione per ottenere suggerimenti di temperatura ottimale per categorie selezionate
+  const getOptimalTemperatureSuggestions = (selectedCategories) => {
+    if (!selectedCategories || selectedCategories.length === 0) {
+      return { message: 'Seleziona categorie per ottenere suggerimenti sulle temperature ottimali' };
+    }
+
+    const temperatureRanges = [];
+    
+    selectedCategories.forEach(categoryId => {
+      const optimalTemp = getOptimalTemperatureLocal(categoryId);
+      if (optimalTemp) {
+        const category = CONSERVATION_POINT_RULES.categories.find(cat => cat.id === categoryId);
+        temperatureRanges.push({
+          name: category?.name || categoryId,
+          min: optimalTemp.min,
+          max: optimalTemp.max
+        });
+      }
+    });
+
+    if (temperatureRanges.length === 0) {
+      return { message: 'Nessuna informazione di temperatura disponibile per le categorie selezionate' };
+    }
+
+    // Calcola il range comune
+    const minTemp = Math.max(...temperatureRanges.map(range => range.min));
+    const maxTemp = Math.min(...temperatureRanges.map(range => range.max));
+
+    if (minTemp <= maxTemp) {
+      return {
+        compatible: true,
+        message: `Range ottimale per le categorie selezionate: da ${minTemp}°C a ${maxTemp}°C`
+      };
+    } else {
+      return {
+        compatible: false,
+        message: `⚠️ Conflitto di temperature: Le categorie selezionate hanno range incompatibili. Verifica i requisiti HACCP.`
+      };
+    }
+  };
+
   const handleAddPoint = () => {
     if (localFormData.name && localFormData.location && localFormData.targetTemp && localFormData.selectedCategories.length > 0) {
       // Se è un abbattitore, aggiungi le categorie specifiche dell'abbattitore
@@ -542,26 +595,93 @@ const ConservationStep = ({
               <div className="md:col-span-2">
                 <Label>Categorie Prodotti *</Label>
                 <div className="mt-2 grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {CONSERVATION_POINT_RULES.categories.map(category => (
-                    <label key={category.id} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={localFormData.selectedCategories.includes(category.id)}
-                        onChange={(e) => {
-                          const newCategories = e.target.checked 
-                            ? [...localFormData.selectedCategories, category.id]
-                            : localFormData.selectedCategories.filter(id => id !== category.id);
+                  {CONSERVATION_POINT_RULES.categories.map(category => {
+                    const isSelected = localFormData.selectedCategories.includes(category.id);
+                    const compatibility = getCategoryCompatibility(category.id, localFormData.selectedCategories, localFormData.targetTemp);
+                    
+                    const getCompatibilityStyle = () => {
+                      switch (compatibility) {
+                        case 'selected':
+                          return 'bg-white border-gray-300 text-gray-700 shadow-sm';
+                        case 'compatible':
+                          return 'bg-green-200 border-green-400 text-green-900 shadow-sm';
+                        case 'tolerance':
+                          return 'bg-yellow-200 border-yellow-400 text-yellow-900 shadow-sm';
+                        case 'incompatible':
+                          return 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60';
+                        case 'neutral':
+                          return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
+                        default:
+                          return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
+                      }
+                    };
+                    
+                    return (
+                      <div
+                        key={category.id}
+                        onClick={() => {
+                          // Non permettere il click se la categoria è incompatibile
+                          if (compatibility === 'incompatible') return;
+                          
+                          const newCategories = isSelected 
+                            ? localFormData.selectedCategories.filter(id => id !== category.id)
+                            : [...localFormData.selectedCategories, category.id];
                           setLocalFormData(prev => ({ ...prev, selectedCategories: newCategories }));
                           markStepAsUnconfirmed(currentStep);
                         }}
-                        className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm">
-                        {category.icon} {category.name}
-                      </span>
-                    </label>
-                  ))}
+                        className={`p-2 rounded-lg border-2 transition-all duration-200 ${getCompatibilityStyle()}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-xs truncate">{category.name}</h4>
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">{category.description}</p>
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            {isSelected && <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />}
+                            {compatibility === 'compatible' && !isSelected && <span className="text-xs">✅</span>}
+                            {compatibility === 'incompatible' && !isSelected && <span className="text-xs">🚫</span>}
+                            {compatibility === 'tolerance' && !isSelected && <span className="text-xs">⚠️</span>}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+                
+                {/* Consigli di compatibilità */}
+                {localFormData.targetTemp && localFormData.selectedCategories.length > 0 && (
+                  <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                    <div className="text-sm text-blue-800">
+                      <strong>Consigli:</strong> {(() => {
+                        const suggestion = getOptimalTemperatureSuggestions(localFormData.selectedCategories);
+                        if (suggestion && !suggestion.compatible) {
+                          return suggestion.message;
+                        } else if (suggestion) {
+                          return suggestion.message;
+                        }
+                        return 'Temperatura compatibile con le categorie selezionate';
+                      })()}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Suggerimenti temperatura ottimale - sempre visibili quando ci sono categorie */}
+                {localFormData.selectedCategories.length > 0 && (
+                  <div className="mt-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                    <div className="text-sm text-green-800">
+                      <strong>💡 Suggerimento Temperatura:</strong> {(() => {
+                        const suggestion = getOptimalTemperatureSuggestions(localFormData.selectedCategories);
+                        return suggestion.message;
+                      })()}
+                    </div>
+                  </div>
+                )}
+                
+                {localFormData.selectedCategories.length === 0 && (
+                  <p className="text-xs text-red-500 mt-2">
+                    ⚠️ Seleziona almeno una categoria per procedere
+                  </p>
+                )}
               </div>
             </div>
             

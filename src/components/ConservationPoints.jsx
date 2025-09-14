@@ -94,6 +94,15 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
   // Combina le categorie predefinite con quelle personalizzate
   const allCategories = [...STORAGE_CATEGORIES, ...customCategories]
   
+  // Forza il re-render delle categorie quando cambia la temperatura
+  const [forceUpdate, setForceUpdate] = useState(0)
+  
+  useEffect(() => {
+    // Forza il re-render quando cambia la temperatura
+    console.log('🔍 formData aggiornato:', formData);
+    setForceUpdate(prev => prev + 1)
+  }, [formData.setTempMode, formData.setTempC, formData.setTempRangeC])
+  
   // Funzione per aprire l'HelpOverlay
   const openHelpOverlay = (type) => {
     setHelpType(type)
@@ -190,10 +199,11 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
         };
       }
       
-      let isInRange = false;
-      let isInToleranceRange = false;
+      let isInRange = true; // Inizia con true, diventa false se una categoria non è compatibile
+      let isInToleranceRange = true; // Inizia con true, diventa false se una categoria non è in tolleranza
       let categoryInfo = null;
       
+      // Controlla che TUTTE le categorie siano compatibili con la temperatura
       for (const categoryId of selectedCategories) {
         let category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
         if (!category) {
@@ -205,50 +215,31 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
           const categoryMinTemp = category.minTemp || category.temperatureMin;
           const categoryMaxTemp = category.maxTemp || category.temperatureMax;
           
+          let categoryInRange = false;
+          let categoryInTolerance = false;
+          
           if (isAmbiente) {
             // Per "ambiente", controlla se il range 15-25°C si sovrappone con la categoria
             const ambienteRange = getAmbienteTemperatureRange();
-            if (categoryMinTemp <= ambienteRange.max && categoryMaxTemp >= ambienteRange.min) {
-              isInRange = true;
-              break;
-            }
-          } else if (temp >= categoryMinTemp && temp <= categoryMaxTemp) {
-            isInRange = true;
-            break;
+            categoryInRange = categoryMinTemp <= ambienteRange.max && categoryMaxTemp >= ambienteRange.min;
+            categoryInTolerance = categoryInRange; // Per ambiente, se è nel range è anche in tolleranza
+          } else {
+            categoryInRange = temp >= categoryMinTemp && temp <= categoryMaxTemp;
+            const categoryMin = categoryMinTemp - tolerance;
+            const categoryMax = categoryMaxTemp + tolerance;
+            categoryInTolerance = temp >= categoryMin && temp <= categoryMax;
+          }
+          
+          // Se anche una sola categoria non è compatibile, il risultato è false
+          if (!categoryInRange) {
+            isInRange = false;
+          }
+          if (!categoryInTolerance) {
+            isInToleranceRange = false;
           }
         }
       }
       
-      // Se non è nel range HACCP, controlla se è in tolleranza per almeno una categoria
-      if (!isInRange) {
-        for (const categoryId of selectedCategories) {
-          let category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
-          if (!category) {
-            category = customCategories.find(c => c.id === categoryId);
-          }
-          if (category) {
-            if (!categoryInfo) categoryInfo = category; // Imposta la prima categoria come riferimento
-            const categoryMinTemp = category.minTemp || category.temperatureMin;
-            const categoryMaxTemp = category.maxTemp || category.temperatureMax;
-            const categoryMin = categoryMinTemp - tolerance;
-            const categoryMax = categoryMaxTemp + tolerance;
-            
-            if (isAmbiente) {
-              // Per "ambiente", controlla se il range 15-25°C è in tolleranza
-              const ambienteRange = getAmbienteTemperatureRange();
-              const ambienteMin = ambienteRange.min - tolerance;
-              const ambienteMax = ambienteRange.max + tolerance;
-              if (categoryMinTemp <= ambienteMax && categoryMaxTemp >= ambienteMin) {
-                isInToleranceRange = true;
-                break;
-              }
-            } else if (temp >= categoryMin && temp <= categoryMax) {
-              isInToleranceRange = true;
-              break;
-            }
-          }
-        }
-      }
       
       if (isInRange) {
         return { 
@@ -377,26 +368,33 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
     }
   };
 
+  // Funzione helper per estrarre la temperatura dal form
+  const getTemperatureFromForm = (formData) => {
+    if (formData.setTempMode === TEMP_MODES.FIXED && formData.setTempC !== undefined) {
+      return formData.setTempC;
+    } else if (formData.setTempMode === TEMP_MODES.RANGE && formData.setTempRangeC) {
+      return (formData.setTempRangeC.min + formData.setTempRangeC.max) / 2;
+    } else if (formData.setTempMode === TEMP_MODES.AMBIENT) {
+      return 20; // Valore medio per ambiente
+    }
+    return null;
+  };
+
   // Funzione per determinare la compatibilità delle categorie (stessa logica dell'onboarding)
-  const getCategoryCompatibility = (categoryId, selectedCategories, targetTemp) => {
+  const getCategoryCompatibility = (categoryId, selectedCategories, formData) => {
+    console.log('🔍 getCategoryCompatibility chiamata per:', categoryId, 'con formData:', formData);
+    
     // Controlla se la categoria è già selezionata
     if (selectedCategories.includes(categoryId)) return 'selected';
     
-    // Se non c'è temperatura inserita, mostra tutte le categorie come neutral
-    if (!targetTemp || (typeof targetTemp === 'string' && targetTemp.trim() === '')) return 'neutral';
+    // Estrae la temperatura dal form
+    const temp = getTemperatureFromForm(formData);
+    console.log('🔍 Temperatura estratta:', temp);
+    
+    if (temp === null) return 'neutral';
     
     // Gestisce "ambiente" come range 15-25°C per monitoraggio futuro
-    let temp;
-    let isAmbiente = false;
-    
-    // Controlla se targetTemp è una stringa e se è "ambiente"
-    if (typeof targetTemp === 'string' && targetTemp.toLowerCase().trim() === 'ambiente') {
-      temp = 20; // Valore medio per validazione HACCP
-      isAmbiente = true;
-    } else {
-      temp = parseFloat(targetTemp);
-    }
-    if (isNaN(temp)) return 'neutral';
+    let isAmbiente = formData.setTempMode === TEMP_MODES.AMBIENT;
     
     // Cerca prima nelle categorie HACCP standard, poi in quelle personalizzate
     let category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
@@ -2264,21 +2262,21 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
                   </Button>
                 </div>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" key={forceUpdate}>
                   {allCategories.map(category => {
                     const isSelected = formData.selectedCategories?.includes(category.id) || false
-                    const compatibility = getCategoryCompatibility(category.id, formData.selectedCategories || [], formData.setTemperature)
+                    const compatibility = getCategoryCompatibility(category.id, formData.selectedCategories || [], formData)
                     
                     const getCompatibilityStyle = () => {
                       switch (compatibility) {
                         case 'selected':
-                          return 'bg-blue-200 border-blue-400 text-blue-900 shadow-sm';
+                          return 'bg-white border-gray-300 text-gray-700 shadow-sm';
                         case 'compatible':
                           return 'bg-green-200 border-green-400 text-green-900 shadow-sm';
                         case 'tolerance':
                           return 'bg-yellow-200 border-yellow-400 text-yellow-900 shadow-sm';
                         case 'incompatible':
-                          return 'bg-red-200 border-red-400 text-red-900 shadow-sm';
+                          return 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60';
                         case 'neutral':
                           return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
                         default:
@@ -2289,8 +2287,12 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
                     return (
                       <div
                         key={category.id}
-                        onClick={() => handleCategoryToggle(category.id)}
-                        className={`p-2 rounded-lg border-2 cursor-pointer transition-all duration-200 ${getCompatibilityStyle()}`}
+                        onClick={() => {
+                          // Non permettere il click se la categoria è incompatibile
+                          if (compatibility === 'incompatible') return;
+                          handleCategoryToggle(category.id);
+                        }}
+                        className={`p-2 rounded-lg border-2 transition-all duration-200 ${getCompatibilityStyle()}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
@@ -2298,9 +2300,9 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
                             <p className="text-xs text-gray-600 mt-1 line-clamp-2">{category.description}</p>
                           </div>
                           <div className="flex items-center gap-1 ml-2">
-                            {isSelected && <CheckCircle className="h-3 w-3 text-blue-600 flex-shrink-0" />}
+                            {isSelected && <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />}
                             {compatibility === 'compatible' && !isSelected && <span className="text-xs">✅</span>}
-                            {compatibility === 'incompatible' && !isSelected && <span className="text-xs">❌</span>}
+                            {compatibility === 'incompatible' && !isSelected && <span className="text-xs">🚫</span>}
                             {compatibility === 'tolerance' && !isSelected && <span className="text-xs">⚠️</span>}
                           </div>
                         </div>
@@ -2328,6 +2330,34 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
                   </div>
                 )}
                 
+                {/* Consigli di compatibilità */}
+                {getTemperatureFromForm(formData) !== null && formData.selectedCategories.length > 0 && (
+                  <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                    <div className="text-sm text-blue-800">
+                      <strong>Consigli:</strong> {(() => {
+                        const suggestion = getOptimalTemperatureSuggestions(formData.selectedCategories);
+                        if (suggestion && !suggestion.compatible) {
+                          return suggestion.message;
+                        } else if (suggestion) {
+                          return suggestion.message;
+                        }
+                        return 'Temperatura compatibile con le categorie selezionate';
+                      })()}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Suggerimenti temperatura ottimale - sempre visibili quando ci sono categorie */}
+                {formData.selectedCategories.length > 0 && (
+                  <div className="mt-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                    <div className="text-sm text-green-800">
+                      <strong>💡 Suggerimento Temperatura:</strong> {(() => {
+                        const suggestion = getOptimalTemperatureSuggestions(formData.selectedCategories);
+                        return suggestion.message;
+                      })()}
+                    </div>
+                  </div>
+                )}
                 
                 {formData.selectedCategories.length === 0 && (
                   <p className="text-xs text-red-500 mt-2">
@@ -2650,21 +2680,21 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
                   </Button>
                 </div>
                 
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" key={forceUpdate}>
                   {allCategories.map(category => {
                     const isSelected = formData.selectedCategories?.includes(category.id) || false
-                    const compatibility = getCategoryCompatibility(category.id, formData.selectedCategories || [], formData.setTemperature)
+                    const compatibility = getCategoryCompatibility(category.id, formData.selectedCategories || [], formData)
                     
                     const getCompatibilityStyle = () => {
                       switch (compatibility) {
                         case 'selected':
-                          return 'bg-blue-200 border-blue-400 text-blue-900 shadow-sm';
+                          return 'bg-white border-gray-300 text-gray-700 shadow-sm';
                         case 'compatible':
                           return 'bg-green-200 border-green-400 text-green-900 shadow-sm';
                         case 'tolerance':
                           return 'bg-yellow-200 border-yellow-400 text-yellow-900 shadow-sm';
                         case 'incompatible':
-                          return 'bg-red-200 border-red-400 text-red-900 shadow-sm';
+                          return 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60';
                         case 'neutral':
                           return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
                         default:
@@ -2675,8 +2705,12 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
                     return (
                       <div
                         key={category.id}
-                        onClick={() => handleCategoryToggle(category.id)}
-                        className={`p-2 rounded-lg border-2 cursor-pointer transition-all duration-200 ${getCompatibilityStyle()}`}
+                        onClick={() => {
+                          // Non permettere il click se la categoria è incompatibile
+                          if (compatibility === 'incompatible') return;
+                          handleCategoryToggle(category.id);
+                        }}
+                        className={`p-2 rounded-lg border-2 transition-all duration-200 ${getCompatibilityStyle()}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
@@ -2684,9 +2718,9 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
                             <p className="text-xs text-gray-600 mt-1 line-clamp-2">{category.description}</p>
                           </div>
                           <div className="flex items-center gap-1 ml-2">
-                            {isSelected && <CheckCircle className="h-3 w-3 text-blue-600 flex-shrink-0" />}
+                            {isSelected && <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />}
                             {compatibility === 'compatible' && !isSelected && <span className="text-xs">✅</span>}
-                            {compatibility === 'incompatible' && !isSelected && <span className="text-xs">❌</span>}
+                            {compatibility === 'incompatible' && !isSelected && <span className="text-xs">🚫</span>}
                             {compatibility === 'tolerance' && !isSelected && <span className="text-xs">⚠️</span>}
                           </div>
                         </div>
@@ -2714,6 +2748,34 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
                   </div>
                 )}
                 
+                {/* Consigli di compatibilità */}
+                {getTemperatureFromForm(formData) !== null && formData.selectedCategories.length > 0 && (
+                  <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                    <div className="text-sm text-blue-800">
+                      <strong>Consigli:</strong> {(() => {
+                        const suggestion = getOptimalTemperatureSuggestions(formData.selectedCategories);
+                        if (suggestion && !suggestion.compatible) {
+                          return suggestion.message;
+                        } else if (suggestion) {
+                          return suggestion.message;
+                        }
+                        return 'Temperatura compatibile con le categorie selezionate';
+                      })()}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Suggerimenti temperatura ottimale - sempre visibili quando ci sono categorie */}
+                {formData.selectedCategories.length > 0 && (
+                  <div className="mt-3 p-3 rounded-lg bg-green-50 border border-green-200">
+                    <div className="text-sm text-green-800">
+                      <strong>💡 Suggerimento Temperatura:</strong> {(() => {
+                        const suggestion = getOptimalTemperatureSuggestions(formData.selectedCategories);
+                        return suggestion.message;
+                      })()}
+                    </div>
+                  </div>
+                )}
                 
                 {formData.selectedCategories.length === 0 && (
                   <p className="text-xs text-red-500 mt-2">
