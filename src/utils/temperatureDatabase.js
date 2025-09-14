@@ -8,6 +8,11 @@
  * - HACCP_APP_DOCUMENTATION.md
  * 
  * ⚠️ MODIFICHE NON AUTORIZZATE POSSONO COMPROMETTERE LA SICUREZZA ALIMENTARE
+ */
+
+import { parseSetTemperature } from './temperatureHelpers'
+
+/**
  * ⚠️ Questo database gestisce allarmi e validazioni temperature critiche
  * ⚠️ Basato su normative EU/ASL vincolanti per la sicurezza alimentare
  * 
@@ -265,11 +270,12 @@ export const getConservationSuggestions = (productName) => {
   const normalizedName = productName.toLowerCase().trim()
   
   // Cerca corrispondenze esatte o parziali
-  const matches = FOOD_TEMPERATURE_DATABASE.filter(item => 
-    item.food_item.toLowerCase().includes(normalizedName) ||
-    normalizedName.includes(item.food_item.toLowerCase().split(' ')[0]) ||
-    normalizedName.includes(item.food_item.toLowerCase().split(' ')[1])
-  )
+  const matches = FOOD_TEMPERATURE_DATABASE.filter(item => {
+    const itemWords = item.food_item.toLowerCase().split(' ')
+    return item.food_item.toLowerCase().includes(normalizedName) ||
+           normalizedName.includes(itemWords[0]) ||
+           (itemWords[1] && normalizedName.includes(itemWords[1]))
+  })
 
   // Se non trova corrispondenze dirette, cerca per categoria
   if (matches.length === 0) {
@@ -350,8 +356,19 @@ export const suggestStorageLocation = (productName, availableRefrigerators) => {
   let bestScore = -1
   
   availableRefrigerators.forEach(ref => {
-    const refTemp = parseFloat(ref.setTemperature)
-    if (isNaN(refTemp)) return
+    // Usa parseSetTemperature per uniformare il modello temperatura
+    const tempData = parseSetTemperature(ref)
+    let refTemp = 0
+    
+    if (tempData.mode === 'fixed') {
+      refTemp = tempData.value
+    } else if (tempData.mode === 'range') {
+      refTemp = (tempData.range.min + tempData.range.max) / 2
+    } else if (tempData.mode === 'ambient') {
+      refTemp = 20 // Temperatura media ambiente
+    } else {
+      return // Skip refrigerators with unknown temperature
+    }
     
     let score = 0
     

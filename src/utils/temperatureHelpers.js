@@ -54,18 +54,31 @@ export const parseSetTemperature = (point) => {
   
   // Se è una stringa, prova a parsarla
   if (typeof tempValue === 'string') {
-    const str = tempValue.toLowerCase().trim()
+    // Normalizza input stringa: rimuovi spazi extra e sostituisci , con . per decimali
+    let str = tempValue.toLowerCase().trim().replace(/\s+/g, ' ').replace(/,/g, '.')
     
     // Controlla se è "ambiente" o "ambient"
     if (str.includes('ambiente') || str.includes('ambient')) {
       return { mode: TEMP_MODES.AMBIENT }
     }
     
-    // Controlla se contiene un range (es. "2-4°C", "da 2 a 4°C")
-    const rangeMatch = str.match(/(\d+(?:\.\d+)?)\s*[-a]\s*(\d+(?:\.\d+)?)/)
-    if (rangeMatch) {
-      const min = parseFloat(rangeMatch[1])
-      const max = parseFloat(rangeMatch[2])
+    // Controlla se contiene un range con regex robusta
+    // Pattern verboso per "da ... a ..."
+    const verboseRangeMatch = str.match(/\b(?:da\s*)?(-?\d+(?:\.\d+)?)\s*(?:°\s*C|c)?\s*(?:-|–|a)\s*(-?\d+(?:\.\d+)?)/i)
+    if (verboseRangeMatch) {
+      const min = parseFloat(verboseRangeMatch[1])
+      const max = parseFloat(verboseRangeMatch[2])
+      return { 
+        mode: TEMP_MODES.RANGE, 
+        range: { min, max } 
+      }
+    }
+    
+    // Fallback per pattern semplice
+    const simpleRangeMatch = str.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)/)
+    if (simpleRangeMatch) {
+      const min = parseFloat(simpleRangeMatch[1])
+      const max = parseFloat(simpleRangeMatch[2])
       return { 
         mode: TEMP_MODES.RANGE, 
         range: { min, max } 

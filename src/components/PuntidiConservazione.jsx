@@ -6,6 +6,7 @@ import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Trash2, Thermometer, AlertTriangle, CheckCircle, User, Plus, Search, MapPin, Calendar, Settings, Edit, X, HelpCircle } from 'lucide-react'
 import { getConservationSuggestions, getOptimalTemperature } from '../utils/temperatureDatabase'
+import { parseSetTemperature, getDisplayTemperature } from '../utils/temperatureHelpers'
 import TemperatureInput from './ui/TemperatureInput'
 import HelpOverlay from './HelpOverlay'
 import { CONSERVATION_POINT_RULES } from '../utils/haccpRules'
@@ -1440,37 +1441,9 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     setShowEditModal(false)
   }
 
-  // Funzione helper per ottenere la temperatura impostata in formato leggibile
-  const getDisplayTemperature = (refrigerator) => {
-    if (refrigerator.setTemperatureMin !== undefined && refrigerator.setTemperatureMax !== undefined) {
-      // Nuovo formato con range
-      return `${refrigerator.setTemperatureMin}-${refrigerator.setTemperatureMax}°C`
-    } else if (refrigerator.setTemperature) {
-      // Vecchio formato
-      return refrigerator.setTemperature
-    } else if (refrigerator.targetTemp) {
-      // Formato dall'onboarding
-      return refrigerator.targetTemp
-    }
-    return 'N/A'
-  }
+  // Usa la funzione helper centralizzata per il display temperatura
 
-  // Funzione helper per estrarre il valore numerico dalla temperatura impostata
-  const getTemperatureValue = (refrigerator) => {
-    if (refrigerator.setTemperatureMin !== undefined && refrigerator.setTemperatureMax !== undefined) {
-      // Nuovo formato con range - usa la media
-      return (refrigerator.setTemperatureMin + refrigerator.setTemperatureMax) / 2
-    } else if (refrigerator.setTemperature) {
-      // Vecchio formato - estrae il valore numerico dalla stringa
-      const tempStr = refrigerator.setTemperature.toString().replace('°C', '').trim()
-      return parseFloat(tempStr)
-    } else if (refrigerator.targetTemp) {
-      // Formato dall'onboarding - estrae il valore numerico dalla stringa
-      const tempStr = refrigerator.targetTemp.toString().replace('°C', '').trim()
-      return parseFloat(tempStr)
-    }
-    return 0
-  }
+  // Usa parseSetTemperature per ottenere il valore numerico normalizzato
 
   const getTemperatureStatus = (refrigerator) => {
     // Find the last temperature recording for this refrigerator
