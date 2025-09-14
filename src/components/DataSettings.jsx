@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Fragment } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
+import CollapseCard from './ui/CollapseCard'
 import { Button } from './ui/Button'
 import { 
   Smartphone, 
@@ -19,7 +20,8 @@ import {
   AlertCircle,
   BookOpen,
   Truck,
-  Download
+  Download,
+  BarChart3
 } from 'lucide-react'
 import { createCloudSimulator } from '../utils/cloudSimulator'
 import HaccpManual from './HaccpManual'
@@ -157,13 +159,12 @@ function DataSettings({
       </div>
 
       {/* Storage Overview */}
-      <Card className="bg-gradient-to-r from-green-50 to-blue-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Smartphone className="h-5 w-5" />
-            Spazio sul Tuo Telefono
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Spazio sul Tuo Telefono" 
+        icon={Smartphone}
+        defaultExpanded={true}
+        className="bg-gradient-to-r from-green-50 to-blue-50"
+      >
         <CardContent>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
             <div>
@@ -184,16 +185,14 @@ function DataSettings({
             </div>
           </div>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Photo & Files Storage */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Image className="h-5 w-5" />
-            Foto e Documenti
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Foto e Documenti" 
+        icon={Image}
+        defaultExpanded={true}
+      >
         <CardContent className="space-y-4">
           <SettingToggle
             icon={Camera}
@@ -224,16 +223,14 @@ function DataSettings({
             ]}
           />
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Data Sharing */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wifi className="h-5 w-5" />
-            Condivisione Automatica
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Condivisione Automatica" 
+        icon={Wifi}
+        defaultExpanded={true}
+      >
         <CardContent className="space-y-4">
           <div className="p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
@@ -274,16 +271,14 @@ function DataSettings({
             adminOnly={true}
           />
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Local Data Retention */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <HardDrive className="h-5 w-5" />
-            Quanto Tenere sul Telefono
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Quanto Tenere sul Telefono" 
+        icon={HardDrive}
+        defaultExpanded={false}
+      >
         <CardContent className="space-y-4">
           <StorageOption
             icon={HardDrive}
@@ -312,13 +307,14 @@ function DataSettings({
             </div>
           </div>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>🚀 Azioni Rapide</CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="🚀 Azioni Rapide" 
+        icon={BarChart3}
+        defaultExpanded={false}
+      >
         <CardContent>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Button 
@@ -368,16 +364,14 @@ function DataSettings({
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Backup e Export Dati */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Download className="h-5 w-5" />
-            Backup e Export Dati
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Backup e Export Dati" 
+        icon={Download}
+        defaultExpanded={false}
+      >
         <CardContent>
           <div className="space-y-4">
             <p className="text-gray-600">
@@ -388,16 +382,14 @@ function DataSettings({
             <BackupPanel currentUser={currentUser} isAdmin={isAdmin} />
           </div>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Gestione Fornitori */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Truck className="h-5 w-5" />
-            Gestione Fornitori
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Gestione Fornitori" 
+        icon={Truck}
+        defaultExpanded={false}
+      >
         <CardContent>
           <div className="space-y-4">
             <p className="text-gray-600">
@@ -408,16 +400,14 @@ function DataSettings({
             <Suppliers currentUser={currentUser} />
           </div>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Manuale HACCP */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BookOpen className="h-5 w-5" />
-            Manuale HACCP
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Manuale HACCP" 
+        icon={BookOpen}
+        defaultExpanded={false}
+      >
         <CardContent>
           <div className="space-y-4">
             <p className="text-gray-600">
@@ -435,7 +425,7 @@ function DataSettings({
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </CollapseCard>
     </div>
 
     {/* Modal Manuale HACCP */}

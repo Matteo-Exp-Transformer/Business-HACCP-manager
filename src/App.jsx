@@ -21,21 +21,18 @@
  * - Punti di Conservazione (ex Frigoriferi) – gestione frigoriferi/freezer
  * - Attività e Mansioni (ex Cleaning/Tasks) – mansioni staff e checklist
  * - Inventario (ex Inventory) – prodotti e stock
- * - Gestione Etichette (ex Product Labels) – creazione/modifica etichette
- * - IA Assistant (ex AI Assistant) – assistente IA
  * - Impostazioni e Dati (ex Settings/Data) – configurazioni, backup, manuale HACCP
+ * - Gestione (Admin only) – gestione staff, reparti, etichette e IA Assistant
  */
 
 import React, { useState, useEffect } from 'react'
-import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, QrCode, Bot, RotateCcw } from 'lucide-react'
+import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, Bot, RotateCcw } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import Cleaning from './components/Cleaning'
 import PuntidiConservazione from './components/PuntidiConservazione'
 import Gestione from './components/Gestione'
 import Inventory from './components/Inventory'
-import ProductLabels from './components/ProductLabels'
 import AIAssistant from './components/AIAssistant'
-import AIAssistantSection from './components/AIAssistantSection'
 import ExpiryAlertAutomation from './components/automations/ExpiryAlertAutomation'
 import StorageManager from './components/StorageManager'
 import PWAInstallPrompt from './components/PWAInstallPrompt'
@@ -1831,7 +1828,7 @@ function App() {
           setActiveTab(newTab)
           updateLastCheck(newTab)
         }}>
-          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-4 sm:grid-cols-6 md:grid-cols-9' : 'grid-cols-4 sm:grid-cols-6 md:grid-cols-8'} gap-1 mb-8`}>
+          <TabsList className={`grid w-full ${isAdmin() ? 'grid-cols-3 sm:grid-cols-5 md:grid-cols-7' : 'grid-cols-3 sm:grid-cols-5 md:grid-cols-6'} gap-1 mb-8`}>
             <TabsTrigger value="dashboard" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Home">
               <BarChart3 className="h-4 w-4" />
               <span className="sm:hidden">Home</span>
@@ -1855,17 +1852,6 @@ function App() {
               <span className="sm:hidden text-xs">Stock</span>
               <span className="hidden sm:inline">Inventario</span>
               <NotificationDot hasNotification={notifications.inventory > 0} />
-            </TabsTrigger>
-            <TabsTrigger value="labels" className="flex items-center gap-1 md:gap-2 text-sm relative" title="Gestione Etichette">
-              <QrCode className="h-4 w-4" />
-              <span className="sm:hidden text-xs">Etichette</span>
-              <span className="hidden sm:inline">Gestione Etichette</span>
-              <NotificationDot hasNotification={notifications.labels > 0} />
-            </TabsTrigger>
-            <TabsTrigger value="ai-assistant" className="flex items-center gap-1 md:gap-2 text-sm" title="IA Assistant">
-              <Bot className="h-4 w-4" />
-              <span className="sm:hidden text-xs">IA</span>
-              <span className="hidden sm:inline">IA Assistant</span>
             </TabsTrigger>
             <TabsTrigger value="data-settings" className="flex items-center gap-1 md:gap-2 text-sm" title="Impostazioni e Dati">
               <Settings className="h-4 w-4" />
@@ -1983,30 +1969,6 @@ function App() {
             />
           </TabsContent>
 
-          {/* Sezione: Gestione Etichette (ex Product Labels) - Creazione/modifica etichette */}
-          <TabsContent value="labels">
-            <ProductLabels 
-              productLabels={productLabels}
-              setProductLabels={setProductLabels}
-              products={products}
-              currentUser={currentUser}
-            />
-          </TabsContent>
-
-          {/* Sezione: IA Assistant (ex AI Assistant) - Assistente IA */}
-          <TabsContent value="ai-assistant">
-            <AIAssistantSection 
-              currentUser={currentUser}
-              products={products}
-              temperatures={temperatures}
-              cleaning={cleaning}
-              staff={staff}
-              onAction={(action) => {
-                console.log('AI Action:', action)
-                // Qui implementeremo le azioni dell'IA
-              }}
-            />
-          </TabsContent>
 
           {/* Sezione: Impostazioni e Dati (ex Settings/Data) - Configurazioni, backup, manuale HACCP */}
           <TabsContent value="data-settings">
@@ -2038,6 +2000,16 @@ function App() {
                   setDepartments={(newDepartments) => {
                     setDepartments(newDepartments)
                     trackDataChange('departments', newDepartments)
+                  }}
+                  // Props per le sottosezioni
+                  productLabels={productLabels}
+                  setProductLabels={setProductLabels}
+                  products={products}
+                  temperatures={temperatures}
+                  cleaning={cleaning}
+                  onAction={(action) => {
+                    console.log('AI Action:', action)
+                    // Qui implementeremo le azioni dell'IA
                   }}
                 />
                 <StorageManager

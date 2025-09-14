@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
+import CollapseCard from './ui/CollapseCard'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
@@ -1526,25 +1527,21 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
   return (
     <div className="space-y-6">
       {/* Section 1: Punti di Conservazione */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Thermometer className="h-5 w-5" />
-              Punti di Conservazione
-            </span>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2"
-              >
-                <Plus className="h-4 w-4" />
-                Aggiungi Punto di Conservazione
-              </Button>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapseCard 
+        title="Punti di Conservazione" 
+        icon={Thermometer}
+        defaultExpanded={true}
+        headerClassName="flex items-center justify-between"
+      >
+        <div className="flex gap-2 mb-4">
+          <Button 
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Aggiungi Punto di Conservazione
+          </Button>
+        </div>
           
           {/* Sezione Categorie Personalizzate */}
           {customCategories.length > 0 && (
@@ -2022,18 +2019,14 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Section 2: Attività Registro Temperature */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5" />
-            Attività Registro Temperature
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapseCard 
+        title="Attività Registro Temperature" 
+        icon={Calendar}
+        defaultExpanded={true}
+      >
           <div className="space-y-4">
             {/* Search bar */}
             <div className="relative">
@@ -2106,18 +2099,14 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               </div>
             )}
           </div>
-        </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Section 3: Stato Punti di Conservazione */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Stato Punti di Conservazione
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      <CollapseCard 
+        title="Stato Punti di Conservazione" 
+        icon={Settings}
+        defaultExpanded={false}
+      >
           {refrigerators.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
@@ -2193,10 +2182,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-
+      </CollapseCard>
 
       {/* Add Refrigerator Modal */}
       {showAddModal && (

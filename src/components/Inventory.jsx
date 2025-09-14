@@ -19,6 +19,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
+import CollapseCard from './ui/CollapseCard'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
@@ -43,7 +44,8 @@ import {
   MapPin,
   Thermometer,
   Star,
-  Info
+  Info,
+  BarChart3
 } from 'lucide-react'
 import CustomCategoryManager from './CustomCategoryManager'
 import jsPDF from 'jspdf'
@@ -775,13 +777,11 @@ const Inventory = () => {
           </div>
 
       {/* Filtri */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
-            Filtri
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Filtri" 
+        icon={Filter}
+        defaultExpanded={true}
+      >
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
             <div>
@@ -957,17 +957,16 @@ const Inventory = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Alert prodotti senza punto di conservazione */}
       {showMissingConservationAlert && productsWithoutConservation.length > 0 && (
-        <Card className="border-red-200 bg-red-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-800">
-              <AlertTriangle className="h-5 w-5" />
-              Attenzione: {productsWithoutConservation.length} prodotti senza punto di conservazione!
-            </CardTitle>
-          </CardHeader>
+        <CollapseCard 
+          title={`Attenzione: ${productsWithoutConservation.length} prodotti senza punto di conservazione!`} 
+          icon={AlertTriangle}
+          defaultExpanded={true}
+          className="border-red-200 bg-red-50"
+        >
           <CardContent>
             <p className="text-red-700 mb-4">
               I seguenti prodotti devono essere posizionati in un adeguato punto di conservazione:
@@ -1010,39 +1009,35 @@ const Inventory = () => {
               </Button>
             </div>
           </CardContent>
-        </Card>
+        </CollapseCard>
       )}
 
       {/* 1. Gestione Inventario */}
-        <Card>
-          <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Gestione Inventario
-            </CardTitle>
-                  <div className="flex gap-2">
-              {products.length > 0 && (
-                <>
-                    <Button
-                    onClick={() => setShowBulkDelete(true)}
-                    className="flex items-center gap-2"
-                      variant="outline"
-                    >
-                    🗑️ Rimuovi Prodotti
-                    </Button>
-                  <Button 
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center gap-2"
-                    variant="destructive"
-                  >
-                    ❌ Cancella Tutto l'Inventario
-                  </Button>
-                </>
-              )}
-                            </div>
-                          </div>
-        </CardHeader>
+      <CollapseCard 
+        title="Gestione Inventario" 
+        icon={Package}
+        defaultExpanded={true}
+      >
+        <div className="flex gap-2 mb-4">
+          {products.length > 0 && (
+            <>
+              <Button
+                onClick={() => setShowBulkDelete(true)}
+                className="flex items-center gap-2"
+                variant="outline"
+              >
+                🗑️ Rimuovi Prodotti
+              </Button>
+              <Button 
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-2"
+                variant="destructive"
+              >
+                ❌ Cancella Tutto l'Inventario
+              </Button>
+            </>
+          )}
+        </div>
         <CardContent>
           {filteredProducts.length === 0 ? (
             <div className="text-center py-8">
@@ -1117,43 +1112,40 @@ const Inventory = () => {
               ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </CardContent>
+      </CollapseCard>
 
       {/* 2. Prodotti nell'inventario */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle>
-              Prodotti nell'inventario ({filteredProducts.length})
-              {(groupByDepartment || groupByConservationPoint) && (
-                <span className="text-sm font-normal text-gray-600 ml-2">
-                  - Raggruppati per {groupByDepartment ? 'Reparto' : 'Punto di Conservazione'}
-                </span>
-              )}
-            </CardTitle>
-            <div className="flex gap-2">
-              {products.length > 0 && (
-                <>
-                <Button 
-                    onClick={() => setShowBulkDelete(true)}
-                    className="flex items-center gap-2"
-                  variant="outline"
-                >
-                    🗑️ Rimuovi Prodotti
-                </Button>
-                  <Button 
-                    onClick={() => setShowDeleteConfirm(true)}
-                    className="flex items-center gap-2"
-                    variant="destructive"
-                  >
-                    ❌ Cancella Tutto l'Inventario
-                  </Button>
-                </>
-              )}
-              </div>
-          </div>
-        </CardHeader>
+      <CollapseCard 
+        title={`Prodotti nell'inventario (${filteredProducts.length})`} 
+        icon={Package}
+        defaultExpanded={true}
+      >
+        {(groupByDepartment || groupByConservationPoint) && (
+          <p className="text-sm text-gray-600 mb-4">
+            Raggruppati per {groupByDepartment ? 'Reparto' : 'Punto di Conservazione'}
+          </p>
+        )}
+        <div className="flex gap-2 mb-4">
+          {products.length > 0 && (
+            <>
+              <Button 
+                onClick={() => setShowBulkDelete(true)}
+                className="flex items-center gap-2"
+                variant="outline"
+              >
+                🗑️ Rimuovi Prodotti
+              </Button>
+              <Button 
+                onClick={() => setShowDeleteConfirm(true)}
+                className="flex items-center gap-2"
+                variant="destructive"
+              >
+                ❌ Cancella Tutto l'Inventario
+              </Button>
+            </>
+          )}
+        </div>
         <CardContent>
                 {filteredProducts.length === 0 ? (
             <div className="text-center py-8">
@@ -1229,16 +1221,14 @@ const Inventory = () => {
             </div>
           )}
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Gestione Reparti e Punti di Conservazione */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Gestione Reparti e Punti di Conservazione
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Gestione Reparti e Punti di Conservazione" 
+        icon={Settings}
+        defaultExpanded={false}
+      >
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Gestione Reparti */}
@@ -1297,17 +1287,15 @@ const Inventory = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* 3. Aggiunta prodotti rapidi */}
       {!showAddForm && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Aggiunta prodotti rapidi
-            </CardTitle>
-          </CardHeader>
+        <CollapseCard 
+          title="Aggiunta prodotti rapidi" 
+          icon={Package}
+          defaultExpanded={false}
+        >
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               {CATEGORIES.map(category => {
@@ -1375,18 +1363,16 @@ const Inventory = () => {
                 <p className="text-sm">Seleziona una categoria sopra per vedere i prodotti disponibili</p>
               </div>
             )}
-          </CardContent>
-        </Card>
+        </CardContent>
+      </CollapseCard>
       )}
 
       {/* 3. Ordini e Spesa */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Ordini e Spesa
-          </CardTitle>
-        </CardHeader>
+      <CollapseCard 
+        title="Ordini e Spesa" 
+        icon={ShoppingCart}
+        defaultExpanded={false}
+      >
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Lista della Spesa */}
@@ -1492,17 +1478,15 @@ const Inventory = () => {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* 4. Ingredienti già utilizzati */}
       {showUsedIngredients && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-gray-600" />
-              Ingredienti già Utilizzati ({usedIngredients.length})
-            </CardTitle>
-          </CardHeader>
+        <CollapseCard 
+          title={`Ingredienti già Utilizzati (${usedIngredients.length})`} 
+          icon={Package}
+          defaultExpanded={false}
+        >
           <CardContent>
             {usedIngredients.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -1550,12 +1534,18 @@ const Inventory = () => {
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+        </CardContent>
+      </CollapseCard>
       )}
 
       {/* 5. Categorie Personalizzate */}
-      <CustomCategoryManager />
+      <CollapseCard 
+        title="Categorie Personalizzate" 
+        icon={Settings}
+        defaultExpanded={false}
+      >
+        <CustomCategoryManager />
+      </CollapseCard>
 
       {/* Form per aggiungere/modificare prodotto */}
       {showAddForm && (

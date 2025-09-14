@@ -19,15 +19,34 @@
 
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
+import CollapseCard from './ui/CollapseCard'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/Tabs'
 // Select component not available, using native HTML select
-import { Trash2, Users, UserCheck, GraduationCap, Edit3, StickyNote, ArrowRightLeft, RotateCw, Building2 } from 'lucide-react'
+import { Trash2, Users, UserCheck, GraduationCap, Edit3, StickyNote, ArrowRightLeft, RotateCw, Building2, QrCode, Bot, BarChart3 } from 'lucide-react'
 import Departments from './Departments'
+import ProductLabels from './ProductLabels'
+import AIAssistantSection from './AIAssistantSection'
 
-function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, departments, setDepartments }) {
+function Gestione({ 
+  staff, 
+  setStaff, 
+  users, 
+  setUsers, 
+  currentUser, 
+  isAdmin, 
+  departments, 
+  setDepartments,
+  // Props per le sottosezioni
+  productLabels,
+  setProductLabels,
+  products,
+  temperatures,
+  cleaning,
+  onAction
+}) {
   const [formData, setFormData] = useState({
     name: '',
     roles: [''],
@@ -454,7 +473,7 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="staff" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
             Staff
@@ -463,18 +482,24 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
             <Building2 className="h-4 w-4" />
             Reparti
           </TabsTrigger>
+          <TabsTrigger value="labels" className="flex items-center gap-2">
+            <QrCode className="h-4 w-4" />
+            Etichette
+          </TabsTrigger>
+          <TabsTrigger value="ai-assistant" className="flex items-center gap-2">
+            <Bot className="h-4 w-4" />
+            IA Assistant
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="staff" className="space-y-6">
           {/* Category Management - Only for Admin */}
           {currentUser && currentUser.role === 'admin' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Gestione Categorie Ruoli
-            </CardTitle>
-          </CardHeader>
+            <CollapseCard 
+              title="Gestione Categorie Ruoli" 
+              icon={Users}
+              defaultExpanded={true}
+            >
           <CardContent>
             {/* Add Category Form */}
             {showCategoryForm && (
@@ -587,18 +612,16 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                 </div>
               )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </CollapseCard>
+          )}
 
-      {/* Add Staff Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            {editingMember ? 'Modifica Membro del Personale' : 'Aggiungi Membro del Personale'}
-          </CardTitle>
-        </CardHeader>
+          {/* Add Staff Form */}
+          <CollapseCard 
+            title={editingMember ? 'Modifica Membro del Personale' : 'Aggiungi Membro del Personale'}
+            icon={Users}
+            defaultExpanded={true}
+          >
         <CardContent>
           {showEditForm && (
             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -693,30 +716,41 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
               )}
             </div>
           </form>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </CollapseCard>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Totale Personale</p>
-                <p className="text-2xl font-bold">{staff.length}</p>
+          {/* Statistics */}
+          <CollapseCard 
+            title="Statistiche" 
+            icon={BarChart3}
+            defaultExpanded={false}
+          >
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Totale Personale</p>
+                  <p className="text-2xl font-bold">{staff.length}</p>
+                </div>
+                <Users className="h-8 w-8 text-blue-500" />
               </div>
-              <Users className="h-8 w-8 text-blue-500" />
+            </CardContent>
+          </Card>
+        
+        
+
             </div>
-          </CardContent>
-        </Card>
-        
-        
+          </CollapseCard>
 
-      </div>
-
-      {/* Categorie Personale - Card Individuali */}
-      {departments.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Categorie Personale - Card Individuali */}
+          {departments.length > 0 && (
+            <CollapseCard 
+              title="Categorie Personale" 
+              icon={Users}
+              defaultExpanded={true}
+            >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {departments
             .filter(dept => dept && dept.id && dept.name && typeof dept.name === 'string')
             .slice()
@@ -818,17 +852,16 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                 </div>
               )
             })}
-        </div>
-      )}
+            </div>
+            </CollapseCard>
+          )}
 
-
-
-      {/* Compact Staff List - Optimized for 35+ employees */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Elenco Staff Completo ({staff.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
+          {/* Compact Staff List - Optimized for 35+ employees */}
+          <CollapseCard 
+            title={`Elenco Staff Completo (${staff.length})`}
+            icon={Users}
+            defaultExpanded={true}
+          >
           {staff.length === 0 ? (
             <div className="text-center py-8">
               <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -933,17 +966,17 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                 </div>
               ))}
             </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+          </CollapseCard>
 
-      {/* Quick Add Suggestions */}
-      {staff.length === 0 && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="text-blue-800">Suggerimenti Ruoli Comuni</CardTitle>
-          </CardHeader>
-          <CardContent>
+          {/* Quick Add Suggestions */}
+          {staff.length === 0 && (
+            <CollapseCard 
+              title="Suggerimenti Ruoli Comuni"
+              icon={Users}
+              defaultExpanded={true}
+              className="border-blue-200 bg-blue-50"
+            >
             <p className="text-sm text-blue-700 mb-3">
               Ecco alcuni ruoli comuni nella ristorazione che potresti voler aggiungere:
             </p>
@@ -957,10 +990,9 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
                   {role}
                 </button>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                </div>
+            </CollapseCard>
+          )}
 
       {/* Role Reassignment Modal */}
       {showReassignModal && memberToReassign && !showDeleteConfirmation && (
@@ -1084,6 +1116,26 @@ function Gestione({ staff, setStaff, users, setUsers, currentUser, isAdmin, depa
             currentUser={currentUser}
             departments={departments}
             setDepartments={setDepartments}
+          />
+        </TabsContent>
+
+        <TabsContent value="labels">
+          <ProductLabels 
+            productLabels={productLabels}
+            setProductLabels={setProductLabels}
+            products={products}
+            currentUser={currentUser}
+          />
+        </TabsContent>
+
+        <TabsContent value="ai-assistant">
+          <AIAssistantSection 
+            currentUser={currentUser}
+            products={products}
+            temperatures={temperatures}
+            cleaning={cleaning}
+            staff={staff}
+            onAction={onAction}
           />
         </TabsContent>
       </Tabs>

@@ -19,10 +19,11 @@
 
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
+import CollapseCard from './ui/CollapseCard'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
 import { Label } from './ui/Label'
-import { Trash2, Sparkles, CheckCircle, Clock, Thermometer, AlertTriangle, User } from 'lucide-react'
+import { Trash2, Sparkles, CheckCircle, Clock, Thermometer, AlertTriangle, User, BarChart3 } from 'lucide-react'
 import TemperatureInput from './ui/TemperatureInput'
 
 function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, currentUser, refrigerators = [], setRefrigerators }) {
@@ -289,16 +290,14 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
   return (
     <div className="space-y-6">
       {/* Add Cleaning Task Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5" />
-            Nuove Attività / Mansioni
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            📋 Crea nuove attività di pulizia e sanificazione per mantenere la conformità HACCP
-          </p>
-        </CardHeader>
+      <CollapseCard 
+        title="Nuove Attività / Mansioni" 
+        icon={Sparkles}
+        defaultExpanded={true}
+      >
+        <p className="text-sm text-gray-600 mb-4">
+          📋 Crea nuove attività di pulizia e sanificazione per mantenere la conformità HACCP
+        </p>
         <CardContent>
           <form onSubmit={addCleaningTask} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -371,19 +370,17 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
             </Button>
           </form>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Pending Tasks with Tabs */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-yellow-600" />
-            Attività da Svolgere ({pendingTasks.length})
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            📋 Organizza e monitora le attività di pulizia e sanificazione per mantenere la conformità HACCP
-          </p>
-        </CardHeader>
+      <CollapseCard 
+        title={`Attività da Svolgere (${pendingTasks.length})`} 
+        icon={Clock}
+        defaultExpanded={true}
+      >
+        <p className="text-sm text-gray-600 mb-4">
+          📋 Organizza e monitora le attività di pulizia e sanificazione per mantenere la conformità HACCP
+        </p>
         <CardContent>
           {pendingTasks.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
@@ -514,37 +511,35 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
             </div>
           )}
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Completed Tasks */}
       {completedTasks.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                Attività Completate ({completedTasks.length})
-              </span>
-              {isAdmin && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    if (confirm('⚠️ Attenzione: Sei sicuro di voler eliminare tutte le attività completate?\n\nQuesta azione non può essere annullata e rimuoverà la cronologia delle attività svolte.')) {
-                      setCleaning(safeCleaning.filter(task => !task.completed))
-                    }
-                  }}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Elimina Tutte
-                </Button>
-              )}
-            </CardTitle>
-            <p className="text-sm text-gray-600">
-              📊 Storico delle attività completate - Mantiene traccia di tutto il lavoro svolto per la conformità HACCP
-            </p>
-          </CardHeader>
+        <CollapseCard 
+          title={`Attività Completate (${completedTasks.length})`} 
+          icon={CheckCircle}
+          defaultExpanded={false}
+        >
+          <p className="text-sm text-gray-600 mb-4">
+            📊 Storico delle attività completate - Mantiene traccia di tutto il lavoro svolto per la conformità HACCP
+          </p>
+          {isAdmin && (
+            <div className="mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (confirm('⚠️ Attenzione: Sei sicuro di voler eliminare tutte le attività completate?\n\nQuesta azione non può essere annullata e rimuoverà la cronologia delle attività svolte.')) {
+                    setCleaning(safeCleaning.filter(task => !task.completed))
+                  }
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Elimina Tutte
+              </Button>
+            </div>
+          )}
           <CardContent>
             <div className="space-y-3">
               {completedTasks.map(task => (
@@ -574,25 +569,23 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
               ))}
             </div>
           </CardContent>
-        </Card>
+        </CollapseCard>
       )}
 
       {/* Temperature Registration Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Thermometer className="h-5 w-5" />
-            Registra Temperatura Frigorifero/Freezer
-          </CardTitle>
-          <p className="text-sm text-gray-600">
-            🌡️ Monitora le temperature per garantire la sicurezza alimentare e la conformità HACCP
+      <CollapseCard 
+        title="Registra Temperatura Frigorifero/Freezer" 
+        icon={Thermometer}
+        defaultExpanded={true}
+      >
+        <p className="text-sm text-gray-600 mb-2">
+          🌡️ Monitora le temperature per garantire la sicurezza alimentare e la conformità HACCP
+        </p>
+        {currentUser && (
+          <p className="text-sm text-gray-600 mb-4">
+            📝 Registrando come: <span className="font-medium">{currentUser.name}</span> ({currentUser.department})
           </p>
-          {currentUser && (
-            <p className="text-sm text-gray-600">
-              📝 Registrando come: <span className="font-medium">{currentUser.name}</span> ({currentUser.department})
-            </p>
-          )}
-        </CardHeader>
+        )}
         <CardContent>
           <form onSubmit={addTemperature} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -668,10 +661,15 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
             </Button>
           </form>
         </CardContent>
-      </Card>
+      </CollapseCard>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <CollapseCard 
+        title="Statistiche" 
+        icon={BarChart3}
+        defaultExpanded={false}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -750,8 +748,8 @@ function Cleaning({ cleaning, setCleaning, temperatures, setTemperatures, curren
             </div>
           </CardContent>
         </Card>
-      </div>
-
+        </div>
+      </CollapseCard>
 
     </div>
   )
