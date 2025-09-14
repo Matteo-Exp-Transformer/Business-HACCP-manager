@@ -73,12 +73,12 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
   
   // Forza il re-render delle categorie quando cambia la temperatura
   const [forceUpdate, setForceUpdate] = useState(0)
+  const [temperatureFieldHighlighted, setTemperatureFieldHighlighted] = useState(false)
   
   useEffect(() => {
     // Forza il re-render quando cambia la temperatura
-    console.log('🔄 PuntidiConservazione - formData cambiato:', formData);
     setForceUpdate(prev => prev + 1)
-  }, [formData.setTemperature, formData.setTempMode, formData.setTempC, formData.setTempRangeC])
+  }, [formData.setTemperature])
   
   // Funzione per aprire l'HelpOverlay
   const openHelpOverlay = (type) => {
@@ -88,6 +88,12 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
 
   // Funzioni per gestire la selezione multipla delle categorie
   const handleCategoryToggle = (categoryId) => {
+    // Controlla se la categoria è incompatibile
+    const compatibility = getCategoryCompatibility(categoryId, formData.selectedCategories || [], formData.setTemperature);
+    if (compatibility === 'incompatible') {
+      return; // Non permettere selezione se incompatibile
+    }
+    
     setFormData(prev => {
       const currentCategories = prev.selectedCategories || []
       const isSelected = currentCategories.includes(categoryId)
@@ -189,8 +195,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
         if (category) {
           if (!categoryInfo) categoryInfo = category; // Imposta la prima categoria come riferimento
           // Controlla se è nel range HACCP
-          const categoryMinTemp = category.minTemp || category.temperatureMin;
-          const categoryMaxTemp = category.maxTemp || category.temperatureMax;
+          const categoryMinTemp = category.minTemp !== undefined ? category.minTemp : category.temperatureMin;
+          const categoryMaxTemp = category.maxTemp !== undefined ? category.maxTemp : category.temperatureMax;
           
           let categoryInRange = false;
           let categoryInTolerance = false;
@@ -333,9 +339,11 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     const maxTemp = Math.min(...temperatureRanges.map(range => range.max));
 
     if (minTemp <= maxTemp) {
+      // Calcola la temperatura ottimale come media del range comune
+      const optimalTemp = Math.round(((minTemp + maxTemp) / 2) * 10) / 10;
       return {
         compatible: true,
-        message: `Range ottimale per le categorie selezionate: da ${minTemp}°C a ${maxTemp}°C`
+        message: `Temperatura ottimale per le categorie selezionate: ${optimalTemp}°C`
       };
     } else {
       return {
@@ -368,21 +376,37 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     return null;
   };
 
-  // Funzione per determinare la compatibilità delle categorie (stessa logica dell'onboarding)
-  const getCategoryCompatibility = (categoryId, selectedCategories, formData) => {
-    console.log('🔍 getCategoryCompatibility chiamata:', { categoryId, selectedCategories, formData });
+  // Funzione per determinare la compatibilità delle categorie (logica originale corretta)
+  const getCategoryCompatibility = (categoryId, selectedCategories, targetTemp) => {
+    console.log('🔍 getCategoryCompatibility chiamata:', { categoryId, selectedCategories, targetTemp });
     
     // Controlla se la categoria è già selezionata
     if (selectedCategories.includes(categoryId)) return 'selected';
     
-    // Estrae la temperatura dal form
-    const temp = getTemperatureFromForm(formData);
-    console.log('🌡️ Temperatura estratta:', temp);
+    // Le categorie abbattitore non hanno range ottimale di conservazione
+    if (categoryId === 'abbattitore_menu' || categoryId === 'abbattitore_esposizione') {
+      console.log('🏭 Categoria abbattitore, ritorno neutral (nessun range ottimale)');
+      return 'neutral';
+    }
     
-    if (temp === null) return 'neutral';
+    // Se non c'è temperatura inserita, mostra tutte le categorie come neutral
+    if (!targetTemp || (typeof targetTemp === 'string' && targetTemp.trim() === '')) {
+      console.log('🌡️ Nessuna temperatura inserita, ritorno neutral');
+      return 'neutral';
+    }
     
     // Gestisce "ambiente" come range 15-25°C per monitoraggio futuro
-    let isAmbiente = formData.setTempMode === TEMP_MODES.AMBIENT;
+    let temp;
+    let isAmbiente = false;
+    
+    // Controlla se targetTemp è una stringa e se è "ambiente"
+    if (typeof targetTemp === 'string' && targetTemp.toLowerCase().trim() === 'ambiente') {
+      temp = 20; // Valore medio per validazione HACCP
+      isAmbiente = true;
+    } else {
+      temp = parseFloat(targetTemp);
+    }
+    if (isNaN(temp)) return 'neutral';
     
     // Cerca prima nelle categorie HACCP standard, poi in quelle personalizzate
     let category = CONSERVATION_POINT_RULES.categories.find(c => c.id === categoryId);
@@ -395,24 +419,25 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     const tolerance = CONSERVATION_POINT_RULES.tolerance;
     
     // Calcola il range di tolleranza per la categoria corrente
-    // Gestisce sia categorie HACCP standard che personalizzate
-    const categoryMin = (category.minTemp || category.temperatureMin) - tolerance;
-    const categoryMax = (category.maxTemp || category.temperatureMax) + tolerance;
-    const categoryMinTemp = category.minTemp || category.temperatureMin;
-    const categoryMaxTemp = category.maxTemp || category.temperatureMax;
+    const categoryMin = (category.minTemp !== undefined ? category.minTemp : category.temperatureMin) - tolerance;
+    const categoryMax = (category.maxTemp !== undefined ? category.maxTemp : category.temperatureMax) + tolerance;
+    const categoryMinTemp = category.minTemp !== undefined ? category.minTemp : category.temperatureMin;
+    const categoryMaxTemp = category.maxTemp !== undefined ? category.maxTemp : category.temperatureMax;
     
     // Controlla se la temperatura target è nel range di questa categoria
     // Gestione speciale per "ambiente" - deve essere compatibile con range 15-25°C
     if (isAmbiente) {
-      const ambienteRange = getAmbienteTemperatureRange();
+      const ambienteRange = { min: 15, max: 25 };
       if (categoryMinTemp <= ambienteRange.max && categoryMaxTemp >= ambienteRange.min) {
         return 'compatible';
       } else {
         return 'incompatible';
       }
     } else if (temp >= categoryMinTemp && temp <= categoryMaxTemp) {
-      // Temperatura nel range HACCP
+      // Temperatura nel range HACCP ottimale
+      console.log('✅ Temperatura nel range ottimale:', { temp, categoryMinTemp, categoryMaxTemp, categoryId });
       if (selectedCategories.length === 0) {
+        console.log('✅ Nessuna categoria selezionata, ritorno compatible');
         return 'compatible'; // Se non ci sono categorie selezionate, mostra come compatibile
       }
       
@@ -423,8 +448,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
           selectedCategory = customCategories.find(c => c.id === selectedId);
         }
         if (selectedCategory) {
-          const selectedMin = (selectedCategory.minTemp || selectedCategory.temperatureMin) - tolerance;
-          const selectedMax = (selectedCategory.maxTemp || selectedCategory.temperatureMax) + tolerance;
+                 const selectedMin = (selectedCategory.minTemp !== undefined ? selectedCategory.minTemp : selectedCategory.temperatureMin) - tolerance;
+                 const selectedMax = (selectedCategory.maxTemp !== undefined ? selectedCategory.maxTemp : selectedCategory.temperatureMax) + tolerance;
           
           // Se c'è sovrapposizione nei range di tolleranza, è compatibile
           if (selectedMin <= categoryMax && selectedMax >= categoryMin) {
@@ -433,18 +458,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
         }
       }
       return 'incompatible';
-    } else if (isAmbiente) {
-      // Per "ambiente", controlla se il range 15-25°C è in tolleranza con la categoria
-      const ambienteRange = getAmbienteTemperatureRange();
-      const ambienteMin = ambienteRange.min - tolerance;
-      const ambienteMax = ambienteRange.max + tolerance;
-      if (categoryMinTemp <= ambienteMax && categoryMaxTemp >= ambienteMin) {
-        return 'tolerance';
-      } else {
-        return 'incompatible';
-      }
     } else if (temp >= categoryMin && temp <= categoryMax) {
-      // Temperatura nel range di tolleranza
+      // Temperatura nel range di tolleranza (fuori dal range ottimale ma accettabile)
       if (selectedCategories.length === 0) {
         return 'tolerance'; // Se non ci sono categorie selezionate, mostra come tolleranza
       }
@@ -456,8 +471,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
           selectedCategory = customCategories.find(c => c.id === selectedId);
         }
         if (selectedCategory) {
-          const selectedMin = (selectedCategory.minTemp || selectedCategory.temperatureMin) - tolerance;
-          const selectedMax = (selectedCategory.maxTemp || selectedCategory.temperatureMax) + tolerance;
+                 const selectedMin = (selectedCategory.minTemp !== undefined ? selectedCategory.minTemp : selectedCategory.temperatureMin) - tolerance;
+                 const selectedMax = (selectedCategory.maxTemp !== undefined ? selectedCategory.maxTemp : selectedCategory.temperatureMax) + tolerance;
           
           // Se c'è sovrapposizione nei range di tolleranza, è in tolleranza
           if (selectedMin <= categoryMax && selectedMax >= categoryMin) {
@@ -468,6 +483,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       return 'incompatible';
     }
     
+    console.log('❌ Temperatura incompatibile:', { temp, categoryMinTemp, categoryMaxTemp, categoryId });
     return 'incompatible';
   };
 
@@ -2226,6 +2242,115 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                 </div>
               </div>
               
+              {/* Sezione Temperatura */}
+              <div className="bg-green-50 p-3 rounded-lg">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Temperatura di Conservazione</h3>
+                <div>
+                  <Label htmlFor="setTemperature" className="text-sm font-medium text-gray-700">Temperatura Punto di Conservazione (°C) *</Label>
+                  <Input
+                    id="setTemperature"
+                    type="text"
+                    value={formData.setTemperature}
+                    onChange={(e) => {
+                      const newTemperature = e.target.value;
+                      setFormData({...formData, setTemperature: newTemperature});
+                      
+                      // Rimuovi l'evidenziazione quando l'utente inizia a digitare
+                      if (temperatureFieldHighlighted) {
+                        setTemperatureFieldHighlighted(false);
+                      }
+                      
+                      // Refresh categorie quando cambia la temperatura per evitare conflitti
+                      if (formData.selectedCategories && formData.selectedCategories.length > 0) {
+                        setFormData(prev => ({
+                          ...prev,
+                          setTemperature: newTemperature,
+                          selectedCategories: [] // Azzera le categorie selezionate
+                        }));
+                      }
+                    }}
+                    placeholder="es. 4, -18, 2.5, ambiente..."
+                    className={`mt-1 p-3 transition-all duration-300 ${
+                      temperatureFieldHighlighted ? 
+                        'border-red-500 bg-red-50 ring-2 ring-red-200 focus:border-red-500 focus:ring-red-500' :
+                        formData.setTemperature && formData.selectedCategories.length > 0 ? 
+                          (() => {
+                            const compliance = checkHACCPCompliance(formData.setTemperature, formData.selectedCategories);
+                            return compliance.color === 'green' ? 'border-green-500 focus:border-green-500 focus:ring-green-500' :
+                                   compliance.color === 'yellow' ? 'border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500' :
+                                   compliance.color === 'red' ? 'border-red-500 focus:border-red-500 focus:ring-red-500' :
+                                   'border-gray-300';
+                          })() : 'border-gray-300'
+                    }`}
+                    required
+                  />
+                  <p className="text-xs text-gray-600 mt-2 p-2 bg-white rounded border">
+                    Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer, "ambiente" per temperatura ambiente)
+                  </p>
+                  
+                  {/* Checkbox Abbattitore - appare solo se temperatura è tra -1°C e -90°C */}
+                  {(() => {
+                    const tempValue = parseFloat(formData.setTemperature);
+                    const isInAbbattitoreRange = !isNaN(tempValue) && tempValue >= -90 && tempValue <= -1;
+                    return isInAbbattitoreRange ? (
+                      <div className="mt-3 flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          id="isAbbattitore"
+                          checked={formData.isAbbattitore}
+                          onChange={(e) => setFormData({...formData, isAbbattitore: e.target.checked})}
+                          className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
+                        />
+                        <Label htmlFor="isAbbattitore" className="text-lg font-bold text-red-700">
+                          Abbattitore
+                        </Label>
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+                
+                {/* Validazione HACCP in tempo reale */}
+                {formData.setTemperature && formData.selectedCategories.length > 0 && (
+                  <div className="mt-4 p-4 rounded-lg bg-gray-50 border">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Thermometer className="h-4 w-4" />
+                      <span className="font-medium">Validazione HACCP:</span>
+                    </div>
+                    {(() => {
+                      const compliance = checkHACCPCompliance(formData.setTemperature, formData.selectedCategories);
+                      return (
+                        <div className={`flex items-center gap-2 ${
+                          compliance.color === 'green' ? 'text-green-600' :
+                          compliance.color === 'yellow' ? 'text-yellow-600' :
+                          'text-red-600'
+                        }`}>
+                          {compliance.type === 'compliant' ? '✅' : 
+                           compliance.type === 'warning' ? '⚠️' : '❌'}
+                          <span className="text-sm">{compliance.message}</span>
+                        </div>
+                      );
+                    })()}
+                    
+                    {/* Consigli di compatibilità */}
+                    {formData.setTemperature && formData.selectedCategories.length > 0 && (
+                      <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                        <div className="text-sm text-blue-800">
+                          <strong>Consigli:</strong> {(() => {
+                            const suggestion = getOptimalTemperatureSuggestions(formData.selectedCategories);
+                            if (suggestion && !suggestion.compatible) {
+                              return suggestion.message;
+                            } else if (suggestion) {
+                              return suggestion.message;
+                            }
+                            return 'Temperatura compatibile con le categorie selezionate';
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
               {/* Sezione Categorie Multiple */}
               <div className="bg-blue-50 p-3 rounded-lg">
                 <div className="flex items-center justify-between mb-3">
@@ -2243,16 +2368,24 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                 </div>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" key={forceUpdate}>
-                  {allCategories.map(category => {
+                  {allCategories
+                    .filter(category => {
+                      // Nascondi le categorie abbattitore se la checkbox non è spuntata
+                      if (category.id === 'abbattitore_menu' || category.id === 'abbattitore_esposizione') {
+                        return formData.isAbbattitore === true;
+                      }
+                      return true;
+                    })
+                    .map(category => {
                     const isSelected = formData.selectedCategories?.includes(category.id) || false
-                    const compatibility = getCategoryCompatibility(category.id, formData.selectedCategories || [], formData)
+                    const compatibility = getCategoryCompatibility(category.id, formData.selectedCategories || [], formData.setTemperature)
                     
                     const getCompatibilityStyle = () => {
                       switch (compatibility) {
                         case 'selected':
-                          return 'bg-white border-gray-300 text-gray-700 shadow-sm';
+                          return 'bg-blue-100 border-blue-400 text-blue-900 shadow-sm';
                         case 'compatible':
-                          return 'bg-green-200 border-green-400 text-green-900 shadow-sm';
+                          return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
                         case 'tolerance':
                           return 'bg-yellow-200 border-yellow-400 text-yellow-900 shadow-sm';
                         case 'incompatible':
@@ -2270,6 +2403,20 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                         onClick={() => {
                           // Non permettere il click se la categoria è incompatibile
                           if (compatibility === 'incompatible') return;
+                          
+                          // Se non c'è temperatura impostata, evidenzia il campo temperatura
+                          if (!formData.setTemperature || formData.setTemperature.trim() === '') {
+                            setTemperatureFieldHighlighted(true);
+                            const temperatureField = document.getElementById('setTemperature') || document.getElementById('edit-setTemperature');
+                            if (temperatureField) {
+                              temperatureField.focus();
+                              temperatureField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                            // Rimuovi l'evidenziazione dopo 3 secondi
+                            setTimeout(() => setTemperatureFieldHighlighted(false), 3000);
+                            return;
+                          }
+                          
                           handleCategoryToggle(category.id);
                         }}
                         className={`p-2 rounded-lg border-2 transition-all duration-200 ${getCompatibilityStyle()}`}
@@ -2280,7 +2427,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                             <p className="text-xs text-gray-600 mt-1 line-clamp-2">{category.description}</p>
                           </div>
                           <div className="flex items-center gap-1 ml-2">
-                            {isSelected && <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />}
+                            {isSelected && <CheckCircle className="h-3 w-3 text-blue-600 flex-shrink-0" />}
                             {compatibility === 'compatible' && !isSelected && <span className="text-xs">✅</span>}
                             {compatibility === 'incompatible' && !isSelected && <span className="text-xs">🚫</span>}
                             {compatibility === 'tolerance' && !isSelected && <span className="text-xs">⚠️</span>}
@@ -2430,96 +2577,6 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                 )}
               </div>
               
-              {/* Sezione Temperatura */}
-              <div className="bg-green-50 p-3 rounded-lg">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Temperatura di Conservazione</h3>
-                <div>
-                  <Label htmlFor="setTemperature" className="text-sm font-medium text-gray-700">Temperatura Punto di Conservazione (°C) *</Label>
-                  <Input
-                    id="setTemperature"
-                    type="text"
-                    value={formData.setTemperature}
-                    onChange={(e) => setFormData({...formData, setTemperature: e.target.value})}
-                    placeholder="es. 4, -18, 2.5, ambiente..."
-                    className={`mt-1 p-3 ${
-                      formData.setTemperature && formData.selectedCategories.length > 0 ? 
-                        (() => {
-                          const compliance = checkHACCPCompliance(formData.setTemperature, formData.selectedCategories);
-                          return compliance.color === 'green' ? 'border-green-500 focus:border-green-500 focus:ring-green-500' :
-                                 compliance.color === 'yellow' ? 'border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500' :
-                                 compliance.color === 'red' ? 'border-red-500 focus:border-red-500 focus:ring-red-500' :
-                                 'border-gray-300';
-                        })() : 'border-gray-300'
-                    }`}
-                    required
-                  />
-                  <p className="text-xs text-gray-600 mt-2 p-2 bg-white rounded border">
-                    Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer, "ambiente" per temperatura ambiente)
-                  </p>
-                  
-                  {/* Checkbox Abbattitore - appare solo se temperatura è tra -1°C e -90°C */}
-                  {(() => {
-                    const tempValue = parseFloat(formData.setTemperature);
-                    const isInAbbattitoreRange = !isNaN(tempValue) && tempValue >= -90 && tempValue <= -1;
-                    return isInAbbattitoreRange ? (
-                      <div className="mt-3 flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          id="isAbbattitore"
-                          checked={formData.isAbbattitore}
-                          onChange={(e) => setFormData({...formData, isAbbattitore: e.target.checked})}
-                          className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-                        />
-                        <Label htmlFor="isAbbattitore" className="text-lg font-bold text-red-700">
-                          Abbattitore
-                        </Label>
-                      </div>
-                    ) : null;
-                  })()}
-                </div>
-                
-                {/* Validazione HACCP in tempo reale */}
-                {formData.setTemperature && formData.selectedCategories.length > 0 && (
-                  <div className="mt-4 p-4 rounded-lg bg-gray-50 border">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Thermometer className="h-4 w-4" />
-                      <span className="font-medium">Validazione HACCP:</span>
-                    </div>
-                    {(() => {
-                      const compliance = checkHACCPCompliance(formData.setTemperature, formData.selectedCategories);
-                      return (
-                        <div className={`flex items-center gap-2 ${
-                          compliance.color === 'green' ? 'text-green-600' :
-                          compliance.color === 'yellow' ? 'text-yellow-600' :
-                          'text-red-600'
-                        }`}>
-                          {compliance.type === 'compliant' ? '✅' : 
-                           compliance.type === 'warning' ? '⚠️' : '❌'}
-                          <span className="text-sm">{compliance.message}</span>
-                        </div>
-                      );
-                    })()}
-                    
-                    {/* Suggerimenti temperature ottimali */}
-                    {formData.selectedCategories.length > 0 && (
-                      <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
-                        <div className="text-sm text-blue-800">
-                          <strong>Suggerimento:</strong> {(() => {
-                            const suggestion = getOptimalTemperatureSuggestions(formData.selectedCategories);
-                            if (suggestion && !suggestion.compatible) {
-                              return suggestion.message;
-                            } else if (suggestion) {
-                              return suggestion.message;
-                            }
-                            return 'Seleziona categorie per ottenere suggerimenti sulle temperature ottimali';
-                          })()}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-              
 
               {/* Sezione Manutenzione */}
               <MaintenanceSection
@@ -2611,98 +2668,6 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                 </div>
               </div>
               
-              {/* Sezione Categorie Multiple */}
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-gray-800">Categorie di Prodotti (Max 5)</h3>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddCategoryForm(!showAddCategoryForm)}
-                    className="flex items-center gap-1 text-xs px-2 py-1"
-                  >
-                    <Plus className="h-3 w-3" />
-                    Nuova
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" key={forceUpdate}>
-                  {allCategories.map(category => {
-                    const isSelected = formData.selectedCategories?.includes(category.id) || false
-                    const compatibility = getCategoryCompatibility(category.id, formData.selectedCategories || [], formData)
-                    
-                    const getCompatibilityStyle = () => {
-                      switch (compatibility) {
-                        case 'selected':
-                          return 'bg-white border-gray-300 text-gray-700 shadow-sm';
-                        case 'compatible':
-                          return 'bg-green-200 border-green-400 text-green-900 shadow-sm';
-                        case 'tolerance':
-                          return 'bg-yellow-200 border-yellow-400 text-yellow-900 shadow-sm';
-                        case 'incompatible':
-                          return 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60';
-                        case 'neutral':
-                          return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
-                        default:
-                          return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
-                      }
-                    };
-                    
-                    return (
-                      <div
-                        key={category.id}
-                        onClick={() => {
-                          // Non permettere il click se la categoria è incompatibile
-                          if (compatibility === 'incompatible') return;
-                          handleCategoryToggle(category.id);
-                        }}
-                        className={`p-2 rounded-lg border-2 transition-all duration-200 ${getCompatibilityStyle()}`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-xs truncate">{category.name}</h4>
-                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">{category.description}</p>
-                          </div>
-                          <div className="flex items-center gap-1 ml-2">
-                            {isSelected && <CheckCircle className="h-3 w-3 text-green-600 flex-shrink-0" />}
-                            {compatibility === 'compatible' && !isSelected && <span className="text-xs">✅</span>}
-                            {compatibility === 'incompatible' && !isSelected && <span className="text-xs">🚫</span>}
-                            {compatibility === 'tolerance' && !isSelected && <span className="text-xs">⚠️</span>}
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-                
-                {formData.selectedCategories && formData.selectedCategories.length > 0 && (
-                  <div className="mt-4 p-3 bg-white rounded border">
-                    <p className="text-sm font-medium text-gray-700 mb-2">Categorie selezionate:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.selectedCategories.map(categoryId => {
-                        const category = allCategories.find(cat => cat.id === categoryId)
-                        return (
-                          <span
-                            key={categoryId}
-                            className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                          >
-                            {category?.name}
-                          </span>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-                
-                
-                {formData.selectedCategories.length === 0 && (
-                  <p className="text-xs text-red-500 mt-2">
-                    ⚠️ Seleziona almeno una categoria per procedere
-                  </p>
-                )}
-              </div>
-              
               {/* Sezione Temperatura */}
               <div className="bg-green-50 p-3 rounded-lg">
                 <h3 className="text-lg font-semibold text-gray-800 mb-4">Temperatura di Conservazione</h3>
@@ -2712,17 +2677,36 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                     id="edit-setTemperature"
                     type="text"
                     value={formData.setTemperature}
-                    onChange={(e) => setFormData({...formData, setTemperature: e.target.value})}
+                    onChange={(e) => {
+                      const newTemperature = e.target.value;
+                      setFormData({...formData, setTemperature: newTemperature});
+                      
+                      // Rimuovi l'evidenziazione quando l'utente inizia a digitare
+                      if (temperatureFieldHighlighted) {
+                        setTemperatureFieldHighlighted(false);
+                      }
+                      
+                      // Refresh categorie quando cambia la temperatura per evitare conflitti
+                      if (formData.selectedCategories && formData.selectedCategories.length > 0) {
+                        setFormData(prev => ({
+                          ...prev,
+                          setTemperature: newTemperature,
+                          selectedCategories: [] // Azzera le categorie selezionate
+                        }));
+                      }
+                    }}
                     placeholder="es. 4, -18, 2.5, ambiente..."
-                    className={`mt-1 p-3 ${
-                      formData.setTemperature && formData.selectedCategories.length > 0 ? 
-                        (() => {
-                          const compliance = checkHACCPCompliance(formData.setTemperature, formData.selectedCategories);
-                          return compliance.color === 'green' ? 'border-green-500 focus:border-green-500 focus:ring-green-500' :
-                                 compliance.color === 'yellow' ? 'border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500' :
-                                 compliance.color === 'red' ? 'border-red-500 focus:border-red-500 focus:ring-red-500' :
-                                 'border-gray-300';
-                        })() : 'border-gray-300'
+                    className={`mt-1 p-3 transition-all duration-300 ${
+                      temperatureFieldHighlighted ? 
+                        'border-red-500 bg-red-50 ring-2 ring-red-200 focus:border-red-500 focus:ring-red-500' :
+                        formData.setTemperature && formData.selectedCategories.length > 0 ? 
+                          (() => {
+                            const compliance = checkHACCPCompliance(formData.setTemperature, formData.selectedCategories);
+                            return compliance.color === 'green' ? 'border-green-500 focus:border-green-500 focus:ring-green-500' :
+                                   compliance.color === 'yellow' ? 'border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500' :
+                                   compliance.color === 'red' ? 'border-red-500 focus:border-red-500 focus:ring-red-500' :
+                                   'border-gray-300';
+                          })() : 'border-gray-300'
                     }`}
                     required
                   />
@@ -2773,18 +2757,18 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                       );
                     })()}
                     
-                    {/* Suggerimenti temperature ottimali */}
-                    {formData.selectedCategories.length > 0 && (
+                    {/* Consigli di compatibilità */}
+                    {formData.setTemperature && formData.selectedCategories.length > 0 && (
                       <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
                         <div className="text-sm text-blue-800">
-                          <strong>Suggerimento:</strong> {(() => {
+                          <strong>Consigli:</strong> {(() => {
                             const suggestion = getOptimalTemperatureSuggestions(formData.selectedCategories);
                             if (suggestion && !suggestion.compatible) {
                               return suggestion.message;
                             } else if (suggestion) {
                               return suggestion.message;
                             }
-                            return 'Seleziona categorie per ottenere suggerimenti sulle temperature ottimali';
+                            return 'Temperatura compatibile con le categorie selezionate';
                           })()}
                         </div>
                       </div>
@@ -2792,6 +2776,121 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   </div>
                 )}
               </div>
+              
+              {/* Sezione Categorie Multiple */}
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-800">Categorie di Prodotti (Max 5)</h3>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAddCategoryForm(!showAddCategoryForm)}
+                    className="flex items-center gap-1 text-xs px-2 py-1"
+                  >
+                    <Plus className="h-3 w-3" />
+                    Nuova
+                  </Button>
+                </div>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" key={forceUpdate}>
+                  {allCategories
+                    .filter(category => {
+                      // Nascondi le categorie abbattitore se la checkbox non è spuntata
+                      if (category.id === 'abbattitore_menu' || category.id === 'abbattitore_esposizione') {
+                        return formData.isAbbattitore === true;
+                      }
+                      return true;
+                    })
+                    .map(category => {
+                    const isSelected = formData.selectedCategories?.includes(category.id) || false
+                    const compatibility = getCategoryCompatibility(category.id, formData.selectedCategories || [], formData.setTemperature)
+                    
+                    const getCompatibilityStyle = () => {
+                      switch (compatibility) {
+                        case 'selected':
+                          return 'bg-blue-100 border-blue-400 text-blue-900 shadow-sm';
+                        case 'compatible':
+                          return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
+                        case 'tolerance':
+                          return 'bg-yellow-200 border-yellow-400 text-yellow-900 shadow-sm';
+                        case 'incompatible':
+                          return 'bg-gray-100 border-gray-300 text-gray-400 cursor-not-allowed opacity-60';
+                        case 'neutral':
+                          return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
+                        default:
+                          return 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300';
+                      }
+                    };
+                    
+                    return (
+                      <div
+                        key={category.id}
+                        onClick={() => {
+                          // Non permettere il click se la categoria è incompatibile
+                          if (compatibility === 'incompatible') return;
+                          
+                          // Se non c'è temperatura impostata, evidenzia il campo temperatura
+                          if (!formData.setTemperature || formData.setTemperature.trim() === '') {
+                            setTemperatureFieldHighlighted(true);
+                            const temperatureField = document.getElementById('setTemperature') || document.getElementById('edit-setTemperature');
+                            if (temperatureField) {
+                              temperatureField.focus();
+                              temperatureField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                            // Rimuovi l'evidenziazione dopo 3 secondi
+                            setTimeout(() => setTemperatureFieldHighlighted(false), 3000);
+                            return;
+                          }
+                          
+                          handleCategoryToggle(category.id);
+                        }}
+                        className={`p-2 rounded-lg border-2 transition-all duration-200 ${getCompatibilityStyle()}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-xs truncate">{category.name}</h4>
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-2">{category.description}</p>
+                          </div>
+                          <div className="flex items-center gap-1 ml-2">
+                            {isSelected && <CheckCircle className="h-3 w-3 text-blue-600 flex-shrink-0" />}
+                            {compatibility === 'compatible' && !isSelected && <span className="text-xs">✅</span>}
+                            {compatibility === 'incompatible' && !isSelected && <span className="text-xs">🚫</span>}
+                            {compatibility === 'tolerance' && !isSelected && <span className="text-xs">⚠️</span>}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                
+                {formData.selectedCategories && formData.selectedCategories.length > 0 && (
+                  <div className="mt-4 p-3 bg-white rounded border">
+                    <p className="text-sm font-medium text-gray-700 mb-2">Categorie selezionate:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {formData.selectedCategories.map(categoryId => {
+                        const category = allCategories.find(cat => cat.id === categoryId)
+                        return (
+                          <span
+                            key={categoryId}
+                            className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                          >
+                            {category?.name}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+                
+                
+                {formData.selectedCategories.length === 0 && (
+                  <p className="text-xs text-red-500 mt-2">
+                    ⚠️ Seleziona almeno una categoria per procedere
+                  </p>
+                )}
+              </div>
+              
               
               {/* Sezione Posizionamento */}
               <div className="bg-gray-50 p-4 rounded-lg">

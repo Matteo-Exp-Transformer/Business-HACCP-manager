@@ -111,6 +111,12 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
 
   // Funzioni per gestire la selezione multipla delle categorie
   const handleCategoryToggle = (categoryId) => {
+    // Controlla se la categoria è incompatibile
+    const compatibility = getCategoryCompatibility(categoryId, formData.selectedCategories || [], formData);
+    if (compatibility === 'incompatible') {
+      return; // Non permettere selezione se incompatibile
+    }
+    
     setFormData(prev => {
       const currentCategories = prev.selectedCategories || []
       const isSelected = currentCategories.includes(categoryId)
@@ -380,16 +386,13 @@ function ConservationPoints({ temperatures, setTemperatures, currentUser, refrig
     return null;
   };
 
-  // Funzione per determinare la compatibilità delle categorie (stessa logica dell'onboarding)
+  // Funzione per determinare la compatibilità delle categorie (logica originale corretta)
   const getCategoryCompatibility = (categoryId, selectedCategories, formData) => {
-    console.log('🔍 getCategoryCompatibility chiamata per:', categoryId, 'con formData:', formData);
-    
     // Controlla se la categoria è già selezionata
     if (selectedCategories.includes(categoryId)) return 'selected';
     
     // Estrae la temperatura dal form
     const temp = getTemperatureFromForm(formData);
-    console.log('🔍 Temperatura estratta:', temp);
     
     if (temp === null) return 'neutral';
     
