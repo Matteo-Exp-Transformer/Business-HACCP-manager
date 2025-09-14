@@ -7,6 +7,12 @@ const DEBUG = process.env.NODE_ENV === 'development' ||
               localStorage.getItem('haccp:debug') === 'true' ||
               window.location.search.includes('debug=true')
 
+<<<<<<< Updated upstream
+=======
+// Flag per ridurre la verbosità dei log dell'AIAssistant
+const AIASSISTANT_VERBOSE = localStorage.getItem('haccp:ai-assistant-verbose') === 'true'
+
+>>>>>>> Stashed changes
 /**
  * Logger condizionale che stampa solo se DEBUG è true
  */
@@ -17,6 +23,18 @@ export const debugLog = (...args) => {
 }
 
 /**
+<<<<<<< Updated upstream
+=======
+ * Logger per AIAssistant che stampa solo se DEBUG è true E AIASSISTANT_VERBOSE è true
+ */
+export const aiAssistantLog = (...args) => {
+  if (DEBUG && AIASSISTANT_VERBOSE) {
+    console.log(...args)
+  }
+}
+
+/**
+>>>>>>> Stashed changes
  * Logger per errori che stampa sempre (anche in produzione)
  */
 export const errorLog = (...args) => {
@@ -104,6 +122,10 @@ export const isDebugEnabled = () => DEBUG
 
 export default {
   debugLog,
+<<<<<<< Updated upstream
+=======
+  aiAssistantLog,
+>>>>>>> Stashed changes
   errorLog,
   warnLog,
   infoLog,

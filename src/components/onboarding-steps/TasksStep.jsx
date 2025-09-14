@@ -258,8 +258,38 @@ const TasksStep = ({
     return points;
   };
 
+  // Funzione per determinare se un punto di conservazione ha temperatura "ambiente"
+  const isAmbienteTemperature = (point) => {
+    if (!point) return false;
+    
+    // Controlla se la temperatura è "ambiente"
+    if (point.setTemperature && point.setTemperature.toString().toLowerCase().trim() === 'ambiente') {
+      return true;
+    }
+    
+    // Controlla se la temperatura è nel range ambiente (15-25°C)
+    if (point.setTemperatureMin && point.setTemperatureMax) {
+      return point.setTemperatureMin >= 15 && point.setTemperatureMax <= 25;
+    }
+    
+    // Controlla se la temperatura target è "ambiente"
+    if (point.targetTemp && point.targetTemp.toString().toLowerCase().trim() === 'ambiente') {
+      return true;
+    }
+    
+    return false;
+  };
+
   // Controlla se esistono TUTTE e 3 le attività obbligatorie per un punto di conservazione
   const hasTaskForConservationPoint = (point) => {
+<<<<<<< Updated upstream
+=======
+    // I punti con temperatura ambiente non richiedono manutenzione HACCP
+    if (isAmbienteTemperature(point)) {
+      debugLog(`🌡️ Point ${point.id} (${point.name}) has ambiente temperature - no maintenance required`);
+      return true; // Considera come "completato" perché non richiede manutenzione
+    }
+>>>>>>> Stashed changes
     debugLog(`🔍 Checking point ${point.id} (${point.name}) for maintenance tasks...`);
     debugLog(`📋 Saved maintenances:`, savedMaintenances);
     
@@ -578,12 +608,55 @@ const TasksStep = ({
       {(() => {
         const conservationPoints = getConservationPoints();
         const missingTasks = conservationPoints.filter(point => !hasTaskForConservationPoint(point));
+        const ambientePoints = conservationPoints.filter(point => isAmbienteTemperature(point));
         
         debugLog('🔍 Missing tasks check:', {
           conservationPoints: conservationPoints.map(p => ({ id: p.id, name: p.name })),
           missingTasks: missingTasks.map(p => ({ id: p.id, name: p.name })),
+          ambientePoints: ambientePoints.map(p => ({ id: p.id, name: p.name })),
           allTasks: tasks.map(t => ({ name: t.name, assignedRole: t.assignedRole }))
         });
+        
+        // Mostra informazioni sui punti ambiente
+        if (ambientePoints.length > 0) {
+          return (
+            <div className="space-y-4">
+              {/* Messaggio informativo per punti ambiente */}
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className="h-5 w-5 text-green-600" />
+                  <h4 className="font-medium text-green-900">Punti con Temperatura Ambiente</h4>
+                </div>
+                <p className="text-sm text-green-800 mb-3">
+                  I seguenti punti di conservazione hanno temperatura ambiente (15-25°C) e <strong>non richiedono manutenzione HACCP specifica</strong>:
+                </p>
+                <ul className="list-disc list-inside text-sm text-green-700 space-y-1">
+                  {ambientePoints.map(point => (
+                    <li key={point.id}>{point.name}</li>
+                  ))}
+                </ul>
+              </div>
+              
+              {/* Punti che necessitano manutenzione */}
+              {missingTasks.length > 0 && (
+                <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                    <h4 className="font-medium text-yellow-900">Punti di Conservazione senza Mansioni</h4>
+                  </div>
+                  <p className="text-sm text-yellow-800 mb-3">
+                    I seguenti punti di conservazione necessitano delle 3 mansioni obbligatorie (Rilevamento Temperatura, Sanificazione, Sbrinamento):
+                  </p>
+                  <ul className="list-disc list-inside text-sm text-yellow-700 space-y-1">
+                    {missingTasks.map(point => (
+                      <li key={point.id}>{point.name}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        }
         
         if (missingTasks.length > 0) {
           return (

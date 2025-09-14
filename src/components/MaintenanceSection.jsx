@@ -50,7 +50,10 @@ const MaintenanceSection = ({
   // Carica dati iniziali
   useEffect(() => {
     if (initialData && Object.keys(initialData).length > 0) {
+<<<<<<< Updated upstream
       debugLog('🔍 MaintenanceSection - Impostando maintenanceData con:', initialData);
+=======
+>>>>>>> Stashed changes
       setMaintenanceData(initialData);
     }
   }, [initialData]);
@@ -71,7 +74,10 @@ const MaintenanceSection = ({
 
   // Aggiorna un campo specifico per un tipo di attività con reset automatico
   const updateMaintenanceField = (taskType, field, value) => {
+<<<<<<< Updated upstream
     maintenanceLog(`🔄 updateMaintenanceField: ${taskType}.${field} = ${value}`);
+=======
+>>>>>>> Stashed changes
     
     setMaintenanceData(prev => {
       const currentTask = prev[taskType];
@@ -183,13 +189,17 @@ const MaintenanceSection = ({
 
     // Se non sono selezionati ruolo e categoria, mostra tutti i dipendenti
     if (!role && !category) {
+<<<<<<< Updated upstream
       debugLog('🔍 getFilteredStaff Debug: Mostrando tutti i dipendenti');
+=======
+>>>>>>> Stashed changes
       return staffMembers;
     }
 
     // Usa la nuova funzione helper per filtrare
     const filtered = getAvailableStaff(staffMembers, role, category);
     
+<<<<<<< Updated upstream
     debugLog('🔍 getFilteredStaff Debug:', {
       taskType,
       role,
@@ -197,6 +207,8 @@ const MaintenanceSection = ({
       filteredCount: filtered.length,
       filtered: filtered.map(m => `${m.name} ${m.surname}`)
     });
+=======
+>>>>>>> Stashed changes
 
     return filtered;
   };

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test - Visualizzazione Manutenzioni</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-title {
+            color: #2563eb;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+        .maintenance-card {
+            background: #f0f9ff;
+            border: 1px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .maintenance-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .maintenance-icon {
+            width: 20px;
+            height: 20px;
+            color: #0ea5e9;
+        }
+        .maintenance-title {
+            font-weight: 600;
+            color: #0c4a6e;
+        }
+        .task-item {
+            background: white;
+            border: 1px solid #bae6fd;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        .task-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .task-icon {
+            width: 16px;
+            height: 16px;
+        }
+        .task-name {
+            font-weight: 500;
+            color: #1f2937;
+        }
+        .task-details {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+        }
+        .task-detail {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #6b7280;
+        }
+        .detail-icon {
+            width: 14px;
+            height: 14px;
+            color: #9ca3af;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+        .status-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        .status-error {
+            background: #fecaca;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Test - Visualizzazione Dati Manutenzione</h1>
+        <p>Questo file mostra come appariranno i dati di manutenzione nella CollapsibleCard "Stato Punti di Conservazione".</p>
+
+        <div class="test-section">
+            <div class="test-title">📋 Scenario 1: Punto di Conservazione con Manutenzioni Complete</div>
+            
+            <div class="maintenance-card">
+                <div class="maintenance-header">
+                    <svg class="maintenance-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                    </svg>
+                    <span class="maintenance-title">Stato Manutenzioni</span>
+                    <span class="status-badge status-success">
+                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        Configurato
+                    </span>
+                </div>
+                
+                <div class="task-item">
+                    <div class="task-header">
+                        <svg class="task-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <span class="task-name">Rilevamento Temperatura</span>
+                    </div>
+                    <div class="task-details">
+                        <div class="task-detail">
+                            <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <strong>Ogni:</strong> Giornalmente
+                        </div>
+                        <div class="task-detail">
+                            <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <strong>Assegnato a:</strong> Amministratore - Cuochi - Paolo Dettori
+                        </div>
+                    </div>
+                </div>
+
+                <div class="task-item">
+                    <div class="task-header">
+                        <svg class="task-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path>
+                        </svg>
+                        <span class="task-name">Sanificazione</span>
+                    </div>
+                    <div class="task-details">
+                        <div class="task-detail">
+                            <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <strong>Ogni:</strong> Ogni Lunedì, Giovedì
+                        </div>
+                        <div class="task-detail">
+                            <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <strong>Assegnato a:</strong> Amministratore - Cuochi - Paolo Dettori
+                        </div>
+                    </div>
+                </div>
+
+                <div class="task-item">
+                    <div class="task-header">
+                        <svg class="task-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+                        </svg>
+                        <span class="task-name">Sbrinamento</span>
+                    </div>
+                    <div class="task-details">
+                        <div class="task-detail">
+                            <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            <strong>Ogni:</strong> Semestrale (ogni 6 mesi)
+                        </div>
+                        <div class="task-detail">
+                            <svg class="detail-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <strong>Assegnato a:</strong> Responsabile - Amministratore - Fabrizio Dettori
+                        </div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #bae6fd;">
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #0ea5e9;">
+                        <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span>Manutenzioni configurate secondo standard HACCP</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">⚠️ Scenario 2: Punto di Conservazione senza Manutenzioni</div>
+            
+            <div style="background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: #f59e0b;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                    </svg>
+                    <span style="font-weight: 600; color: #92400e;">Manutenzioni</span>
+                </div>
+                <p style="font-size: 14px; color: #92400e; margin: 0;">
+                    Nessuna attività di manutenzione configurata per questo punto di conservazione.
+                </p>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">🔍 Caratteristiche Implementate</div>
+            <ul style="color: #374151; line-height: 1.6;">
+                <li><strong>Validazione Dati:</strong> Tutti i dati vengono validati e sanitizzati prima del salvataggio</li>
+                <li><strong>Compliance HACCP:</strong> Le manutenzioni seguono gli standard HACCP obbligatori</li>
+                <li><strong>Formato Richiesto:</strong> "Tipo di manutenzione" → "A chi è assegnata" → "Ogni quanto"</li>
+                <li><strong>Visualizzazione Intuitiva:</strong> Icone colorate per ogni tipo di manutenzione</li>
+                <li><strong>Gestione Errori:</strong> Messaggi chiari per dati mancanti o non validi</li>
+                <li><strong>Prevenzione Parsing:</strong> Sanitizzazione automatica per prevenire errori di trascrizione</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <div class="test-title">📊 Dati di Test</div>
+            <p>I dati mostrati sono basati sui task di manutenzione precompilati nell'app:</p>
+            <ul style="color: #374151; line-height: 1.6;">
+                <li><strong>Frigo A:</strong> 3 manutenzioni (Temperatura, Sanificazione, Sbrinamento)</li>
+                <li><strong>Frigo B:</strong> 3 manutenzioni con frequenze personalizzate</li>
+                <li><strong>Frigo C:</strong> 3 manutenzioni con assegnazioni specifiche</li>
+                <li><strong>Totale:</strong> 21 attività di manutenzione per 7 punti di conservazione</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
