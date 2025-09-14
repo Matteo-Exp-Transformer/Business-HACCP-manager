@@ -12,6 +12,7 @@ import HelpOverlay from './HelpOverlay'
 import { CONSERVATION_POINT_RULES } from '../utils/haccpRules'
 import { TEMP_MODES } from '../utils/haccpConstants'
 import MaintenanceSection from './MaintenanceSection'
+import MaintenanceDisplay from './MaintenanceDisplay'
 import { 
   MAINTENANCE_TASK_TYPES, 
   validateMaintenanceConfig 
@@ -21,7 +22,7 @@ import { supabaseService } from '../services/supabaseService'
 // Usa le categorie HACCP standardizzate
 const STORAGE_CATEGORIES = CONSERVATION_POINT_RULES.categories
 
-function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refrigerators, setRefrigerators, departments, setDepartments }) {
+function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refrigerators, setRefrigerators, departments, setDepartments, staff }) {
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingRefrigerator, setEditingRefrigerator] = useState(null)
@@ -36,7 +37,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     frequency: '',
     selectedCategories: [],
     maintenanceData: {},
-    isAbbattitore: false
+    isAbbattitore: false,
+    isAmbiente: false
   })
 
   const [searchTerm, setSearchTerm] = useState('')
@@ -47,6 +49,12 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
   const handleMaintenanceChange = useCallback((maintenanceData) => {
     setFormData(prev => ({...prev, maintenanceData}))
   }, [])
+
+  // Funzione per determinare se la temperatura è "ambiente"
+  const isAmbienteTemperature = (temperature) => {
+    if (!temperature) return false;
+    return temperature.toString().toLowerCase().trim() === 'ambiente';
+  }
   
   // Stati per i dati dell'onboarding
   const [onboardingData, setOnboardingData] = useState(null)
@@ -71,13 +79,56 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
   // Combina le categorie predefinite con quelle personalizzate
   const allCategories = [...STORAGE_CATEGORIES, ...customCategories]
   
+  // Filtra le categorie disponibili in base alla checkbox Ambiente
+  const getAvailableCategories = () => {
+    if (formData.isAmbiente) {
+      // Se ambiente è selezionato, mostra solo "Dispensa Secca"
+      return allCategories.filter(cat => cat.id === 'dry_goods' || cat.name === 'Dispensa Secca')
+    }
+    return allCategories
+  }
+  
   // Forza il re-render delle categorie quando cambia la temperatura
   const [forceUpdate, setForceUpdate] = useState(0)
   const [temperatureFieldHighlighted, setTemperatureFieldHighlighted] = useState(false)
+  const [removedCategoriesMessage, setRemovedCategoriesMessage] = useState('')
   
   useEffect(() => {
     // Forza il re-render quando cambia la temperatura
     setForceUpdate(prev => prev + 1)
+    
+    // Rimuovi automaticamente le categorie incompatibili quando cambia la temperatura
+    if (formData.selectedCategories && formData.selectedCategories.length > 0) {
+      const compatibleCategories = formData.selectedCategories.filter(categoryId => {
+        const compatibility = getCategoryCompatibility(categoryId, [], formData.setTemperature);
+        return compatibility !== 'incompatible';
+      });
+      
+      // Se ci sono categorie incompatibili, aggiorna la selezione
+      if (compatibleCategories.length !== formData.selectedCategories.length) {
+        const removedCategories = formData.selectedCategories.filter(categoryId => 
+          !compatibleCategories.includes(categoryId)
+        );
+        
+        const removedNames = removedCategories.map(categoryId => {
+          const category = allCategories.find(cat => cat.id === categoryId);
+          return category?.name || categoryId;
+        });
+        
+        setFormData(prev => ({
+          ...prev,
+          selectedCategories: compatibleCategories
+        }));
+        
+        // Mostra messaggio informativo
+        setRemovedCategoriesMessage(
+          `Categorie rimosse automaticamente (incompatibili con la nuova temperatura): ${removedNames.join(', ')}`
+        );
+        
+        // Rimuovi il messaggio dopo 5 secondi
+        setTimeout(() => setRemovedCategoriesMessage(''), 5000);
+      }
+    }
   }, [formData.setTemperature])
   
   // Funzione per aprire l'HelpOverlay
@@ -88,6 +139,16 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
 
   // Funzioni per gestire la selezione multipla delle categorie
   const handleCategoryToggle = (categoryId) => {
+    // Se ambiente è selezionato, permette solo "Dispensa Secca"
+    if (formData.isAmbiente) {
+      const isDispensaSecca = categoryId === 'dry_goods' || 
+        allCategories.find(cat => cat.id === categoryId)?.name === 'Dispensa Secca'
+      if (!isDispensaSecca) {
+        alert('Per i punti di conservazione a temperatura ambiente puoi selezionare solo la categoria "Dispensa Secca"')
+        return
+      }
+    }
+    
     // Controlla se la categoria è incompatibile
     const compatibility = getCategoryCompatibility(categoryId, formData.selectedCategories || [], formData.setTemperature);
     if (compatibility === 'incompatible') {
@@ -378,20 +439,17 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
 
   // Funzione per determinare la compatibilità delle categorie (logica originale corretta)
   const getCategoryCompatibility = (categoryId, selectedCategories, targetTemp) => {
-    console.log('🔍 getCategoryCompatibility chiamata:', { categoryId, selectedCategories, targetTemp });
     
     // Controlla se la categoria è già selezionata
     if (selectedCategories.includes(categoryId)) return 'selected';
     
     // Le categorie abbattitore non hanno range ottimale di conservazione
     if (categoryId === 'abbattitore_menu' || categoryId === 'abbattitore_esposizione') {
-      console.log('🏭 Categoria abbattitore, ritorno neutral (nessun range ottimale)');
       return 'neutral';
     }
     
     // Se non c'è temperatura inserita, mostra tutte le categorie come neutral
     if (!targetTemp || (typeof targetTemp === 'string' && targetTemp.trim() === '')) {
-      console.log('🌡️ Nessuna temperatura inserita, ritorno neutral');
       return 'neutral';
     }
     
@@ -1020,6 +1078,11 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
 
   // Funzione per determinare il tipo di punto di conservazione in base alla temperatura
   const getRefrigeratorType = (refrigerator) => {
+    // Se è esplicitamente marcato come ambiente, restituisci Ambiente
+    if (refrigerator.isAmbiente) {
+      return 'Ambiente'
+    }
+    
     // Se è esplicitamente marcato come abbattitore, restituisci Abbattitore
     if (refrigerator.isAbbattitore) {
       return 'Abbattitore'
@@ -1033,12 +1096,17 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       // Nuovo formato con range - usa la media
       tempValue = (refrigerator.setTemperatureMin + refrigerator.setTemperatureMax) / 2
     } else if (refrigerator.setTemperature) {
-      // Vecchio formato - gestisce sia numeri che "ambiente"
-      if (refrigerator.setTemperature.toString().toLowerCase().trim() === 'ambiente') {
+      // Vecchio formato - gestisce sia numeri che "ambiente" e range "da X°C a Y°C"
+      const tempStr = refrigerator.setTemperature.toString()
+      if (tempStr.toLowerCase().trim() === 'ambiente') {
         tempValue = 20 // Valore medio per ambiente
+      } else if (tempStr.includes('da') && tempStr.includes('a')) {
+        // Formato "da 15°C a 25°C" - estrae il primo numero
+        const match = tempStr.match(/da\s*(\d+(?:\.\d+)?)°C/)
+        tempValue = match ? parseFloat(match[1]) : 20
       } else {
-        const tempStr = refrigerator.setTemperature.toString().replace('°C', '').trim()
-      tempValue = parseFloat(tempStr)
+        const cleanTempStr = tempStr.replace('°C', '').trim()
+        tempValue = parseFloat(cleanTempStr)
       }
     } else if (refrigerator.targetTemp) {
       // Formato dall'onboarding - gestisce sia numeri che "ambiente"
@@ -1093,7 +1161,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
   const addRefrigerator = async (e) => {
     e.preventDefault()
     
-    if (!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0) {
+    if (!formData.name.trim() || (!formData.setTemperature.trim() && !formData.isAmbiente) || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0) {
       return
     }
 
@@ -1134,15 +1202,11 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     let setTemp
     let temperatureDisplay = ''
     
-    if (formData.setTemperature.toLowerCase().trim() === 'ambiente') {
+    if (formData.isAmbiente) {
       setTemp = 20 // Temperatura media ambiente per calcoli
-      temperatureDisplay = 'da 15°C a 25°C'
+      temperatureDisplay = 'Ambiente (15°C - 27°C)'
     } else {
       setTemp = parseFloat(formData.setTemperature)
-      if (isNaN(setTemp)) {
-        alert('Inserisci una temperatura valida o scrivi "ambiente" per temperatura ambiente')
-        return
-      }
       temperatureDisplay = `${setTemp}°C`
     }
 
@@ -1188,35 +1252,55 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       maintenanceData: formData.maintenanceData || {},
       createdAt: new Date().toISOString(),
       createdBy: currentUser?.name || 'Unknown',
-      isAbbattitore: formData.isAbbattitore || false
+      isAbbattitore: formData.isAbbattitore || false,
+      isAmbiente: formData.isAmbiente || false
     }
 
-    setRefrigerators([...refrigerators, newRefrigerator])
+    const updatedRefrigerators = [...refrigerators, newRefrigerator]
+    setRefrigerators(updatedRefrigerators)
     
-    // Salva le attività di manutenzione se presenti
+    // Salva nel localStorage
+    localStorage.setItem('haccp-refrigerators', JSON.stringify(updatedRefrigerators))
+    console.log('✅ Punto di conservazione salvato:', newRefrigerator.name)
+    
+    // Salva le attività di manutenzione solo se presenti e valide
     if (formData.maintenanceData && Object.keys(formData.maintenanceData).length > 0) {
       try {
-        const maintenanceTasks = Object.values(MAINTENANCE_TASK_TYPES).map(taskType => {
+        // Filtra solo le attività con dati validi
+        const validTasks = Object.values(MAINTENANCE_TASK_TYPES).filter(taskType => {
           const taskData = formData.maintenanceData[taskType];
-          return {
-            id: `${newRefrigerator.id}_${taskType}_${Date.now()}`,
-            company_id: supabaseService.getCompanyId(),
-            conservation_point_id: newRefrigerator.id,
-            task_type: taskType,
-            frequency: taskData.frequency,
-            assigned_role: taskData.assigned_role,
-            assigned_category: taskData.assigned_category,
-            assigned_staff_ids: taskData.assigned_staff_ids || [],
-            is_active: true,
-            created_at: new Date().toISOString()
-          };
+          return taskData && 
+                 taskData.frequency && 
+                 taskData.assigned_role && 
+                 taskData.assigned_category;
         });
 
-        const result = await supabaseService.saveMaintenanceTasks(maintenanceTasks);
-        if (result.success) {
-          console.log('✅ Attività di manutenzione salvate:', result.data);
-        } else {
-          console.error('❌ Errore nel salvataggio manutenzione:', result.error);
+        if (validTasks.length > 0) {
+          const maintenanceTasks = validTasks.map(taskType => {
+            const taskData = formData.maintenanceData[taskType];
+            return {
+              id: `${newRefrigerator.id}_${taskType}_${Date.now()}`,
+              company_id: supabaseService.getCompanyId(),
+              conservation_point_id: newRefrigerator.id,
+              conservation_point_name: newRefrigerator.name,
+              task_type: taskType,
+              frequency: taskData.frequency,
+              assigned_role: taskData.assigned_role,
+              assigned_category: taskData.assigned_category,
+              assigned_staff_ids: taskData.assigned_staff_ids || [],
+              selected_days: taskData.selected_days || [],
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+          });
+
+          const result = await supabaseService.saveMaintenanceTasks(maintenanceTasks);
+          if (result.success) {
+            console.log('✅ Attività di manutenzione salvate:', result.data);
+          } else {
+            console.error('❌ Errore nel salvataggio manutenzione:', result.error);
+          }
         }
       } catch (error) {
         console.error('❌ Errore durante il salvataggio delle attività di manutenzione:', error);
@@ -1254,7 +1338,11 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
         console.error('❌ Errore durante l\'eliminazione delle attività di manutenzione:', error);
       }
       
-      setRefrigerators(refrigerators.filter(ref => ref.id !== id))
+      const updatedRefrigerators = refrigerators.filter(ref => ref.id !== id)
+      setRefrigerators(updatedRefrigerators)
+      
+      // Salva nel localStorage
+      localStorage.setItem('haccp-refrigerators', JSON.stringify(updatedRefrigerators))
     }
   }
 
@@ -1291,6 +1379,11 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     }
     
     console.log('🔍 Temperatura estratta:', temperature, 'da valore:', tempValue)
+    console.log('🔍 Debug editRefrigerator:', {
+      originalValue: tempValue,
+      extractedTemperature: temperature,
+      refrigeratorName: refrigerator.name
+    })
     
     const formDataToSet = {
       name: refrigerator.name,
@@ -1303,7 +1396,8 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       frequency: refrigerator.frequency || '',
       selectedCategories: refrigerator.selectedCategories || [],
       maintenanceData: refrigerator.maintenanceData || {},
-      isAbbattitore: refrigerator.isAbbattitore || false
+      isAbbattitore: refrigerator.isAbbattitore || false,
+      isAmbiente: refrigerator.isAmbiente || false
     }
     
     console.log('🔍 FormData da impostare:', JSON.stringify(formDataToSet.maintenanceData, null, 2))
@@ -1314,7 +1408,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
   const updateRefrigerator = async (e) => {
     e.preventDefault()
     
-    if (!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0) {
+    if (!formData.name.trim() || (!formData.setTemperature.trim() && !formData.isAmbiente) || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0) {
       return
     }
 
@@ -1355,15 +1449,11 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
     let setTemp
     let temperatureDisplay = ''
     
-    if (formData.setTemperature.toLowerCase().trim() === 'ambiente') {
+    if (formData.isAmbiente) {
       setTemp = 20 // Temperatura media ambiente per calcoli
-      temperatureDisplay = 'da 15°C a 25°C'
+      temperatureDisplay = 'Ambiente (15°C - 27°C)'
     } else {
       setTemp = parseFloat(formData.setTemperature)
-      if (isNaN(setTemp)) {
-        alert('Inserisci una temperatura valida o scrivi "ambiente" per temperatura ambiente')
-        return
-      }
       temperatureDisplay = `${setTemp}°C`
     }
 
@@ -1409,41 +1499,60 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
       maintenanceData: formData.maintenanceData || {},
       updatedAt: new Date().toISOString(),
       updatedBy: currentUser?.name || 'Unknown',
-      isAbbattitore: formData.isAbbattitore || false
+      isAbbattitore: formData.isAbbattitore || false,
+      isAmbiente: formData.isAmbiente || false
     }
 
-    setRefrigerators(refrigerators.map(ref => 
+    const updatedRefrigerators = refrigerators.map(ref => 
       ref.id === editingRefrigerator.id ? updatedRefrigerator : ref
-    ))
+    )
+    setRefrigerators(updatedRefrigerators)
     
-    // Aggiorna le attività di manutenzione se presenti
+    // Salva nel localStorage
+    localStorage.setItem('haccp-refrigerators', JSON.stringify(updatedRefrigerators))
+    
+    // Aggiorna le attività di manutenzione solo se presenti e valide
     if (formData.maintenanceData && Object.keys(formData.maintenanceData).length > 0) {
       try {
         // Prima elimina le attività esistenti per questo punto
         await supabaseService.deleteMaintenanceTasksByConservationPoint(editingRefrigerator.id);
         
-        // Poi crea le nuove attività
-        const maintenanceTasks = Object.values(MAINTENANCE_TASK_TYPES).map(taskType => {
+        // Filtra solo le attività con dati validi
+        const validTasks = Object.values(MAINTENANCE_TASK_TYPES).filter(taskType => {
           const taskData = formData.maintenanceData[taskType];
-          return {
-            id: `${editingRefrigerator.id}_${taskType}_${Date.now()}`,
-            company_id: supabaseService.getCompanyId(),
-            conservation_point_id: editingRefrigerator.id,
-            task_type: taskType,
-            frequency: taskData.frequency,
-            assigned_role: taskData.assigned_role,
-            assigned_category: taskData.assigned_category,
-            assigned_staff_ids: taskData.assigned_staff_ids || [],
-            is_active: true,
-            created_at: new Date().toISOString()
-          };
+          return taskData && 
+                 taskData.frequency && 
+                 taskData.assigned_role && 
+                 taskData.assigned_category;
         });
 
-        const result = await supabaseService.saveMaintenanceTasks(maintenanceTasks);
-        if (result.success) {
-          console.log('✅ Attività di manutenzione aggiornate:', result.data);
-        } else {
-          console.error('❌ Errore nell\'aggiornamento manutenzione:', result.error);
+        if (validTasks.length > 0) {
+          // Poi crea le nuove attività
+          const maintenanceTasks = validTasks.map(taskType => {
+            const taskData = formData.maintenanceData[taskType];
+            return {
+              id: `${editingRefrigerator.id}_${taskType}_${Date.now()}`,
+              company_id: supabaseService.getCompanyId(),
+              conservation_point_id: editingRefrigerator.id,
+              conservation_point_name: updatedRefrigerator.name,
+              task_type: taskType,
+              frequency: taskData.frequency,
+              assigned_role: taskData.assigned_role,
+              assigned_category: taskData.assigned_category,
+              assigned_staff_ids: taskData.assigned_staff_ids || [],
+              selected_days: taskData.selected_days || [],
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            };
+          });
+
+          const result = await supabaseService.saveMaintenanceTasks(maintenanceTasks);
+          if (result.success) {
+            console.log('✅ Attività di manutenzione aggiornate:', result.data);
+          } else {
+            console.error('❌ Errore nell\'aggiornamento manutenzione:', result.error);
+          }
         }
       } catch (error) {
         console.error('❌ Errore durante l\'aggiornamento delle attività di manutenzione:', error);
@@ -2106,15 +2215,36 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
         icon={Settings}
         defaultExpanded={false}
       >
-          {refrigerators.length === 0 ? (
+          {/* Informazione sui vincoli */}
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2 mb-2">
+              <Settings className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-800">Manutenzioni HACCP</span>
+            </div>
+            <p className="text-xs text-blue-700">
+              Vengono mostrati solo i punti di conservazione che richiedono manutenzione HACCP: <strong>Frigoriferi</strong>, <strong>Freezer</strong> e <strong>Abbattitori</strong>. 
+              Le dispense secche non richiedono manutenzione specifica.
+            </p>
+          </div>
+
+          {refrigerators.filter(refrigerator => {
+            const type = getRefrigeratorType(refrigerator);
+            return ['Frigo', 'Freezer', 'Abbattitore'].includes(type);
+          }).length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>Nessun punto di conservazione registrato</p>
-              <p className="text-sm">Aggiungi punti di conservazione per visualizzare lo stato</p>
+              <p>Nessun punto di conservazione con manutenzione HACCP</p>
+              <p className="text-sm">Aggiungi frigoriferi, freezer o abbattitori per visualizzare le manutenzioni</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {refrigerators.map(refrigerator => {
+              {refrigerators
+                .filter(refrigerator => {
+                  const type = getRefrigeratorType(refrigerator);
+                  // Mostra solo Frigoriferi, Freezer e Abbattitore
+                  return ['Frigo', 'Freezer', 'Abbattitore'].includes(type);
+                })
+                .map(refrigerator => {
                 const status = getTemperatureStatus(refrigerator)
                 const lastTemperature = temperatures
                   .filter(temp => temp.location.toLowerCase().includes(refrigerator.name.toLowerCase()))
@@ -2174,6 +2304,15 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                             </div>
                           </div>
                         )}
+
+                        {/* Sezione Manutenzioni */}
+                        <div className="mt-4">
+                          <MaintenanceDisplay
+                            conservationPointId={refrigerator.id}
+                            conservationPointName={refrigerator.name}
+                            staffMembers={staff || []}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2213,11 +2352,10 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                     <Input
                       id="name"
                       type="text"
-                      value={formData.name}
+                      value={formData.name || ''}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       placeholder="es. ripiano A, Armadio 2, Freezer A..."
                       className="mt-1"
-                      required
                     />
                   </div>
                   
@@ -2225,10 +2363,9 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                     <Label htmlFor="location" className="text-base font-medium text-gray-700">Posizionamento *</Label>
                     <select
                       id="location"
-                      value={formData.location}
+                      value={formData.location || ''}
                       onChange={(e) => setFormData({...formData, location: e.target.value})}
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      required
                     >
                       <option value="">Seleziona reparto</option>
                       {departments.map((dept, index) => (
@@ -2250,7 +2387,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   <Input
                     id="setTemperature"
                     type="text"
-                    value={formData.setTemperature}
+                    value={formData.setTemperature || ''}
                     onChange={(e) => {
                       const newTemperature = e.target.value;
                       setFormData({...formData, setTemperature: newTemperature});
@@ -2269,7 +2406,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                         }));
                       }
                     }}
-                    placeholder="es. 4, -18, 2.5, ambiente..."
+                    placeholder="es. 4, -18, 2.5..."
                     className={`mt-1 p-3 transition-all duration-300 ${
                       temperatureFieldHighlighted ? 
                         'border-red-500 bg-red-50 ring-2 ring-red-200 focus:border-red-500 focus:ring-red-500' :
@@ -2282,11 +2419,33 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                                    'border-gray-300';
                           })() : 'border-gray-300'
                     }`}
-                    required
                   />
                   <p className="text-xs text-gray-600 mt-2 p-2 bg-white rounded border">
-                    Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer, "ambiente" per temperatura ambiente)
+                    Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer)
                   </p>
+                  
+                  {/* Checkbox Ambiente */}
+                  <div className="mt-4 flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isAmbiente"
+                      checked={formData.isAmbiente || false}
+                      onChange={(e) => {
+                        const isAmbiente = e.target.checked;
+                        setFormData(prev => ({
+                          ...prev,
+                          isAmbiente: isAmbiente,
+                          setTemperature: isAmbiente ? '' : prev.setTemperature,
+                          selectedCategories: isAmbiente ? ['dry_goods'] : prev.selectedCategories,
+                          isAbbattitore: isAmbiente ? false : prev.isAbbattitore
+                        }));
+                      }}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <Label htmlFor="isAmbiente" className="text-sm font-medium text-gray-700">
+                      °C Ambiente
+                    </Label>
+                  </div>
                   
                   {/* Checkbox Abbattitore - appare solo se temperatura è tra -1°C e -90°C */}
                   {(() => {
@@ -2297,7 +2456,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                         <input
                           type="checkbox"
                           id="isAbbattitore"
-                          checked={formData.isAbbattitore}
+                          checked={formData.isAbbattitore || false}
                           onChange={(e) => setFormData({...formData, isAbbattitore: e.target.checked})}
                           className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                         />
@@ -2370,6 +2529,10 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" key={forceUpdate}>
                   {allCategories
                     .filter(category => {
+                      // Se ambiente è selezionato, mostra solo "Dispensa Secca"
+                      if (formData.isAmbiente) {
+                        return category.id === 'dry_goods' || category.name === 'Dispensa Secca'
+                      }
                       // Nascondi le categorie abbattitore se la checkbox non è spuntata
                       if (category.id === 'abbattitore_menu' || category.id === 'abbattitore_esposizione') {
                         return formData.isAbbattitore === true;
@@ -2463,6 +2626,15 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                     ⚠️ Seleziona almeno una categoria per procedere
                   </p>
                 )}
+                
+                {/* Messaggio per categorie rimosse automaticamente */}
+                {removedCategoriesMessage && (
+                  <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-xs text-orange-700">
+                      ℹ️ {removedCategoriesMessage}
+                    </p>
+                  </div>
+                )}
 
                 {/* Form espandibile per nuova categoria */}
                 {showAddCategoryForm && (
@@ -2479,7 +2651,6 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                           onChange={(e) => setNewCategoryData({...newCategoryData, name: e.target.value})}
                           placeholder="es. Prodotti Biologici..."
                           className="text-sm"
-                          required
                         />
                       </div>
                       
@@ -2492,7 +2663,6 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                           onChange={(e) => setNewCategoryData({...newCategoryData, description: e.target.value})}
                           placeholder="Descrizione della categoria..."
                           className="text-sm"
-                          required
                         />
                       </div>
                       
@@ -2517,7 +2687,6 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                             maxValue={newCategoryData.temperatureMax}
                             onMinChange={(e) => setNewCategoryData({...newCategoryData, temperatureMin: e.target.value})}
                             onMaxChange={(e) => setNewCategoryData({...newCategoryData, temperatureMax: e.target.value})}
-                            required={false}
                             showValidation={true}
                             showSuggestions={true}
                             compactMode={true}
@@ -2578,21 +2747,37 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
               </div>
               
 
-              {/* Sezione Manutenzione */}
-              <MaintenanceSection
-                conservationPointId={null} // Sarà generato al salvataggio
-                staffMembers={staffMembers}
-                onMaintenanceChange={handleMaintenanceChange}
-                initialData={formData.maintenanceData}
-                isRequired={true}
-              />
+              {/* Sezione Manutenzione - Solo per punti che richiedono manutenzione HACCP */}
+              {!isAmbienteTemperature(formData.setTemperature) && (
+                <MaintenanceSection
+                  conservationPointId={null} // Sarà generato al salvataggio
+                  staffMembers={staffMembers}
+                  onMaintenanceChange={handleMaintenanceChange}
+                  initialData={formData.maintenanceData}
+                  isRequired={true}
+                />
+              )}
+              
+              {/* Messaggio informativo per temperatura ambiente */}
+              {isAmbienteTemperature(formData.setTemperature) && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Thermometer className="w-5 h-5 text-green-600" />
+                    <span className="font-medium text-green-800">Temperatura Ambiente</span>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    I punti di conservazione con temperatura ambiente (15-25°C) non richiedono manutenzione HACCP specifica. 
+                    Non è necessario configurare attività di manutenzione.
+                  </p>
+                </div>
+              )}
               
               {/* Pulsanti di Azione */}
               <div className="flex gap-4 pt-6 border-t border-gray-200">
                 <Button 
                   type="submit" 
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3"
-                  disabled={!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0}
+                  disabled={!formData.name.trim() || (!formData.setTemperature.trim() && !formData.isAmbiente) || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0}
                 >
                   Aggiungi Punto di Conservazione
                 </Button>
@@ -2640,11 +2825,10 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                     <Input
                       id="edit-name"
                       type="text"
-                      value={formData.name}
+                      value={formData.name || ''}
                       onChange={(e) => setFormData({...formData, name: e.target.value})}
                       placeholder="es. ripiano A, Armadio 2, Freezer A..."
                       className="mt-1"
-                      required
                     />
                   </div>
                   
@@ -2652,10 +2836,9 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                     <Label htmlFor="edit-location" className="text-sm font-medium text-gray-700">Posizionamento *</Label>
                     <select
                       id="edit-location"
-                      value={formData.location}
+                      value={formData.location || ''}
                       onChange={(e) => setFormData({...formData, location: e.target.value})}
                       className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                      required
                     >
                       <option value="">Seleziona reparto</option>
                       {departments.map((dept, index) => (
@@ -2676,7 +2859,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   <Input
                     id="edit-setTemperature"
                     type="text"
-                    value={formData.setTemperature}
+                    value={formData.setTemperature || ''}
                     onChange={(e) => {
                       const newTemperature = e.target.value;
                       setFormData({...formData, setTemperature: newTemperature});
@@ -2695,7 +2878,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                         }));
                       }
                     }}
-                    placeholder="es. 4, -18, 2.5, ambiente..."
+                    placeholder="es. 4, -18, 2.5..."
                     className={`mt-1 p-3 transition-all duration-300 ${
                       temperatureFieldHighlighted ? 
                         'border-red-500 bg-red-50 ring-2 ring-red-200 focus:border-red-500 focus:ring-red-500' :
@@ -2708,11 +2891,33 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                                    'border-gray-300';
                           })() : 'border-gray-300'
                     }`}
-                    required
                   />
                   <p className="text-xs text-gray-600 mt-2 p-2 bg-white rounded border">
-                    Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer, "ambiente" per temperatura ambiente)
+                    Inserisci la temperatura di conservazione (es. 4 per frigorifero, -18 per freezer)
                   </p>
+                  
+                  {/* Checkbox Ambiente */}
+                  <div className="mt-4 flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="isAmbiente"
+                      checked={formData.isAmbiente || false}
+                      onChange={(e) => {
+                        const isAmbiente = e.target.checked;
+                        setFormData(prev => ({
+                          ...prev,
+                          isAmbiente: isAmbiente,
+                          setTemperature: isAmbiente ? '' : prev.setTemperature,
+                          selectedCategories: isAmbiente ? ['dry_goods'] : prev.selectedCategories,
+                          isAbbattitore: isAmbiente ? false : prev.isAbbattitore
+                        }));
+                      }}
+                      className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                    />
+                    <Label htmlFor="isAmbiente" className="text-sm font-medium text-gray-700">
+                      °C Ambiente
+                    </Label>
+                  </div>
                   
                   {/* Checkbox Abbattitore - appare solo se temperatura è tra -1°C e -90°C */}
                   {(() => {
@@ -2723,7 +2928,7 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                         <input
                           type="checkbox"
                           id="edit-isAbbattitore"
-                          checked={formData.isAbbattitore}
+                          checked={formData.isAbbattitore || false}
                           onChange={(e) => setFormData({...formData, isAbbattitore: e.target.checked})}
                           className="h-5 w-5 text-red-600 focus:ring-red-500 border-gray-300 rounded"
                         />
@@ -2796,6 +3001,10 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" key={forceUpdate}>
                   {allCategories
                     .filter(category => {
+                      // Se ambiente è selezionato, mostra solo "Dispensa Secca"
+                      if (formData.isAmbiente) {
+                        return category.id === 'dry_goods' || category.name === 'Dispensa Secca'
+                      }
                       // Nascondi le categorie abbattitore se la checkbox non è spuntata
                       if (category.id === 'abbattitore_menu' || category.id === 'abbattitore_esposizione') {
                         return formData.isAbbattitore === true;
@@ -2889,6 +3098,15 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                     ⚠️ Seleziona almeno una categoria per procedere
                   </p>
                 )}
+                
+                {/* Messaggio per categorie rimosse automaticamente */}
+                {removedCategoriesMessage && (
+                  <div className="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-xs text-orange-700">
+                      ℹ️ {removedCategoriesMessage}
+                    </p>
+                  </div>
+                )}
               </div>
               
               
@@ -2899,10 +3117,9 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                   <Label htmlFor="edit-location" className="text-sm font-medium text-gray-700">Reparto *</Label>
                   <select
                     id="edit-location"
-                    value={formData.location}
+                    value={formData.location || ''}
                     onChange={(e) => setFormData({...formData, location: e.target.value})}
                     className="w-full px-3 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mt-1"
-                    required
                   >
                     <option value="">Seleziona un reparto</option>
                     {departments.map(dept => (
@@ -2914,20 +3131,36 @@ function PuntidiConservazione({ temperatures, setTemperatures, currentUser, refr
                 </div>
               </div>
 
-              {/* Sezione Manutenzione */}
-              <MaintenanceSection
-                conservationPointId={editingRefrigerator?.id}
-                staffMembers={staffMembers}
-                onMaintenanceChange={handleMaintenanceChange}
-                initialData={formData.maintenanceData}
-                isRequired={true}
-              />
+              {/* Sezione Manutenzione - Solo per punti che richiedono manutenzione HACCP */}
+              {!isAmbienteTemperature(formData.setTemperature) && (
+                <MaintenanceSection
+                  conservationPointId={editingRefrigerator?.id}
+                  staffMembers={staffMembers}
+                  onMaintenanceChange={handleMaintenanceChange}
+                  initialData={formData.maintenanceData}
+                  isRequired={true}
+                />
+              )}
+              
+              {/* Messaggio informativo per temperatura ambiente */}
+              {isAmbienteTemperature(formData.setTemperature) && (
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Thermometer className="w-5 h-5 text-green-600" />
+                    <span className="font-medium text-green-800">Temperatura Ambiente</span>
+                  </div>
+                  <p className="text-sm text-green-700">
+                    I punti di conservazione con temperatura ambiente (15-25°C) non richiedono manutenzione HACCP specifica. 
+                    Non è necessario configurare attività di manutenzione.
+                  </p>
+                </div>
+              )}
               
               <div className="flex gap-2 pt-4">
                 <Button 
                   type="submit" 
                   className="flex-1"
-                  disabled={!formData.name.trim() || !formData.setTemperature.trim() || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0}
+                  disabled={!formData.name.trim() || (!formData.setTemperature.trim() && !formData.isAmbiente) || !formData.location.trim() || !formData.selectedCategories || formData.selectedCategories.length === 0}
                 >
                   Aggiorna
                 </Button>

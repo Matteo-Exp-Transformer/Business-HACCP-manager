@@ -18,6 +18,7 @@
  */
 
 import { supabase, TABLES, createCompanyStructure } from '../lib/supabase.js'
+import { validateAndSanitizeData, MAINTENANCE_DATA_SCHEMA } from '../utils/dataValidation'
 
 // Importa anche l'URL per il controllo
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
@@ -372,18 +373,30 @@ class SupabaseService {
   // ===== MAINTENANCE TASKS OPERATIONS =====
   async saveMaintenanceTasks(maintenanceTasks) {
     try {
+      // Valida e sanitizza ogni task prima del salvataggio
+      const validatedTasks = [];
+      for (const task of maintenanceTasks) {
+        const validation = validateAndSanitizeData(task, MAINTENANCE_DATA_SCHEMA, 'task di manutenzione');
+        if (validation.isValid) {
+          validatedTasks.push(validation.sanitizedData);
+        } else {
+          console.error('❌ Task di manutenzione non valido:', validation.errors);
+          throw new Error(`Task non valido: ${validation.errors.join(', ')}`);
+        }
+      }
+
       // Controlla se Supabase è configurato correttamente
       if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
         console.warn('⚠️ Supabase non configurato, salvataggio in localStorage');
         // Salva in localStorage come fallback
         const existingTasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
-        const newTasks = maintenanceTasks.map(task => ({
+        const newTasks = validatedTasks.map(task => ({
           ...task,
           company_id: this.companyId,
           updated_at: new Date().toISOString()
         }));
         const updatedTasks = [...existingTasks.filter(t => 
-          !maintenanceTasks.some(mt => mt.conservation_point_id === t.conservation_point_id)
+          !validatedTasks.some(mt => mt.conservation_point_id === t.conservation_point_id)
         ), ...newTasks];
         localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(updatedTasks));
         return this.handleSuccess(newTasks, 'saveMaintenanceTasks (localStorage)');
@@ -391,7 +404,7 @@ class SupabaseService {
 
       const { data, error } = await supabase
         .from(TABLES.MAINTENANCE_TASKS)
-        .upsert(maintenanceTasks.map(task => ({
+        .upsert(validatedTasks.map(task => ({
           ...task,
           company_id: this.companyId,
           updated_at: new Date().toISOString()

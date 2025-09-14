@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import { Input } from './ui/Input'
-import { debugLog, errorLog } from '../utils/debug'
+import { aiAssistantLog, errorLog } from '../utils/debug'
 import { 
   MessageCircle, 
   Send, 
@@ -45,20 +45,20 @@ function AIAssistant({
   const forceMinimizedRef = useRef(true) // Force minimized state
   const gracePeriodRef = useRef(true) // Grace period - no opening allowed
 
-  debugLog('🚀 AIAssistant: Component rendering, isMinimized:', isMinimized, 'isMounted:', isMounted, 'isVisible:', isVisible)
+  aiAssistantLog('🚀 AIAssistant: Component rendering, isMinimized:', isMinimized, 'isMounted:', isMounted, 'isVisible:', isVisible)
 
   // Force minimized state on first mount to prevent auto-opening
   useEffect(() => {
-    debugLog('🎯 AIAssistant: useEffect triggered - setting up component')
+    aiAssistantLog('🎯 AIAssistant: useEffect triggered - setting up component')
     // Force minimized and delay mounting to prevent flash
     setIsMinimized(true)
     forceMinimizedRef.current = true
     gracePeriodRef.current = true
     setIsVisible(false) // Start completely hidden
     
-    debugLog('⏰ AIAssistant: Starting mount timer (500ms)')
+    aiAssistantLog('⏰ AIAssistant: Starting mount timer (500ms)')
     setTimeout(() => {
-      debugLog('✅ AIAssistant: Mount timer complete - making visible')
+      aiAssistantLog('✅ AIAssistant: Mount timer complete - making visible')
       setIsMounted(true)
       setIsMinimized(true) // Double check after mounting
       forceMinimizedRef.current = true
@@ -66,31 +66,31 @@ function AIAssistant({
     }, 500) // Longer delay
     
     // Grace period - absolutely no opening for 2 seconds
-    debugLog('🚫 AIAssistant: Starting grace period (2000ms)')
+    aiAssistantLog('🚫 AIAssistant: Starting grace period (2000ms)')
     setTimeout(() => {
       gracePeriodRef.current = false
-      debugLog('🎉 AIAssistant: Grace period ended, chat can now be opened by user')
+      aiAssistantLog('🎉 AIAssistant: Grace period ended, chat can now be opened by user')
     }, 2000)
   }, [])
 
   // Track state changes for debugging
   useEffect(() => {
-    debugLog('📊 AIAssistant: State changed - isMinimized:', isMinimized, 'isMounted:', isMounted, 'isVisible:', isVisible, 'forceMinimized:', forceMinimizedRef.current, 'gracePeriod:', gracePeriodRef.current)
+    aiAssistantLog('📊 AIAssistant: State changed - isMinimized:', isMinimized, 'isMounted:', isMounted, 'isVisible:', isVisible, 'forceMinimized:', forceMinimizedRef.current, 'gracePeriod:', gracePeriodRef.current)
   }, [isMinimized, isMounted, isVisible])
 
   // Override setIsMinimized to prevent auto-opening on first load
   const handleSetMinimized = (value) => {
-    debugLog('AIAssistant: handleSetMinimized called with:', value, 'gracePeriod:', gracePeriodRef.current, 'forceMinimized:', forceMinimizedRef.current)
+    aiAssistantLog('AIAssistant: handleSetMinimized called with:', value, 'gracePeriod:', gracePeriodRef.current, 'forceMinimized:', forceMinimizedRef.current)
     
     // Absolutely no opening during grace period
     if (value === false && gracePeriodRef.current) {
-      debugLog('AIAssistant: BLOCKED - Still in grace period, no opening allowed')
+      aiAssistantLog('AIAssistant: BLOCKED - Still in grace period, no opening allowed')
       return
     }
     
     // Only allow opening if user explicitly clicks (not on auto-mount)
     if (value === false && forceMinimizedRef.current) {
-      debugLog('AIAssistant: Preventing auto-open, first user click required')
+      aiAssistantLog('AIAssistant: Preventing auto-open, first user click required')
       return // Don't even set it
     }
     forceMinimizedRef.current = false // First click allows future opening

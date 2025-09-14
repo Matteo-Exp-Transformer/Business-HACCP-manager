@@ -1,10 +1,11 @@
 import React from 'react';
 import { Button } from './ui/Button';
-import { Users, RotateCcw } from 'lucide-react';
+import { Users, RotateCcw, CheckCircle } from 'lucide-react';
 
 const DevButtons = ({ 
   onPrefillOnboarding, 
-  onResetOnboarding, 
+  onResetOnboarding,
+  onCompleteOnboarding,
   isDevMode = false 
 }) => {
   // Sempre visibili per ora (anche in produzione)
@@ -22,6 +23,18 @@ const DevButtons = ({
         <Users className="h-4 w-4" />
         <span className="hidden sm:inline">Precompila</span>
         <span className="sm:hidden">Precompila</span>
+      </Button>
+      
+      <Button
+        onClick={onCompleteOnboarding}
+        variant="outline"
+        size="sm"
+        className="flex items-center gap-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 flex-1 sm:flex-none"
+        title="Completa onboarding automaticamente"
+      >
+        <CheckCircle className="h-4 w-4" />
+        <span className="hidden sm:inline">Completa Onboarding</span>
+        <span className="sm:hidden">Completa</span>
       </Button>
       
       <Button

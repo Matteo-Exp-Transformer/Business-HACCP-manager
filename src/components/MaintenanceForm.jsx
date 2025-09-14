@@ -182,7 +182,6 @@ const MaintenanceForm = React.forwardRef(({
 
   // Aggiorna un campo specifico per un tipo di attività con reset automatico
   const updateMaintenanceField = (taskType, field, value) => {
-    maintenanceLog(`🔄 updateMaintenanceField: ${taskType}.${field} = ${value}`);
     
     setMaintenanceData(prev => {
       const currentTask = prev[taskType];
@@ -273,20 +272,12 @@ const MaintenanceForm = React.forwardRef(({
 
     // Se non sono selezionati ruolo e categoria, mostra tutti i dipendenti
     if (!role && !category) {
-      debugLog('🔍 getFilteredStaff Debug: Mostrando tutti i dipendenti');
       return staffMembers;
     }
 
     // Usa la nuova funzione helper per filtrare
     const filtered = getAvailableStaff(staffMembers, role, category);
     
-    debugLog('🔍 getFilteredStaff Debug:', {
-      taskType,
-      role,
-      category,
-      filteredCount: filtered.length,
-      filtered: filtered.map(m => `${m.name} ${m.surname}`)
-    });
 
     return filtered;
   };

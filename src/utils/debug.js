@@ -7,11 +7,23 @@ const DEBUG = process.env.NODE_ENV === 'development' ||
               localStorage.getItem('haccp:debug') === 'true' ||
               window.location.search.includes('debug=true')
 
+// Flag per ridurre la verbosità dei log dell'AIAssistant
+const AIASSISTANT_VERBOSE = localStorage.getItem('haccp:ai-assistant-verbose') === 'true'
+
 /**
  * Logger condizionale che stampa solo se DEBUG è true
  */
 export const debugLog = (...args) => {
   if (DEBUG) {
+    console.log(...args)
+  }
+}
+
+/**
+ * Logger per AIAssistant che stampa solo se DEBUG è true E AIASSISTANT_VERBOSE è true
+ */
+export const aiAssistantLog = (...args) => {
+  if (DEBUG && AIASSISTANT_VERBOSE) {
     console.log(...args)
   }
 }
@@ -104,6 +116,7 @@ export const isDebugEnabled = () => DEBUG
 
 export default {
   debugLog,
+  aiAssistantLog,
   errorLog,
   warnLog,
   infoLog,

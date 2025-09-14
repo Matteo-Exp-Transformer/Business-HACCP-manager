@@ -153,9 +153,8 @@ function App() {
     
     // Se i reparti sono corrotti o non ci sono reparti, carica dall'onboarding
     if (corruptedDepartments || departments.length === 0) {
-      console.log('🧹 Rilevati reparti corrotti, ricaricamento dall\'onboarding...')
+      console.log('🧹 Ricaricamento reparti dall\'onboarding...')
       const onboardingData = localStorage.getItem('haccp-onboarding-new') || localStorage.getItem('haccp-onboarding')
-      console.log('🔍 Dati onboarding trovati:', typeof onboardingData, onboardingData)
       
       if (onboardingData) {
         try {
@@ -166,14 +165,14 @@ function App() {
             try {
               // Controlla se è la stringa corrotta "[object Object]"
               if (onboardingData === '[object Object]') {
-                console.warn('Rilevata stringa corrotta "[object Object]", usando oggetto vuoto')
+                console.warn('⚠️ Dati corrotti rilevati, pulizia in corso...')
                 onboarding = { formData: { departments: { list: [] } } }
               } else {
                 onboarding = JSON.parse(onboardingData)
               }
             } catch (jsonError) {
-              // Se il parsing JSON fallisce, usa un oggetto vuoto invece di eval
-              console.warn('Errore parsing JSON, usando oggetto vuoto:', jsonError)
+              // Se il parsing JSON fallisce, usa un oggetto vuoto
+              console.warn('⚠️ Errore parsing JSON, pulizia in corso...')
               onboarding = { formData: { departments: { list: [] } } }
             }
           } else {
@@ -195,7 +194,7 @@ function App() {
             // Salva i reparti corretti
             setDepartments(departments)
             localStorage.setItem('haccp-departments', JSON.stringify(departments))
-            console.log('✅ Reparti corretti caricati dall\'onboarding:', departments)
+            console.log('✅ Reparti caricati:', departments.length, 'elementi')
           }
         } catch (error) {
           console.warn('Errore nel caricamento reparti dall\'onboarding:', error)
@@ -277,10 +276,9 @@ function App() {
 
   // Funzione per precompilare l'onboarding con i dati di test
   const prefillOnboarding = () => {
-    console.log('🔄 Precompilando onboarding con dati di test...')
+    console.log('🔄 Precompilazione onboarding...')
     
     // Pulisce COMPLETAMENTE tutti i dati esistenti per evitare conflitti
-    console.log('🧹 Pulizia completa localStorage...')
     localStorage.clear()
     sessionStorage.clear()
     
@@ -807,12 +805,13 @@ function App() {
     // Salva le manutenzioni precompilate
     localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(maintenanceTasksWithCompanyId));
     
-    console.log('✅ Onboarding precompilato con i tuoi dati')
-    console.log('✅ Dati di accesso precompilati: Admin / 0000')
-    console.log('✅ Manutenzioni precompilate: 21 attività per 7 punti di conservazione')
-    console.log('🔑 Company ID utilizzato:', companyId)
-    console.log('💾 Manutenzioni salvate in localStorage:', maintenanceTasksWithCompanyId.length, 'task')
-    console.log('🔍 Verifica localStorage:', JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]').length, 'task trovati')
+    console.log('✅ Onboarding precompilato:', {
+      departments: 6,
+      staff: 5,
+      conservation: 7,
+      maintenance: maintenanceTasksWithCompanyId.length,
+      companyId: companyId
+    })
     
     // Mostra conferma
     alert('✅ Onboarding precompilato con successo!\n\nDati caricati:\n- Al Ritrovo SRL\n- 6 Reparti\n- 5 Membri staff (Matteo, Fabrizio, Paolo, Eddy, Elena)\n- 7 Punti di conservazione (Frigo A, Bancone 1-3, Frigo B-D)\n- 21 Attività di manutenzione preconfigurate\n- 1 Attività generica (Carico Frigoriferi Bancone)\n- Acqua nat 0,5L\n\nClicca "Riapri Onboarding" per vedere i dati!')
@@ -872,6 +871,123 @@ function App() {
     }
   }
 
+  // Funzione per completare l'onboarding automaticamente
+  const completeOnboarding = () => {
+    if (window.confirm('✅ Completa l\'onboarding automaticamente?\n\nQuesto salverà tutti i dati attuali come se l\'onboarding fosse stato completato manualmente.')) {
+      console.log('🔄 Completamento onboarding automatico...')
+      
+      // Carica i dati dall'onboarding (stessa logica dell'onboarding)
+      const savedOnboarding = localStorage.getItem('haccp-onboarding-new')
+      
+      if (!savedOnboarding) {
+        console.error('❌ Nessun dato di onboarding trovato! Esegui prima "Precompila" per creare i dati di test.')
+        alert('❌ Nessun dato di onboarding trovato!\n\nEsegui prima "Precompila" per creare i dati di test.')
+        return
+      }
+      
+      let onboardingProgress
+      try {
+        onboardingProgress = JSON.parse(savedOnboarding)
+        console.log('✅ Dati onboarding caricati')
+      } catch (error) {
+        console.error('❌ Errore nel parsing dei dati onboarding:', error)
+        alert('❌ Errore nel caricamento dei dati di onboarding!')
+        return
+      }
+      
+      // Estrae i dati dal formData dell'onboarding (stessa struttura dell'onboarding)
+      const formData = onboardingProgress.formData || {}
+      
+      // Debug: Mostra stato attuale dell'app
+      console.log('🔍 Stato app:', {
+        user: currentUser?.name || 'Nessuno',
+        departments: departments.length,
+        staff: staff.length,
+        refrigerators: refrigerators.length,
+        cleaning: cleaning.length,
+        products: products.length
+      })
+      
+      // Crea i dati dell'onboarding usando ESATTAMENTE i dati dal formData (stessa logica dell'onboarding)
+      const onboardingData = {
+        business: formData.business || {
+          name: 'Azienda Configurata',
+          address: 'Indirizzo configurato',
+          phone: 'Telefono configurato',
+          email: 'email@azienda.com'
+        },
+        departments: formData.departments || { list: [] },
+        conservation: formData.conservation || { points: [] },
+        staff: formData.staff || { staffMembers: [] },
+        tasks: formData.tasks || { list: [] },
+        inventory: {
+          products: formData.products?.productsList || []
+        }
+      }
+      
+      console.log('📊 Dati onboarding creati:', {
+        business: !!onboardingData.business,
+        departments: onboardingData.departments?.list?.length || 0,
+        conservation: onboardingData.conservation?.points?.length || 0,
+        staff: onboardingData.staff?.staffMembers?.length || 0,
+        tasks: onboardingData.tasks?.list?.length || 0,
+        products: onboardingData.inventory?.products?.length || 0
+      })
+      
+      // Verifica compliance dei dati
+      try {
+        const departmentsList = formData.departments?.list || []
+        const staffList = formData.staff?.staffMembers || []
+        const conservationPoints = formData.conservation?.points || []
+        const tasksList = formData.tasks?.list || []
+        const productsList = formData.products?.productsList || []
+        
+        console.log('🔍 Compliance:', {
+          departments: departmentsList.length,
+          staff: staffList.length,
+          conservation: conservationPoints.length,
+          tasks: tasksList.length,
+          products: productsList.length
+        })
+      } catch (error) {
+        console.error('❌ Errore nella verifica compliance:', error)
+      }
+      
+      // Chiama la funzione di completamento
+      try {
+        handleOnboardingComplete(onboardingData)
+        console.log('✅ Onboarding completato con successo')
+      } catch (error) {
+        console.error('❌ Errore in handleOnboardingComplete:', error)
+        alert('❌ Errore durante il completamento dell\'onboarding: ' + error.message)
+        return
+      }
+      
+      // Verifica stato dopo completamento
+      console.log('🔍 Stato finale:', {
+        onboardingCompleted,
+        departments: JSON.parse(localStorage.getItem('haccp-departments') || '[]').length,
+        staff: JSON.parse(localStorage.getItem('haccp-staff') || '[]').length,
+        refrigerators: JSON.parse(localStorage.getItem('haccp-refrigerators') || '[]').length,
+        cleaning: JSON.parse(localStorage.getItem('haccp-cleaning') || '[]').length,
+        products: JSON.parse(localStorage.getItem('haccp-products') || '[]').length
+      })
+      
+      // Verifica se l'onboarding è stato completato correttamente
+      const completedOnboarding = localStorage.getItem('haccp-onboarding')
+      if (completedOnboarding) {
+        try {
+          const onboarding = JSON.parse(completedOnboarding)
+          console.log('✅ Onboarding salvato correttamente con completed:', onboarding.completed)
+        } catch (error) {
+          console.error('❌ Errore nel parsing dell\'onboarding salvato:', error)
+        }
+      }
+      
+      alert('✅ Onboarding completato automaticamente!\n\nTutti i dati sono stati migrati alle sezioni principali dell\'app.')
+    }
+  }
+
 
   // Rendi le funzioni disponibili globalmente per la console (solo in sviluppo)
   useEffect(() => {
@@ -879,10 +995,29 @@ function App() {
       window.resetApp = resetApp
       window.resetOnboarding = resetOnboarding
       window.prefillOnboarding = prefillOnboarding
-      console.log('🔄 Funzioni disponibili globalmente:')
-      console.log('  - resetApp() - Reset completo app')
-      console.log('  - resetOnboarding() - Reset onboarding e app')
-      console.log('  - prefillOnboarding() - Precompila onboarding')
+      window.completeOnboarding = completeOnboarding
+      
+      // Funzioni per controllare i log
+      window.setAIAssistantVerbose = (enabled) => {
+        if (enabled) {
+          localStorage.setItem('haccp:ai-assistant-verbose', 'true')
+          console.log('✅ Log AIAssistant abilitati - ricarica la pagina per applicare')
+        } else {
+          localStorage.removeItem('haccp:ai-assistant-verbose')
+          console.log('✅ Log AIAssistant disabilitati - ricarica la pagina per applicare')
+        }
+      }
+      
+      // Mostra le funzioni disponibili solo una volta all'avvio
+      if (!window.devFunctionsLogged) {
+        console.log('🔄 Funzioni dev disponibili:')
+        console.log('  - resetApp() - Reset completo app')
+        console.log('  - resetOnboarding() - Reset onboarding e app')
+        console.log('  - prefillOnboarding() - Precompila onboarding')
+        console.log('  - completeOnboarding() - Completa onboarding automaticamente')
+        console.log('  - setAIAssistantVerbose(true/false) - Controlla log AIAssistant')
+        window.devFunctionsLogged = true
+      }
     }
   }, [])
 
@@ -1469,6 +1604,9 @@ function App() {
 
   // Gestisce il completamento dell'onboarding
   const handleOnboardingComplete = (onboardingData) => {
+    console.log('🔄 ===== INIZIO handleOnboardingComplete =====')
+    console.log('📊 Dati ricevuti:', onboardingData)
+    
     setShowOnboarding(false)
     setOnboardingCompleted(true)
     
@@ -1479,11 +1617,15 @@ function App() {
       completedAt: new Date().toISOString()
     }
     localStorage.setItem('haccp-onboarding', JSON.stringify(onboarding))
+    console.log('💾 Onboarding salvato in localStorage')
     
     // Migra i dati dell'onboarding alle sezioni principali
+    console.log('🔄 INIZIO MIGRAZIONE DATI...')
+    
     if (onboardingData.business) {
       // Salva informazioni business
       localStorage.setItem('haccp-business-info', JSON.stringify(onboardingData.business))
+      console.log('✅ Business info salvata:', onboardingData.business)
     }
     
     if (onboardingData.departments?.list) {
@@ -1497,8 +1639,12 @@ function App() {
           isCustom: dept.isCustom || false,
           createdAt: new Date().toISOString()
         }))
+      console.log('📊 Dipartimenti da migrare:', departments)
       setDepartments(departments)
       localStorage.setItem('haccp-departments', JSON.stringify(departments))
+      console.log('✅ Dipartimenti migrati e salvati')
+    } else {
+      console.warn('⚠️ Nessun dipartimento da migrare')
     }
     
     if (onboardingData.staff?.staffMembers) {
@@ -1508,8 +1654,12 @@ function App() {
         id: member.id || Date.now() + Math.random(),
         createdAt: new Date().toISOString()
       }))
+      console.log('📊 Staff da migrare:', staffMembers)
       setStaff(staffMembers)
       localStorage.setItem('haccp-staff', JSON.stringify(staffMembers))
+      console.log('✅ Staff migrato e salvato')
+    } else {
+      console.warn('⚠️ Nessuno staff da migrare')
     }
     
     if (onboardingData.conservation?.points) {
@@ -1519,8 +1669,12 @@ function App() {
         id: point.id || Date.now() + Math.random(),
         createdAt: new Date().toISOString()
       }))
+      console.log('📊 Punti conservazione da migrare:', conservationPoints)
       setRefrigerators(conservationPoints)
       localStorage.setItem('haccp-refrigerators', JSON.stringify(conservationPoints))
+      console.log('✅ Punti conservazione migrati e salvati')
+    } else {
+      console.warn('⚠️ Nessun punto di conservazione da migrare')
     }
     
     if (onboardingData.tasks?.list) {
@@ -1530,8 +1684,12 @@ function App() {
         id: task.id || Date.now() + Math.random(),
         createdAt: new Date().toISOString()
       }))
+      console.log('📊 Attività da migrare:', tasks)
       setCleaning(tasks)
       localStorage.setItem('haccp-cleaning', JSON.stringify(tasks))
+      console.log('✅ Attività migrate e salvate')
+    } else {
+      console.warn('⚠️ Nessuna attività da migrare')
     }
     
     if (onboardingData.inventory?.products) {
@@ -1541,8 +1699,12 @@ function App() {
         id: product.id || Date.now() + Math.random(),
         createdAt: new Date().toISOString()
       }))
+      console.log('📊 Prodotti da migrare:', products)
       setProducts(products)
       localStorage.setItem('haccp-products', JSON.stringify(products))
+      console.log('✅ Prodotti migrati e salvati')
+    } else {
+      console.warn('⚠️ Nessun prodotto da migrare')
     }
     
     // Applica i dati dell'onboarding se necessario
@@ -1552,7 +1714,11 @@ function App() {
         applied: true,
         appliedAt: new Date().toISOString()
       }))
+      console.log('✅ Preset applicato:', onboardingData.preset)
     }
+    
+    console.log('🔄 ===== FINE handleOnboardingComplete =====')
+    console.log('✅ MIGRAZIONE COMPLETATA - Tutti i dati sono stati salvati e gli stati aggiornati')
     
     // Ricarica i dati dell'app per aggiornare la validazione
     loadAppData()
@@ -1805,6 +1971,7 @@ function App() {
             <DevButtons
               onPrefillOnboarding={prefillOnboarding}
               onResetOnboarding={resetOnboarding}
+              onCompleteOnboarding={completeOnboarding}
               isDevMode={process.env.NODE_ENV === 'development'}
             />
             
@@ -1940,6 +2107,7 @@ function App() {
                 setDepartments(newDepartments)
                 trackDataChange('departments', newDepartments)
               }}
+              staff={staff}
             />
           </TabsContent>
 
