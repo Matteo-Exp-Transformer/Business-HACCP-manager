@@ -1057,8 +1057,11 @@ function App() {
     // Inizializza modalità dev se richiesta via URL
     initializeDevModeIfRequested()
     
-    // Carica i dati dell'app per validazione HACCP
-    loadAppData()
+    // Carica i dati dell'app per validazione HACCP (solo una volta)
+    if (!window.appDataLoaded) {
+      loadAppData()
+      window.appDataLoaded = true
+    }
 
     const temps = localStorage.getItem('haccp-temperatures')
     const cleaningData = localStorage.getItem('haccp-cleaning')

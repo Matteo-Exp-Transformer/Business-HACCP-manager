@@ -55,6 +55,13 @@ export const safeGetItem = (key, defaultValue = null) => {
       localStorage.removeItem(key);
       return defaultValue;
     }
+    
+    // Controlla se l'elemento inizia con "company_" (dati corrotti specifici)
+    if (item.startsWith('company_') && !item.startsWith('"company_')) {
+      console.warn(`[SafeStorage] Dati corrotti rilevati per chiave: ${key} (company_*), rimuovendo...`);
+      localStorage.removeItem(key);
+      return defaultValue;
+    }
 
     // Prova a parsare i dati
     const parsed = JSON.parse(item);

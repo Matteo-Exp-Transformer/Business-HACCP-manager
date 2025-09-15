@@ -3,7 +3,10 @@ import type { AppState } from "../../types/entities";
 export function validateReferentialIntegrity(state: AppState, entitiesToCheck: string[]): void {
   // Controllo di sicurezza per lo stato
   if (!state || !state.entities) {
-    console.warn("[integrity] State or entities is undefined, skipping validation");
+    // Non loggare come warning se è normale durante l'inizializzazione
+    if (state && !state.entities) {
+      console.debug("[integrity] Entities non ancora inizializzate, skipping validation");
+    }
     return;
   }
 
