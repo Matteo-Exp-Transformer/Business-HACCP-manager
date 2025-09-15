@@ -107,23 +107,8 @@ export const FormManagerProvider: React.FC<FormManagerProps> = ({ children }) =>
   // Controllo di sicurezza per l'inizializzazione del store
   const isStoreInitialized = store && store.meta && store.meta.forms
   
-  if (!isStoreInitialized) {
-    console.warn('[FormManager] Store non inizializzato, usando valori di default')
-    // Forza l'inizializzazione del store se non è presente
-    if (store && !store.meta) {
-      console.log('[FormManager] Forzando inizializzazione meta...')
-      useDataStore.setState({
-        ...store,
-        meta: {
-          schemaVersion: 1,
-          devMode: { mirrorOnboardingChanges: false },
-          forms: {},
-          pending: false,
-          error: null
-        }
-      }, true)
-    }
-  }
+  // RIMOSSO: Inizializzazione forzata per evitare loop infiniti
+  // La inizializzazione deve essere gestita nel main.tsx
 
   // ============================================================================
   // FORM STATE

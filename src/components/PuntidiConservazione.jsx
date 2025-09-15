@@ -35,6 +35,7 @@ import {
 } from '../store/selectors/conservation'
 import { validationService } from '../validation/validationService'
 import { formLogger, haccpLogger } from '../utils/logger'
+import { shallow } from 'zustand/shallow'
 
 function PuntidiConservazione({ 
   temperatures = [], 
@@ -49,24 +50,28 @@ function PuntidiConservazione({
   // HOOKS E STATE - ANTI-LOOP PATCH
   // ============================================================================
   
-  // 1) Selettori separati per evitare loop
-  const storeRefrigerators = useDataStore(s => s.entities?.refrigerators || {})
-  const form = useDataStore(s => s.meta?.forms?.refrigerators || { mode: 'idle' })
-  const openCreate = useDataStore(s => s.openCreateForm)
-  const openEdit = useDataStore(s => s.openEditForm)
-  const closeForm = useDataStore(s => s.closeForm)
-  const updateDraft = useDataStore(s => s.updateDraft)
-  const commitForm = useDataStore(s => s.commitForm)
+  // 1) Selettori con shallow per evitare ricostruzioni continue
+  const { refrigerators: storeRefrigerators, form, openCreate, openEdit, closeForm, updateDraft, commitForm } = useDataStore(s => ({
+    refrigerators: s.entities?.refrigerators || {},
+    form: s.meta?.forms?.refrigerators || { mode: 'idle' },
+    openCreate: s.openCreateForm,
+    openEdit: s.openEditForm,
+    closeForm: s.closeForm,
+    updateDraft: s.updateDraft,
+    commitForm: s.commitForm
+  }), shallow)
   
   // 2) FormManager per isFormOpen (non è nel store)
   const { isFormOpen } = useFormManager()
   
-  // Usa i dati dal store se disponibili, altrimenti fallback alle props
-  const refrigerators = Object.keys(storeRefrigerators).length > 0 ? storeRefrigerators : 
-    propRefrigerators.reduce((acc, ref, index) => {
-      acc[ref.id || `ref-${index}`] = ref
-      return acc
-    }, {})
+  // 3) Fallback logic con useMemo per evitare ricreazioni
+  const refrigerators = useMemo(() => {
+    return Object.keys(storeRefrigerators).length > 0 ? storeRefrigerators : 
+      propRefrigerators.reduce((acc, ref, index) => {
+        acc[ref.id || `ref-${index}`] = ref
+        return acc
+      }, {})
+  }, [storeRefrigerators, propRefrigerators])
   
   // 2) Derivazioni solo con useMemo per evitare calcoli ad ogni render
   const stats = useMemo(() => {
@@ -91,18 +96,18 @@ function PuntidiConservazione({
   // 3) Hook per scroll automatico al form - con guardia
   const { formRef, scrollToForm } = useScrollToForm(isFormOpen('refrigerators'), 'conservation-point-form')
   
-  // 4) Apertura automatica form - DISABILITATA per evitare loop
-  // const openedRef = useRef(false)
-  // const refrigeratorsCount = useMemo(() => Object.keys(refrigerators).length, [refrigerators])
-  // 
-  // useEffect(() => {
-  //   const empty = refrigeratorsCount === 0
-  //   const idle = !form || form.mode === 'idle'
-  //   if (empty && idle && !openedRef.current) {
-  //     openCreate('refrigerators')
-  //     openedRef.current = true
-  //   }
-  // }, [refrigeratorsCount, form?.mode, openCreate])
+  // 4) Auto-open form UNA volta se lista vuota (con guardia idempotente)
+  const openedRef = useRef(false)
+  const refrigeratorsList = useMemo(() => Object.values(refrigerators), [refrigerators])
+  
+  useEffect(() => {
+    const empty = refrigeratorsList.length === 0
+    const idle = !form || form.mode === 'idle'
+    if (empty && idle && !openedRef.current) {
+      openCreate('refrigerators')
+      openedRef.current = true // evita doppio trigger in StrictMode
+    }
+  }, [refrigeratorsList.length, form?.mode, openCreate])
   
   // 5) Controllo store inizializzato - DOPO tutti gli hooks
   if (!refrigerators || typeof refrigerators !== 'object') {
