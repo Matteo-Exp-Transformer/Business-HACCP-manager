@@ -21,7 +21,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import { initializePersistence } from './persistence/adapter'
+import { useDataStore } from "./store/dataStore";
+import { loadState, loadLegacyAndCompose, saveState } from "./persistence/adapter";
+import { validateReferentialIntegrity } from "./validation/integrity/validateReferentialIntegrity";
 
 // Service Worker Registration - Solo in produzione
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -61,38 +63,22 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   }
 }
 
-// Inizializza persistenza e migrazioni prima del rendering
-const initializeApp = async () => {
-  try {
-    console.log('🚀 Inizializzazione app HACCP...')
-    
-    // Inizializza persistenza e migrazioni
-    const persistenceReady = await initializePersistence()
-    
-    if (persistenceReady) {
-      console.log('✅ Persistenza inizializzata con successo')
-    } else {
-      console.warn('⚠️ Problemi nell\'inizializzazione della persistenza')
-    }
-    
-    // Renderizza l'app
-    ReactDOM.createRoot(document.getElementById('root')).render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>,
-    )
-    
-  } catch (error) {
-    console.error('❌ Errore critico nell\'inizializzazione:', error)
-    
-    // Renderizza comunque l'app in caso di errore
-    ReactDOM.createRoot(document.getElementById('root')).render(
-      <React.StrictMode>
-        <App />
-      </React.StrictMode>,
-    )
-  }
-}
+// Bootstrap app (load/migrate/integrity + subscribe save)
+(function bootstrap() {
+  const legacy = loadLegacyAndCompose();
+  const loaded = loadState();
+  const state = loaded ?? (legacy as any);
 
-// Avvia l'inizializzazione
-initializeApp()
+  if (state) {
+    validateReferentialIntegrity(state as any, ["conservationPoints", "staff", "departments"]);
+    useDataStore.setState(state as any, true);
+  }
+  useDataStore.subscribe((s) => saveState(s));
+})();
+
+// Renderizza l'app
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
