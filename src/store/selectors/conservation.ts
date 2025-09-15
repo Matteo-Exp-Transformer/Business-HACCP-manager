@@ -2,20 +2,49 @@
  * Selettori per Punti di Conservazione
  * 
  * Selettori puri per la tab Punti di Conservazione
- * Compatibili con l'architettura esistente
+ * Compatibili con l'architettura esistente e nuova ConservationPoint
  */
 
 import { DataStore } from '../dataStore'
+import { CONSERVATION_POINT_HELPERS } from '../../utils/haccpRules'
 
 // ============================================================================
 // SELETTORI BASE
 // ============================================================================
 
+// Selettori legacy per compatibilità
 export const selectConservationRefrigerators = (state: DataStore) => state.entities.refrigerators
 
 export const selectConservationTemperatures = (state: DataStore) => state.entities.temperatures
 
 export const selectConservationDepartments = (state: DataStore) => state.entities.departments
+
+// Nuovi selettori per ConservationPoint
+export const selectConservationPoints = (state: DataStore) => {
+  if (!state?.entities?.conservationPoints) {
+    return {}
+  }
+  return state.entities.conservationPoints
+}
+
+export const selectConservationPointsList = (state: DataStore) => {
+  const points = selectConservationPoints(state)
+  return Object.values(points)
+}
+
+// Selettore per mappatura onboarding → ConservationPoint
+export const selectConservationPointsFromOnboarding = (state: DataStore) => {
+  const onboarding = state?.onboarding
+  if (!onboarding) return []
+
+  // Estrai dati dall'onboarding (adatta ai campi reali)
+  const refrigerators = onboarding.refrigerators || []
+  
+  return refrigerators.map(ref => {
+    const mapped = CONSERVATION_POINT_HELPERS.mapOnboardingToConservationPoint(ref)
+    return mapped
+  }).filter(Boolean)
+}
 
 // ============================================================================
 // SELETTORI DERIVATI
@@ -24,27 +53,35 @@ export const selectConservationDepartments = (state: DataStore) => state.entitie
 export const selectConservationStats = (state: DataStore) => {
   // Gestisci il caso in cui il store non è inizializzato
   if (!state || !state.entities) {
-    return { totalRefrigerators: 0, activeRefrigerators: 0, averageTemp: 0, alerts: 0 }
+    return { total: 0, compliant: 0, critical: 0, recent: 0 }
   }
   
+  // Usa ConservationPoint se disponibili, altrimenti fallback a refrigerators
+  const conservationPoints = selectConservationPointsList(state)
   const refrigerators = state.entities.refrigerators || []
   const temperatures = state.entities.temperatures || []
   
-  const totalRefrigerators = refrigerators.length
+  const total = conservationPoints.length > 0 ? conservationPoints.length : refrigerators.length
   
-  const compliantRefrigerators = refrigerators.filter(ref => {
-    const lastTemp = temperatures
-      .filter(t => t.refrigeratorId === ref.id)
-      .sort((a, b) => new Date(b.timestamp).toISOString().localeCompare(a.timestamp))[0]
-    
-    if (!lastTemp) return false
-    
-    const temp = parseFloat(lastTemp.temperature.toString())
-    const targetTemp = parseFloat(ref.targetTemp.toString())
-    const tolerance = 2 // ±2°C di tolleranza
-    
-    return Math.abs(temp - targetTemp) <= tolerance
-  }).length
+  // Calcola compliant basato su ConservationPoint o refrigerators
+  let compliant = 0
+  if (conservationPoints.length > 0) {
+    compliant = conservationPoints.filter(point => point.status === 'OK').length
+  } else {
+    compliant = refrigerators.filter(ref => {
+      const lastTemp = temperatures
+        .filter(t => t.refrigeratorId === ref.id)
+        .sort((a, b) => new Date(b.timestamp).toISOString().localeCompare(a.timestamp))[0]
+      
+      if (!lastTemp) return false
+      
+      const temp = parseFloat(lastTemp.temperature.toString())
+      const targetTemp = parseFloat(ref.targetTemp.toString())
+      const tolerance = 2 // ±2°C di tolleranza
+      
+      return Math.abs(temp - targetTemp) <= tolerance
+    }).length
+  }
 
   const criticalTemps = temperatures.filter(t => t.status === 'danger').length
   
@@ -55,8 +92,8 @@ export const selectConservationStats = (state: DataStore) => {
   }).length
 
   return {
-    total: totalRefrigerators,
-    compliant: compliantRefrigerators,
+    total,
+    compliant,
     critical: criticalTemps,
     recent: recentTemps
   }
@@ -87,10 +124,13 @@ export const selectConservationType = (refrigerator: any) => {
 export const selectGroupedRefrigerators = (state: DataStore) => {
   // Gestisci il caso in cui il store non è inizializzato
   if (!state || !state.entities) {
-    return { refrigerated: [], frozen: [], ambient: [] }
+    return { frigorifero: [], freezer: [], abbattitore: [], ambiente: [] }
   }
   
+  // Usa ConservationPoint se disponibili, altrimenti fallback a refrigerators
+  const conservationPoints = selectConservationPointsList(state)
   const refrigerators = state.entities.refrigerators || []
+  
   const groups = {
     'frigorifero': [],
     'freezer': [],
@@ -98,10 +138,25 @@ export const selectGroupedRefrigerators = (state: DataStore) => {
     'ambiente': []
   }
 
-  refrigerators.forEach(refrigerator => {
-    const type = selectConservationType(refrigerator)
-    groups[type].push(refrigerator)
-  })
+  if (conservationPoints.length > 0) {
+    // Usa ConservationPoint con mapping tipo
+    conservationPoints.forEach(point => {
+      const typeMap = {
+        'FRIGO': 'frigorifero',
+        'FREEZER': 'freezer', 
+        'ABBATTITORE': 'abbattitore',
+        'AMBIENTE': 'ambiente'
+      }
+      const groupType = typeMap[point.type] || 'frigorifero'
+      groups[groupType].push(point)
+    })
+  } else {
+    // Fallback a refrigerators legacy
+    refrigerators.forEach(refrigerator => {
+      const type = selectConservationType(refrigerator)
+      groups[type].push(refrigerator)
+    })
+  }
 
   return groups
 }
@@ -110,38 +165,38 @@ export const selectConservationTypeConfig = (type: string) => {
   const configs = {
     'frigorifero': {
       label: 'Frigoriferi',
-      textColor: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-      borderColor: 'border-blue-300',
+      textColor: 'text-blue-800',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
       emptyBg: 'bg-blue-50',
-      emptyTextColor: 'text-blue-600',
+      emptyTextColor: 'text-blue-800',
       emptyMessage: 'Nessun frigorifero configurato'
     },
     'freezer': {
       label: 'Freezer',
-      textColor: 'text-cyan-600',
-      bgColor: 'bg-cyan-100',
-      borderColor: 'border-cyan-300',
-      emptyBg: 'bg-cyan-50',
-      emptyTextColor: 'text-cyan-600',
+      textColor: 'text-purple-800',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-200',
+      emptyBg: 'bg-purple-50',
+      emptyTextColor: 'text-purple-800',
       emptyMessage: 'Nessun freezer configurato'
     },
     'abbattitore': {
-      label: 'Abbattitori',
-      textColor: 'text-orange-600',
-      bgColor: 'bg-orange-100',
-      borderColor: 'border-orange-300',
-      emptyBg: 'bg-orange-50',
-      emptyTextColor: 'text-orange-600',
+      label: 'Abbattitore',
+      textColor: 'text-red-800',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-200',
+      emptyBg: 'bg-red-50',
+      emptyTextColor: 'text-red-800',
       emptyMessage: 'Nessun abbattitore configurato'
     },
     'ambiente': {
       label: 'Ambiente',
-      textColor: 'text-green-600',
-      bgColor: 'bg-green-100',
-      borderColor: 'border-green-300',
+      textColor: 'text-green-800',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-200',
       emptyBg: 'bg-green-50',
-      emptyTextColor: 'text-green-600',
+      emptyTextColor: 'text-green-800',
       emptyMessage: 'Nessun punto ambiente configurato'
     }
   }

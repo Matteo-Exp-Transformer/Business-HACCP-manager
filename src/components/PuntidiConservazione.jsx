@@ -14,28 +14,30 @@
  * @fileoverview Componente Punti di Conservazione HACCP - Sistema Critico di Monitoraggio
  * @requires AGENT_DIRECTIVES.md
  * @critical Sicurezza alimentare - Gestione Frigoriferi
- * @version 2.0 - Foundation Pack v1 Consolidato
+ * @version 3.0 - Compliance HACCP Ripristinata
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { Thermometer, Activity, BarChart3, Plus, Edit, Trash2, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Thermometer, Activity, BarChart3, Plus, Edit, Trash2, AlertTriangle, CheckCircle, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
 import CollapsibleCard from './CollapsibleCard'
 import { useScrollToForm } from '../hooks/useScrollToForm'
-import { useFormManager, FormGate } from './common/FormManager'
 import { useDataStore } from '../store/dataStore'
 import { 
   selectConservationStats, 
   selectGroupedRefrigerators, 
   selectConservationTypeConfig,
-  selectTemperatureHistory,
-  selectLastTemperature,
-  selectTemperatureStatus
+  selectConservationPointsList,
+  selectConservationPointsFromOnboarding
 } from '../store/selectors/conservation'
 import { validationService } from '../validation/validationService'
+import { CONSERVATION_POINT_HELPERS, CONSERVATION_POINT_RULES } from '../utils/haccpRules'
 import { formLogger, haccpLogger } from '../utils/logger'
-import { shallow } from 'zustand/shallow'
+
+// ============================================================================
+// COMPONENTE PUNTI DI CONSERVAZIONE - COMPLIANCE HACCP RIPRISTINATA
+// ============================================================================
 
 function PuntidiConservazione({ 
   temperatures = [], 
@@ -47,379 +49,803 @@ function PuntidiConservazione({
   setDepartments 
 }) {
   // ============================================================================
-  // HOOKS E STATE - ANTI-LOOP PATCH
+  // HOOKS E STATE - NUOVA ARCHITETTURA CON CONSERVATION POINT
   // ============================================================================
   
-  // 1) Selettori con shallow per evitare ricostruzioni continue
-  const { refrigerators: storeRefrigerators, form, openCreate, openEdit, closeForm, updateDraft, commitForm } = useDataStore(s => ({
-    refrigerators: s.entities?.refrigerators || {},
-    form: s.meta?.forms?.refrigerators || { mode: 'idle' },
-    openCreate: s.openCreateForm,
-    openEdit: s.openEditForm,
-    closeForm: s.closeForm,
-    updateDraft: s.updateDraft,
-    commitForm: s.commitForm
-  }), shallow)
+  const store = useDataStore()
   
-  // 2) FormManager per isFormOpen (non è nel store)
-  const { isFormOpen } = useFormManager()
+  // Selettori per ConservationPoint
+  const conservationPoints = selectConservationPointsList(store)
+  const stats = selectConservationStats(store)
+  const groupedRefrigerators = selectGroupedRefrigerators(store)
+  const onboardingPoints = selectConservationPointsFromOnboarding(store)
   
-  // 3) Fallback logic con useMemo per evitare ricreazioni
-  const refrigerators = useMemo(() => {
-    return Object.keys(storeRefrigerators).length > 0 ? storeRefrigerators : 
-      propRefrigerators.reduce((acc, ref, index) => {
-        acc[ref.id || `ref-${index}`] = ref
-        return acc
-      }, {})
-  }, [storeRefrigerators, propRefrigerators])
+  // State per form management
+  const [openFormId, setOpenFormId] = useState(null)
+  const [formData, setFormData] = useState({})
+  const [formErrors, setFormErrors] = useState({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
   
-  // 2) Derivazioni solo con useMemo per evitare calcoli ad ogni render
-  const stats = useMemo(() => {
-    const refs = Object.values(refrigerators)
-    return {
-      totalRefrigerators: refs.length,
-      activeRefrigerators: refs.filter(r => r.status === 'active').length,
-      averageTemp: refs.length > 0 ? refs.reduce((sum, r) => sum + (r.temperature || 0), 0) / refs.length : 0,
-      alerts: refs.filter(r => r.temperature && (r.temperature > 8 || r.temperature < 0)).length
-    }
-  }, [refrigerators])
-  
-  const groupedRefrigerators = useMemo(() => {
-    const refs = Object.values(refrigerators)
-    return {
-      refrigerated: refs.filter(r => r.type === 'refrigerated'),
-      frozen: refs.filter(r => r.type === 'frozen'),
-      ambient: refs.filter(r => r.type === 'ambient')
-    }
-  }, [refrigerators])
-  
-  // 3) Hook per scroll automatico al form - con guardia
-  const { formRef, scrollToForm } = useScrollToForm(isFormOpen('refrigerators'), 'conservation-point-form')
-  
-  // 4) Auto-open form UNA volta se lista vuota (con guardia idempotente)
-  const openedRef = useRef(false)
-  const refrigeratorsList = useMemo(() => Object.values(refrigerators), [refrigerators])
-  
-  useEffect(() => {
-    const empty = refrigeratorsList.length === 0
-    const idle = !form || form.mode === 'idle'
-    if (empty && idle && !openedRef.current) {
-      openCreate('refrigerators')
-      openedRef.current = true // evita doppio trigger in StrictMode
-    }
-  }, [refrigeratorsList.length, form?.mode, openCreate])
-  
-  // 5) Controllo store inizializzato - DOPO tutti gli hooks
-  if (!refrigerators || typeof refrigerators !== 'object') {
-    return (
-      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-        <div className="flex items-center">
-          <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div className="ml-3">
-            <p className="text-sm text-yellow-700">
-              Sistema in fase di inizializzazione. Riprova tra qualche secondo.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Hook per scroll automatico al form
+  const { formRef, scrollToForm } = useScrollToForm(openFormId !== null, 'conservation-point-form')
   
   // ============================================================================
-  // CONFIGURAZIONE CATEGORIE
+  // CONFIGURAZIONE CATEGORIE HACCP
   // ============================================================================
   
-  const productCategories = [
-    { id: 'fresh_dairy', name: 'Latticini Freschi', tempRange: [2, 4] },
-    { id: 'fresh_meat', name: 'Carni Fresche', tempRange: [0, 2] },
-    { id: 'fresh_produce', name: 'Prodotti Freschi', tempRange: [2, 4] },
-    { id: 'fresh_beverages', name: 'Bevande Fresche', tempRange: [4, 6] },
-    { id: 'chilled_ready', name: 'Pronti al Consumo', tempRange: [2, 4] },
-    { id: 'frozen', name: 'Congelati', tempRange: [-18, -15] },
-    { id: 'deep_frozen', name: 'Surgelati', tempRange: [-22, -18] }
-  ]
-
+  const productCategories = CONSERVATION_POINT_RULES.categories
+  
   // ============================================================================
   // FUNZIONI DI UTILITÀ
   // ============================================================================
   
-  const getConservationType = (refrigerator) => {
-    const temp = parseFloat(refrigerator.targetTemp)
-    
-    // Priorità 1: Abbattitore
-    if (refrigerator.isAbbattitore) {
-      return 'abbattitore'
+  const getConservationType = (point) => {
+    if (point.type) {
+      const typeMap = {
+        'FRIGO': 'frigorifero',
+        'FREEZER': 'freezer',
+        'ABBATTITORE': 'abbattitore',
+        'AMBIENTE': 'ambiente'
+      }
+      return typeMap[point.type] || 'frigorifero'
     }
     
-    // Priorità 2: Freezer (temperatura <= -15°C)
-    if (temp <= -15) {
-      return 'freezer'
-    }
-    
-    // Priorità 3: Ambiente (temperatura > 0°C)
-    if (temp > 0) {
-      return 'ambiente'
-    }
-    
-    // Default: Frigorifero (temperatura tra -15°C e 0°C)
+    // Fallback per dati legacy
+    const temp = parseFloat(point.targetTemp) || parseFloat(point.temperature) || 4
+    if (point.isAbbattitore) return 'abbattitore'
+    if (temp <= -15) return 'freezer'
+    if (temp > 0) return 'ambiente'
     return 'frigorifero'
   }
-
+  
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'OK': return 'bg-green-500'
+      case 'ATTENZIONE': return 'bg-yellow-500'
+      case 'FUORI_RANGE': return 'bg-red-500'
+      default: return 'bg-gray-400'
+    }
+  }
+  
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'OK': return 'OK'
+      case 'ATTENZIONE': return 'Attenzione'
+      case 'FUORI_RANGE': return 'Fuori Range'
+      default: return 'Nessun dato'
+    }
+  }
+  
   // ============================================================================
-  // GESTIONE FORM
+  // GESTIONE FORM E VALIDAZIONE
   // ============================================================================
   
-  const handleOpenCreateForm = () => {
-    formLogger.debug('Tentativo apertura form creazione frigorifero')
+  const handleOpenCreateForm = (type) => {
+    formLogger.debug(`Apertura form creazione per tipo: ${type}`)
     
-    if (openCreate('refrigerators')) {
-      // Inizializza draft con valori default
-      updateDraft('refrigerators', {
-        name: '',
-        location: '',
-        targetTemp: 4,
-        selectedCategories: [],
-        isAbbattitore: false
-      })
-      
-      // Scroll al form
-      setTimeout(() => scrollToForm(), 100)
+    const defaultData = {
+      name: '',
+      type: type,
+      location: '',
+      categories: [],
+      targetTemp: type === 'FREEZER' ? -18 : type === 'ABBATTITORE' ? -40 : 4,
+      isAbbattitore: type === 'ABBATTITORE'
     }
-  }
-
-  const handleOpenEditForm = (refrigerator) => {
-    formLogger.debug(`Tentativo apertura form modifica frigorifero ${refrigerator.id}`)
     
-    if (openEdit('refrigerators', refrigerator.id)) {
-      // Popola draft con dati esistenti
-      updateDraft('refrigerators', {
-        name: refrigerator.name,
-        location: refrigerator.location,
-        targetTemp: refrigerator.targetTemp,
-        selectedCategories: refrigerator.selectedCategories || [],
-        isAbbattitore: refrigerator.isAbbattitore || false
-      })
-      
-      // Scroll al form
-      setTimeout(() => scrollToForm(), 100)
-    }
+    setFormData(defaultData)
+    setFormErrors({})
+    setOpenFormId(`create-${type.toLowerCase()}`)
+    
+    setTimeout(() => scrollToForm(), 100)
   }
-
+  
+  const handleOpenEditForm = (point) => {
+    formLogger.debug(`Apertura form modifica per punto: ${point.id}`)
+    
+    const editData = {
+      id: point.id,
+      name: point.name || '',
+      type: point.type || 'FRIGO',
+      location: point.location || '',
+      categories: point.categories || [],
+      targetTemp: point.tempRange ? point.tempRange[0] : 4,
+      isAbbattitore: point.type === 'ABBATTITORE'
+    }
+    
+    setFormData(editData)
+    setFormErrors({})
+    setOpenFormId(point.id)
+    
+    setTimeout(() => scrollToForm(), 100)
+  }
+  
   const handleCloseForm = () => {
-    formLogger.debug('Chiusura form frigorifero')
-    closeForm('refrigerators')
+    formLogger.debug('Chiusura form')
+    setOpenFormId(null)
+    setFormData({})
+    setFormErrors({})
   }
-
-  const handleUpdateDraft = (field, value) => {
-    formLogger.debug(`Aggiornamento draft: ${field} = ${value}`)
-    updateDraft('refrigerators', { [field]: value })
-  }
-
-  const handleCategoryToggle = (categoryId) => {
-    const currentDraft = form?.draft || {}
-    const currentCategories = currentDraft.selectedCategories || []
+  
+  const handleFormFieldChange = (field, value) => {
+    formLogger.debug(`Aggiornamento campo: ${field} = ${value}`)
     
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+    
+    // Clear error per questo campo
+    if (formErrors[field]) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
+    }
+  }
+  
+  const handleCategoryToggle = (categoryId) => {
+    const currentCategories = formData.categories || []
     const isSelected = currentCategories.includes(categoryId)
     
+    let newCategories
     if (isSelected) {
-      // Rimuovi categoria
-      const newCategories = currentCategories.filter(id => id !== categoryId)
-      handleUpdateDraft('selectedCategories', newCategories)
+      newCategories = currentCategories.filter(id => id !== categoryId)
     } else {
-      // Aggiungi categoria (max 5)
+      // Limite massimo di 5 categorie
       if (currentCategories.length < 5) {
-        const newCategories = [...currentCategories, categoryId]
-        handleUpdateDraft('selectedCategories', newCategories)
+        newCategories = [...currentCategories, categoryId]
       } else {
         haccpLogger.warn('Limite massimo di 5 categorie raggiunto')
+        return
       }
     }
+    
+    handleFormFieldChange('categories', newCategories)
   }
-
-  const handleSubmitForm = async () => {
-    formLogger.debug('Tentativo submit form frigorifero')
+  
+  const validateForm = () => {
+    const errors = {}
     
-    const formState = form
-    if (!formState || formState.mode === 'idle') {
-      haccpLogger.warn('Nessun form attivo per il submit')
-      return
+    // Validazione nome
+    if (!formData.name?.trim()) {
+      errors.name = 'Nome obbligatorio'
     }
     
-    const draft = formState.draft
-    const mode = formState.mode === 'create' ? 'create' : 'update'
-    
-    // Valida i dati
-    const validation = validationService.validateForm('refrigerators', draft, mode)
-    if (!validation.isValid) {
-      haccpLogger.warn('Validazione fallita', validation.errors)
-      return
+    // Validazione location
+    if (!formData.location?.trim()) {
+      errors.location = 'Posizione obbligatoria'
     }
     
-    // Esegui commit
-    const success = await commitForm('refrigerators', mode)
-    if (success) {
-      haccpLogger.info('Frigorifero salvato con successo')
+    // Validazione temperature
+    if (formData.targetTemp === undefined || formData.targetTemp === null) {
+      errors.targetTemp = 'Temperatura obbligatoria'
     } else {
-      haccpLogger.error('Errore nel salvataggio del frigorifero')
+      const temp = parseFloat(formData.targetTemp)
+      if (isNaN(temp)) {
+        errors.targetTemp = 'Temperatura non valida'
+      }
+    }
+    
+    // Validazione categorie con regole HACCP
+    if (formData.categories && formData.categories.length > 0) {
+      const allowedCategories = CONSERVATION_POINT_HELPERS.getAllowedCategoriesByType(formData.type)
+      const invalidCategories = formData.categories.filter(cat => !allowedCategories.includes(cat))
+      
+      if (invalidCategories.length > 0) {
+        errors.categories = `Categorie non valide per ${formData.type}: ${invalidCategories.join(', ')}`
+      }
+    }
+    
+    setFormErrors(errors)
+    return Object.keys(errors).length === 0
+  }
+  
+  const handleSubmitForm = async () => {
+    if (!validateForm()) {
+      haccpLogger.warn('Validazione form fallita')
+      return
+    }
+    
+    setIsSubmitting(true)
+    
+    try {
+      // Validazione con regole HACCP
+      const validation = validationService.validateConservationPoint(formData, {
+        existing: conservationPoints,
+        rules: CONSERVATION_POINT_RULES
+      })
+      
+      if (!validation.success) {
+        setFormErrors(validation.errors.reduce((acc, error, index) => {
+          acc[`field_${index}`] = error
+          return acc
+        }, {}))
+        haccpLogger.warn('Validazione HACCP fallita', validation.errors)
+        return
+      }
+      
+      const conservationPoint = validation.data
+      
+      // Salva nel store
+      if (openFormId.startsWith('create-')) {
+        store.addEntity('conservationPoints', conservationPoint)
+        haccpLogger.info('ConservationPoint creato con successo')
+      } else {
+        store.updateEntity('conservationPoints', conservationPoint.id, conservationPoint)
+        haccpLogger.info('ConservationPoint aggiornato con successo')
+      }
+      
+      handleCloseForm()
+      
+    } catch (error) {
+      haccpLogger.error('Errore nel salvataggio', error)
+      setFormErrors({ submit: 'Errore nel salvataggio' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+  
+  const handleDelete = (pointId) => {
+    if (confirm('Sei sicuro di voler eliminare questo punto di conservazione?')) {
+      haccpLogger.info(`Eliminazione ConservationPoint ${pointId}`)
+      store.removeEntity('conservationPoints', pointId)
+      haccpLogger.info('ConservationPoint eliminato con successo')
     }
   }
 
-  const handleDelete = (refrigeratorId) => {
-    if (confirm('Sei sicuro di voler eliminare questo frigorifero?')) {
-      haccpLogger.info(`Eliminazione frigorifero ${refrigeratorId}`)
-      
-      // Rimuovi frigorifero
-      setRefrigerators(refrigerators.filter(ref => ref.id !== refrigeratorId))
-      
-      // Rimuovi temperature associate
-      setTemperatures(temperatures.filter(temp => temp.refrigeratorId !== refrigeratorId))
-      
-      haccpLogger.info('Frigorifero eliminato con successo')
-    }
+  // ============================================================================
+  // COMPONENTE FORM CONSERVATION POINT
+  // ============================================================================
+  
+  const ConservationPointForm = () => {
+    if (!openFormId) return null
+    
+    const isCreate = openFormId.startsWith('create-')
+    const allowedCategories = CONSERVATION_POINT_HELPERS.getAllowedCategoriesByType(formData.type)
+    const tempSuggestions = CONSERVATION_POINT_HELPERS.getOptimalTemperatureSuggestions(formData.type, formData.categories)
+    
+    return (
+      <Card ref={formRef} id="conservation-point-form" className="border-2 border-blue-200">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>
+              {isCreate ? 'Aggiungi Nuovo Punto di Conservazione' : 'Modifica Punto di Conservazione'}
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCloseForm}
+              className="h-8 w-8 p-0"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmitForm(); }} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nome Punto di Conservazione *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name || ''}
+                  onChange={(e) => handleFormFieldChange('name', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formErrors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  required
+                />
+                {formErrors.name && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.name}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Posizione *
+                </label>
+                <input
+                  type="text"
+                  value={formData.location || ''}
+                  onChange={(e) => handleFormFieldChange('location', e.target.value)}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formErrors.location ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  required
+                />
+                {formErrors.location && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.location}</p>
+                )}
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tipo *
+                </label>
+                <select
+                  value={formData.type || 'FRIGO'}
+                  onChange={(e) => handleFormFieldChange('type', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="FRIGO">Frigorifero</option>
+                  <option value="FREEZER">Freezer</option>
+                  <option value="ABBATTITORE">Abbattitore</option>
+                  <option value="AMBIENTE">Ambiente</option>
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Temperatura Target (°C) *
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={formData.targetTemp || ''}
+                  onChange={(e) => handleFormFieldChange('targetTemp', parseFloat(e.target.value))}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formErrors.targetTemp ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder={tempSuggestions ? `${tempSuggestions.range[0]} - ${tempSuggestions.range[1]}` : ''}
+                  required
+                />
+                {tempSuggestions && (
+                  <p className="text-blue-600 text-xs mt-1">{tempSuggestions.message}</p>
+                )}
+                {formErrors.targetTemp && (
+                  <p className="text-red-500 text-xs mt-1">{formErrors.targetTemp}</p>
+                )}
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Categorie di Prodotti Supportate
+              </label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {productCategories
+                  .filter(cat => allowedCategories.includes(cat.id))
+                  .map(category => (
+                    <label key={category.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.categories?.includes(category.id) || false}
+                        onChange={() => handleCategoryToggle(category.id)}
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-sm text-gray-700">{category.name}</span>
+                    </label>
+                  ))}
+              </div>
+              {formErrors.categories && (
+                <p className="text-red-500 text-xs mt-1">{formErrors.categories}</p>
+              )}
+            </div>
+            
+            {formErrors.submit && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-red-600 text-sm">{formErrors.submit}</p>
+              </div>
+            )}
+            
+            <div className="flex gap-2 pt-4">
+              <Button 
+                type="submit" 
+                className="flex-1"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Salvataggio...' : (isCreate ? 'Aggiungi' : 'Aggiorna')} Punto
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCloseForm}
+                disabled={isSubmitting}
+              >
+                Annulla
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    )
   }
 
   // ============================================================================
   // RENDER
   // ============================================================================
   
+  // Controllo di sicurezza per il rendering
+  if (!groupedRefrigerators) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center p-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Caricamento punti di conservazione...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
-      {/* Punti di Conservazione */}
+      {/* Punti di Conservazione - UI Ripristinata con Compliance HACCP */}
       <CollapsibleCard
         title="Punti di Conservazione"
-        subtitle="Gestione frigoriferi e temperature"
+        subtitle="Gestione frigoriferi e temperature con validazione HACCP"
         icon={Thermometer}
         iconColor="text-blue-600"
         iconBgColor="bg-blue-100"
         count={stats.total}
         testId="pc-list"
         defaultExpanded={true}
+        openFormId={openFormId}
+        formComponent={<ConservationPointForm />}
       >
-        {/* Layout a colonne dinamiche */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {Object.entries(groupedRefrigerators).map(([type, points]) => {
-            const typeConfig = selectConservationTypeConfig(type)
-
-            return (
-              <div key={type} className="space-y-4">
-                {/* Header Colonna */}
-                <div className="text-center">
-                  <h3 className={`text-lg font-semibold ${typeConfig.textColor}`}>
-                    {typeConfig.label}
-                  </h3>
-                </div>
-
-                {/* Contenuto Colonna con sfondo colorato */}
-                <div className={`space-y-3 p-4 rounded-lg border-2 ${typeConfig.borderColor} ${typeConfig.bgColor}`}>
-                  {points.length === 0 ? (
-                    <div className={`text-center p-4 rounded-lg ${typeConfig.emptyBg}`}>
-                      <p className={`text-sm ${typeConfig.emptyTextColor}`}>
-                        {typeConfig.emptyMessage}
-                      </p>
-                    </div>
-                  ) : (
-                    points.map(point => {
-                      const lastTemp = temperatures
-                        .filter(t => t.refrigeratorId === point.id)
-                        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))[0]
-                      
-                      const isCompliant = lastTemp ? 
-                        Math.abs(parseFloat(lastTemp.temperature) - parseFloat(point.targetTemp)) <= 2 : false
-
-                      return (
-                        <Card key={point.id} className="border border-gray-200 rounded-lg shadow-sm">
-                          <CardContent className="p-4">
-                            {/* Header Scheda */}
-                            <div className="flex justify-between items-start mb-3">
-                              <div>
-                                <h4 className="font-medium text-gray-900">{point.name}</h4>
-                                <p className="text-sm text-gray-500">
-                                  {lastTemp ? `${lastTemp.temperature}°C` : 'Nessun dato'}
-                                </p>
-                              </div>
-                              <div className="flex gap-1">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleOpenEditForm(point)}
-                                  className="h-8 w-8 p-0"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => handleDelete(point.id)}
-                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            {/* Dettagli Scheda */}
-                            <div className="space-y-2">
-                              {/* Posizione */}
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm text-gray-600">📍 {point.location}</span>
-                              </div>
-
-                              {/* Temperatura */}
-                              <div className="flex items-center gap-2">
-                                <Thermometer className="h-4 w-4 text-gray-500" />
-                                <span className="text-sm font-medium text-gray-900">
-                                  {point.targetTemp}°C
-                                </span>
-                                {lastTemp && (
-                                  isCompliant ? (
-                                    <CheckCircle className="h-4 w-4 text-green-500" />
-                                  ) : (
-                                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                                  )
-                                )}
-                              </div>
-
-                              {/* Categorie */}
-                              {point.selectedCategories && point.selectedCategories.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-2">
-                                  {point.selectedCategories.map(catId => {
-                                    const category = productCategories.find(cat => cat.id === catId)
-                                    return category ? (
-                                      <span key={catId} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                        {category.name}
-                                      </span>
-                                    ) : null
-                                  })}
-                                </div>
-                              )}
-                            </div>
-                          </CardContent>
-                        </Card>
-                      )
-                    })
-                  )}
-                </div>
-              </div>
-            )
-          })}
+        {/* Pulsanti Aggiungi per ogni tipo */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          <Button
+            onClick={() => handleOpenCreateForm('FRIGO')}
+            className="bg-blue-500 text-white hover:bg-blue-600 h-10 px-4 py-2 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Aggiungi Frigorifero
+          </Button>
+          <Button
+            onClick={() => handleOpenCreateForm('FREEZER')}
+            className="bg-purple-500 text-white hover:bg-purple-600 h-10 px-4 py-2 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Aggiungi Freezer
+          </Button>
+          <Button
+            onClick={() => handleOpenCreateForm('ABBATTITORE')}
+            className="bg-red-500 text-white hover:bg-red-600 h-10 px-4 py-2 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Aggiungi Abbattitore
+          </Button>
+          <Button
+            onClick={() => handleOpenCreateForm('AMBIENTE')}
+            className="bg-green-500 text-white hover:bg-green-600 h-10 px-4 py-2 flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Aggiungi Punto Ambiente
+          </Button>
         </div>
 
-        {/* Pulsante aggiungi con FormGate */}
-        <div className="mt-6">
-          <FormGate entityType="refrigerators">
-            <Button
-              onClick={handleOpenCreateForm}
-              className="w-full"
-              variant="outline"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Aggiungi Frigorifero
-            </Button>
-          </FormGate>
+        {/* Layout a 4 colonne fisse - UI Ripristinata con Validazione HACCP */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* COLONNA FRIGORIFERI - Colore blu */}
+          <div className="border rounded-lg p-4 bg-blue-50">
+            <h3 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Frigoriferi
+              <button className="text-blue-600 hover:text-blue-800 transition-colors" title="Guida posizionamento prodotti">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <path d="M12 17h.01"></path>
+                </svg>
+              </button>
+            </h3>
+            <div className="space-y-2">
+              {groupedRefrigerators.frigorifero.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-2">Nessun frigorifero</p>
+              ) : (
+                groupedRefrigerators.frigorifero.map(point => (
+                  <div key={point.id} className="p-3 border rounded-lg bg-white border-gray-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${getStatusColor(point.status)}`}></div>
+                        <div>
+                          <h4 className="font-medium text-sm">{point.name}</h4>
+                          <p className="text-xs text-gray-600">{getStatusText(point.status)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEditForm(point)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(point.id)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 text-gray-500">
+                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span className="text-gray-600">{point.location}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Thermometer className="h-3 w-3 text-gray-500" />
+                        <span className="font-medium">
+                          {point.tempRange ? `${point.tempRange[0]}°C - ${point.tempRange[1]}°C` : `${point.targetTemp}°C`}
+                        </span>
+                      </div>
+                    </div>
+                    {point.categories && point.categories.length > 0 && (
+                      <div className="mt-2 text-xs">
+                        <span className="text-gray-500">Categorie: </span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {point.categories.map(catId => {
+                            const category = productCategories.find(cat => cat.id === catId)
+                            return category ? (
+                              <span key={catId} className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                                {category.name}
+                              </span>
+                            ) : null
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* COLONNA FREEZER - Colore viola */}
+          <div className="border rounded-lg p-4 bg-purple-50">
+            <h3 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Freezer
+              <button className="text-purple-600 hover:text-purple-800 transition-colors" title="Guida posizionamento prodotti">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <path d="M12 17h.01"></path>
+                </svg>
+              </button>
+            </h3>
+            <div className="space-y-2">
+              {groupedRefrigerators.freezer.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-2">Nessun freezer</p>
+              ) : (
+                groupedRefrigerators.freezer.map(point => (
+                  <div key={point.id} className="p-3 border rounded-lg bg-white border-gray-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${getStatusColor(point.status)}`}></div>
+                        <div>
+                          <h4 className="font-medium text-sm">{point.name}</h4>
+                          <p className="text-xs text-gray-600">{getStatusText(point.status)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEditForm(point)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(point.id)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 text-gray-500">
+                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span className="text-gray-600">{point.location}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Thermometer className="h-3 w-3 text-gray-500" />
+                        <span className="font-medium">
+                          {point.tempRange ? `${point.tempRange[0]}°C - ${point.tempRange[1]}°C` : `${point.targetTemp}°C`}
+                        </span>
+                      </div>
+                    </div>
+                    {point.categories && point.categories.length > 0 && (
+                      <div className="mt-2 text-xs">
+                        <span className="text-gray-500">Categorie: </span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {point.categories.map(catId => {
+                            const category = productCategories.find(cat => cat.id === catId)
+                            return category ? (
+                              <span key={catId} className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+                                {category.name}
+                              </span>
+                            ) : null
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* COLONNA ABBATTITORE - Colore rosso */}
+          <div className="border rounded-lg p-4 bg-red-50">
+            <h3 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Abbattitore
+              <button className="text-red-600 hover:text-red-800 transition-colors" title="Guida posizionamento prodotti">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <path d="M12 17h.01"></path>
+                </svg>
+              </button>
+            </h3>
+            <div className="space-y-2">
+              {groupedRefrigerators.abbattitore.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-2">Nessun abbattitore</p>
+              ) : (
+                groupedRefrigerators.abbattitore.map(point => (
+                  <div key={point.id} className="p-3 border rounded-lg bg-white border-gray-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${getStatusColor(point.status)}`}></div>
+                        <div>
+                          <h4 className="font-medium text-sm">{point.name}</h4>
+                          <p className="text-xs text-gray-600">{getStatusText(point.status)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEditForm(point)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(point.id)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 text-gray-500">
+                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span className="text-gray-600">{point.location}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Thermometer className="h-3 w-3 text-gray-500" />
+                        <span className="font-medium">
+                          {point.tempRange ? `${point.tempRange[0]}°C - ${point.tempRange[1]}°C` : `${point.targetTemp}°C`}
+                        </span>
+                      </div>
+                    </div>
+                    {point.categories && point.categories.length > 0 && (
+                      <div className="mt-2 text-xs">
+                        <span className="text-gray-500">Categorie: </span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {point.categories.map(catId => {
+                            const category = productCategories.find(cat => cat.id === catId)
+                            return category ? (
+                              <span key={catId} className="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                                {category.name}
+                              </span>
+                            ) : null
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* COLONNA AMBIENTE - Colore verde */}
+          <div className="border rounded-lg p-4 bg-green-50">
+            <h3 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+              <Thermometer className="h-4 w-4" />
+              Ambiente
+              <button className="text-green-600 hover:text-green-800 transition-colors" title="Guida posizionamento prodotti">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <path d="M12 17h.01"></path>
+                </svg>
+              </button>
+            </h3>
+            <div className="space-y-2">
+              {groupedRefrigerators.ambiente.length === 0 ? (
+                <p className="text-sm text-gray-500 text-center py-2">Nessun punto ambiente</p>
+              ) : (
+                groupedRefrigerators.ambiente.map(point => (
+                  <div key={point.id} className="p-3 border rounded-lg bg-white border-gray-200">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${getStatusColor(point.status)}`}></div>
+                        <div>
+                          <h4 className="font-medium text-sm">{point.name}</h4>
+                          <p className="text-xs text-gray-600">{getStatusText(point.status)}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenEditForm(point)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(point.id)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3 text-gray-500">
+                          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
+                          <circle cx="12" cy="10" r="3"></circle>
+                        </svg>
+                        <span className="text-gray-600">{point.location}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Thermometer className="h-3 w-3 text-gray-500" />
+                        <span className="font-medium">
+                          {point.tempRange ? `${point.tempRange[0]}°C - ${point.tempRange[1]}°C` : `${point.targetTemp}°C`}
+                        </span>
+                      </div>
+                    </div>
+                    {point.categories && point.categories.length > 0 && (
+                      <div className="mt-2 text-xs">
+                        <span className="text-gray-500">Categorie: </span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {point.categories.map(catId => {
+                            const category = productCategories.find(cat => cat.id === catId)
+                            return category ? (
+                              <span key={catId} className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                                {category.name}
+                              </span>
+                            ) : null
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
         </div>
       </CollapsibleCard>
 
@@ -556,93 +982,6 @@ function PuntidiConservazione({
         </div>
       </CollapsibleCard>
 
-      {/* Form aggiungi/modifica frigorifero */}
-      {isFormOpen('refrigerators') && (
-        <Card ref={formRef} id="conservation-point-form" className="border-2 border-blue-200">
-          <CardHeader>
-            <CardTitle>
-              {form?.mode === 'create' ? 'Aggiungi Nuovo Frigorifero' : 'Modifica Frigorifero'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={(e) => { e.preventDefault(); handleSubmitForm(); }} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nome Frigorifero
-                  </label>
-                  <input
-                    type="text"
-                    value={form?.draft?.name || ''}
-                    onChange={(e) => handleUpdateDraft('name', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Posizione
-                  </label>
-                  <input
-                    type="text"
-                    value={form?.draft?.location || ''}
-                    onChange={(e) => handleUpdateDraft('location', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Temperatura Target (°C)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={form?.draft?.targetTemp || 4}
-                    onChange={(e) => handleUpdateDraft('targetTemp', parseFloat(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Categorie di Prodotti Supportate
-                </label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {productCategories.map(category => (
-                    <label key={category.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={form?.draft?.selectedCategories?.includes(category.id) || false}
-                        onChange={() => handleCategoryToggle(category.id)}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700">{category.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-              
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" className="flex-1">
-                  {form?.mode === 'create' ? 'Aggiungi' : 'Aggiorna'} Frigorifero
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleCloseForm}
-                >
-                  Annulla
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      )}
     </div>
   )
 }

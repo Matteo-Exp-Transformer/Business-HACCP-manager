@@ -1059,8 +1059,13 @@ function App() {
     
     // Carica i dati dell'app per validazione HACCP (solo una volta)
     if (!window.appDataLoaded) {
-      loadAppData()
-      window.appDataLoaded = true
+      try {
+        loadAppData()
+        window.appDataLoaded = true
+      } catch (error) {
+        console.error('[App] Errore nel caricamento dati:', error)
+        window.appDataLoaded = true // Evita loop infiniti
+      }
     }
 
     const temps = localStorage.getItem('haccp-temperatures')

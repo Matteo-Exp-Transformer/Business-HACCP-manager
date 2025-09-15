@@ -18,8 +18,6 @@
  */
 
 import React, { useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
-import { Card, CardContent, CardHeader } from './ui/Card'
 
 function CollapsibleCard({
   title,
@@ -32,7 +30,11 @@ function CollapsibleCard({
   testId,
   className = "",
   defaultExpanded = false,
-  onToggle = null
+  onToggle = null,
+  // Nuove props per supporto form
+  openFormId = null,
+  onFormToggle = null,
+  formComponent = null
 }) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded)
 
@@ -44,48 +46,55 @@ function CollapsibleCard({
     }
   }
 
+  const handleFormToggle = (formId) => {
+    if (onFormToggle) {
+      onFormToggle(formId)
+    }
+  }
+
   return (
-    <Card className={`border-2 border-blue-300 shadow-lg hover:shadow-xl transition-all duration-200 bg-white ${className}`}>
-      <CardHeader 
-        className="cursor-pointer hover:bg-blue-50 transition-all duration-200 border-b border-blue-100"
+    <div className="rounded-lg border bg-white text-card-foreground shadow-sm transition-all duration-200">
+      <div
+        className="flex flex-col space-y-1.5 p-6 cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={handleToggle}
         data-testid={testId ? `${testId}-header` : undefined}
       >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {Icon && (
-              <div className={`p-3 rounded-xl ${iconBgColor} shadow-sm`}>
-                <Icon className={`h-6 w-6 ${iconColor}`} />
-              </div>
-            )}
-            <div>
-              <h3 className="font-semibold text-gray-900">{title}</h3>
-              {subtitle && (
-                <p className="text-sm text-gray-600">{subtitle}</p>
-              )}
-            </div>
-          </div>
-          
+        <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center justify-between">
           <div className="flex items-center gap-2">
-            {count > 0 && (
-              <span className="bg-blue-500 text-white text-sm font-bold px-3 py-1 rounded-full shadow-sm">
-                {count}
-              </span>
+            {Icon && <Icon className={`h-5 w-5 ${iconColor}`} />}
+            <span>{title}</span>
+            {typeof count === 'number' && count > 0 && (
+              <span className="ml-2 text-sm text-gray-500">({count})</span>
             )}
-            <ChevronDown className={`h-5 w-5 text-blue-600 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
           </div>
-        </div>
-      </CardHeader>
-      
+          <button className="
+            inline-flex items-center justify-center rounded-md text-sm font-medium
+            ring-offset-background transition-colors focus-visible:outline-none
+            focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+            disabled:pointer-events-none disabled:opacity-50
+            hover:bg-gray-100 h-8 w-8 p-0
+          ">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d={isExpanded ? "m6 15 6-6 6 6" : "m18 15-6-6-6 6"} />
+            </svg>
+          </button>
+        </h3>
+        {subtitle && <div className="text-sm text-gray-600">{subtitle}</div>}
+      </div>
+
       {isExpanded && (
-        <CardContent 
-          className="pt-8 px-12 pb-12 animate-in slide-in-from-top-2 fade-in-50 duration-300"
-          data-testid={testId ? `${testId}-content` : undefined}
-        >
+        <div className="p-6 pt-0 transition-all duration-200">
           {children}
-        </CardContent>
+          
+          {/* Form posizionato sotto il contenuto */}
+          {openFormId && formComponent && (
+            <div className="mt-4 p-4 border-t border-gray-200">
+              {formComponent}
+            </div>
+          )}
+        </div>
       )}
-    </Card>
+    </div>
   )
 }
 

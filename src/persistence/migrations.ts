@@ -3,10 +3,16 @@ import { validateReferentialIntegrity } from "../validation/integrity/validateRe
 
 // Esempio: per-entity migration (idempotente)
 function migrateConservationPoints_v1_to_v2(state: AppState): AppState {
-  // Controllo di sicurezza per entities e conservationPoints
-  if (!state || !state.entities || !state.entities.conservationPoints) {
-    console.warn('[Migration] conservationPoints non disponibili, saltando migrazione');
+  // Controllo di sicurezza per entities
+  if (!state || !state.entities) {
+    console.warn('[Migration] entities non disponibili, saltando migrazione');
     return state;
+  }
+  
+  // Inizializza conservationPoints se mancante
+  if (!state.entities.conservationPoints) {
+    console.info('[Migration] conservationPoints initialized');
+    state.entities.conservationPoints = {};
   }
   
   const cps = state.entities.conservationPoints as Record<string, any>;

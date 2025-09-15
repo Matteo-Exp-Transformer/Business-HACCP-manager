@@ -1,4 +1,4 @@
-import { useRef, useCallback } from 'react';
+import { useRef, useCallback, useEffect } from 'react';
 
 /**
  * Hook personalizzato per gestire lo scroll automatico ai form
@@ -8,6 +8,7 @@ import { useRef, useCallback } from 'react';
  */
 export const useScrollToForm = (isFormVisible, formId = 'add-form') => {
   const formRef = useRef(null);
+  const hasScrolledRef = useRef(false);
 
   const scrollToForm = useCallback(() => {
     if (isFormVisible && formRef.current) {
@@ -21,6 +22,16 @@ export const useScrollToForm = (isFormVisible, formId = 'add-form') => {
       }, 100);
     }
   }, [isFormVisible]);
+
+  // Auto-scroll quando il form diventa visibile (una sola volta)
+  useEffect(() => {
+    if (isFormVisible && !hasScrolledRef.current) {
+      hasScrolledRef.current = true;
+      scrollToForm();
+    } else if (!isFormVisible) {
+      hasScrolledRef.current = false;
+    }
+  }, [isFormVisible, scrollToForm]);
 
   return {
     formRef,

@@ -473,6 +473,119 @@ export const checkOnboardingStatus = (data) => {
   }
 }
 
+// Helper functions per ConservationPoint
+export const CONSERVATION_POINT_HELPERS = {
+  // Ottieni categorie consentite per tipo
+  getAllowedCategoriesByType: (type) => {
+    const typeMap = {
+      'FRIGO': ['fresh_dairy', 'fresh_meat', 'fresh_fish', 'fresh_produce', 'fresh_fruits', 'chilled_ready', 'fresh_beverages'],
+      'FREEZER': ['frozen', 'deep_frozen'],
+      'ABBATTITORE': ['abbattitore_menu', 'abbattitore_esposizione'],
+      'AMBIENTE': ['dry_goods', 'hot_holding']
+    };
+    return typeMap[type] || [];
+  },
+
+  // Ottieni range temperatura per tipo e categorie
+  getTempRangeByTypeAndCategories: (type, categories) => {
+    if (!categories || categories.length === 0) {
+      // Default per tipo
+      const defaultRanges = {
+        'FRIGO': [2, 6],
+        'FREEZER': [-20, -18],
+        'ABBATTITORE': [-80, -10],
+        'AMBIENTE': [15, 25]
+      };
+      return defaultRanges[type] || [2, 6];
+    }
+
+    // Trova range ottimale per le categorie selezionate
+    const categoryRanges = categories.map(catId => {
+      const category = CONSERVATION_POINT_RULES.categories.find(c => c.id === catId);
+      return category ? [category.minTemp, category.maxTemp] : null;
+    }).filter(Boolean);
+
+    if (categoryRanges.length === 0) {
+      return [2, 6]; // Default
+    }
+
+    // Se una sola categoria, usa il suo range
+    if (categoryRanges.length === 1) {
+      return categoryRanges[0];
+    }
+
+    // Trova intersezione dei range
+    const minTemps = categoryRanges.map(r => r[0]);
+    const maxTemps = categoryRanges.map(r => r[1]);
+    const maxMin = Math.max(...minTemps);
+    const minMax = Math.min(...maxTemps);
+
+    if (maxMin <= minMax) {
+      return [maxMin, minMax];
+    } else {
+      // Range incompatibili, usa il più restrittivo
+      return [Math.max(...minTemps), Math.min(...maxTemps)];
+    }
+  },
+
+  // Verifica se temperatura è nel range
+  isTempInRange: (temp, range) => {
+    if (!Array.isArray(range) || range.length !== 2) return false;
+    const [min, max] = range;
+    return temp >= min && temp <= max;
+  },
+
+  // Ottieni suggerimenti per temperature ottimali
+  getOptimalTemperatureSuggestions: (type, categories) => {
+    const range = CONSERVATION_POINT_HELPERS.getTempRangeByTypeAndCategories(type, categories);
+    const categoriesList = categories?.map(catId => {
+      const cat = CONSERVATION_POINT_RULES.categories.find(c => c.id === catId);
+      return cat?.name;
+    }).filter(Boolean) || [];
+
+    return {
+      range,
+      message: categoriesList.length > 0 
+        ? `Range ottimale per ${categoriesList.join(', ')}: ${range[0]}°C - ${range[1]}°C`
+        : `Range ottimale per ${type}: ${range[0]}°C - ${range[1]}°C`,
+      categories: categoriesList
+    };
+  },
+
+  // Mappa onboarding data a ConservationPoint
+  mapOnboardingToConservationPoint: (onboardingData) => {
+    if (!onboardingData || typeof onboardingData !== 'object') {
+      return null;
+    }
+
+    // Estrai dati dall'onboarding (adatta ai campi reali)
+    const name = onboardingData.name || onboardingData.label || '';
+    const location = onboardingData.location || onboardingData.position || '';
+    const type = onboardingData.type || (onboardingData.isAbbattitore ? 'ABBATTITORE' : 'FRIGO');
+    const categories = onboardingData.categories || onboardingData.selectedCategories || [];
+    const targetTemp = onboardingData.targetTemp || onboardingData.temperature || 4;
+
+    // Calcola range temperatura
+    const tempRange = CONSERVATION_POINT_HELPERS.getTempRangeByTypeAndCategories(type, categories);
+
+    return {
+      id: onboardingData.id || `pc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      name: name.trim(),
+      type,
+      location: location.trim(),
+      categories: [...new Set(categories)],
+      tempRange,
+      lastReading: onboardingData.lastReading,
+      status: 'OK',
+      meta: {
+        source: 'onboarding',
+        createdAt: new Date().toISOString(),
+        ...onboardingData.meta
+      }
+    };
+  }
+};
+
 // Funzione per ottenere messaggi di validazione
 export const getValidationMessage = (type, value, context = {}) => {
   const rules = HACCP_VALIDATION_RULES[type]
@@ -508,6 +621,8 @@ export default {
   ONBOARDING_RULES,
   SECTION_ACCESS_RULES,
   HACCP_VALIDATION_RULES,
+  CONSERVATION_POINT_RULES,
+  CONSERVATION_POINT_HELPERS,
   checkSectionAccess,
   checkOnboardingStatus,
   getValidationMessage
