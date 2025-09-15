@@ -69,7 +69,7 @@ export const selectRecentTasks = (days: number = 7) => (state: DataStore) => {
 // ============================================================================
 
 export const selectCleaningFormState = (state: DataStore) => {
-  return state.meta.forms.cleaning || { mode: 'idle', draft: {}, errors: {} }
+  return state?.meta?.forms?.cleaning || { mode: 'idle', draft: {}, errors: {} }
 }
 
 export const selectCleaningFormErrors = (state: DataStore) => {

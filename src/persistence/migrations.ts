@@ -1,5 +1,5 @@
 import type { AppState } from "../types/entities";
-import { validateReferentialIntegrity } from "../validation/integrity/validateReferentialIntegrity.js";
+import { validateReferentialIntegrity } from "../validation/integrity/validateReferentialIntegrity";
 
 // Esempio: per-entity migration (idempotente)
 function migrateConservationPoints_v1_to_v2(state: AppState): AppState {

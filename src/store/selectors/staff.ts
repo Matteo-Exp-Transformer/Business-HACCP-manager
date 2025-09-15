@@ -58,7 +58,7 @@ export const selectStaffByTrainingStatus = (trained: boolean) => (state: DataSto
 // ============================================================================
 
 export const selectStaffFormState = (state: DataStore) => {
-  return state.meta.forms.staff || { mode: 'idle', draft: {}, errors: {} }
+  return state?.meta?.forms?.staff || { mode: 'idle', draft: {}, errors: {} }
 }
 
 export const selectStaffFormErrors = (state: DataStore) => {

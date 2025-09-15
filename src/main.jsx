@@ -21,9 +21,6 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import { useDataStore } from "./store/dataStore";
-import { loadState, loadLegacyAndCompose, saveState } from "./persistence/adapter";
-import { validateReferentialIntegrity } from "./validation/integrity/validateReferentialIntegrity";
 
 // Service Worker Registration - Solo in produzione
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -63,18 +60,18 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
   }
 }
 
-// Bootstrap app (load/migrate/integrity + subscribe save)
-(function bootstrap() {
-  const legacy = loadLegacyAndCompose();
-  const loaded = loadState();
-  const state = loaded ?? (legacy as any);
+// Bootstrap app - temporaneamente disabilitato per test
+// (function bootstrap() {
+//   const legacy = loadLegacyAndCompose();
+//   const loaded = loadState();
+//   const state = loaded ?? legacy;
 
-  if (state) {
-    validateReferentialIntegrity(state as any, ["conservationPoints", "staff", "departments"]);
-    useDataStore.setState(state as any, true);
-  }
-  useDataStore.subscribe((s) => saveState(s));
-})();
+//   if (state) {
+//     validateReferentialIntegrity(state, ["conservationPoints", "staff", "departments"]);
+//     useDataStore.setState(state, true);
+//   }
+//   useDataStore.subscribe((s) => saveState(s));
+// })();
 
 // Renderizza l'app
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -26,6 +26,7 @@ export type FormsState = {
     mode: "idle" | "create" | "edit";
     editId?: ID;
     draft?: unknown;
+    errors?: Record<string, string>;
   };
 };
 

@@ -10,3 +10,7 @@ export const logger = {
     error: (...a: unknown[]) => console.error(`[${area}]`, ...a)
   })
 };
+
+// Specialized loggers for different areas
+export const formLogger = logger.child('FORM');
+export const haccpLogger = logger.child('HACCP');

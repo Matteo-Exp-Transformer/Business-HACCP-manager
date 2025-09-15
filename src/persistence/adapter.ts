@@ -1,5 +1,5 @@
 import type { AppState } from "../types/entities";
-import { migrateIfNeeded } from "./migrations.js";
+import { migrateIfNeeded } from "./migrations";
 
 const LS_KEY = "bhm-app-state";
 

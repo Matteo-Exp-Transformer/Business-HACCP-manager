@@ -17,7 +17,7 @@
  * @version 2.0 - Foundation Pack v1 Consolidato
  */
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Thermometer, Activity, BarChart3, Plus, Edit, Trash2, AlertTriangle, CheckCircle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card'
 import { Button } from './ui/Button'
@@ -40,24 +40,89 @@ function PuntidiConservazione({
   temperatures = [], 
   setTemperatures, 
   currentUser, 
-  refrigerators = [], 
+  refrigerators: propRefrigerators = [], 
   setRefrigerators,
   departments = [],
   setDepartments 
 }) {
   // ============================================================================
-  // HOOKS E STATE
+  // HOOKS E STATE - ANTI-LOOP PATCH
   // ============================================================================
   
-  const { openCreateForm, openEditForm, closeForm, updateDraft, commitForm, isFormOpen } = useFormManager()
-  const store = useDataStore()
+  // 1) Selettori separati per evitare loop
+  const storeRefrigerators = useDataStore(s => s.entities?.refrigerators || {})
+  const form = useDataStore(s => s.meta?.forms?.refrigerators || { mode: 'idle' })
+  const openCreate = useDataStore(s => s.openCreateForm)
+  const openEdit = useDataStore(s => s.openEditForm)
+  const closeForm = useDataStore(s => s.closeForm)
+  const updateDraft = useDataStore(s => s.updateDraft)
+  const commitForm = useDataStore(s => s.commitForm)
   
-  // Hook per scroll automatico al form
+  // 2) FormManager per isFormOpen (non è nel store)
+  const { isFormOpen } = useFormManager()
+  
+  // Usa i dati dal store se disponibili, altrimenti fallback alle props
+  const refrigerators = Object.keys(storeRefrigerators).length > 0 ? storeRefrigerators : 
+    propRefrigerators.reduce((acc, ref, index) => {
+      acc[ref.id || `ref-${index}`] = ref
+      return acc
+    }, {})
+  
+  // 2) Derivazioni solo con useMemo per evitare calcoli ad ogni render
+  const stats = useMemo(() => {
+    const refs = Object.values(refrigerators)
+    return {
+      totalRefrigerators: refs.length,
+      activeRefrigerators: refs.filter(r => r.status === 'active').length,
+      averageTemp: refs.length > 0 ? refs.reduce((sum, r) => sum + (r.temperature || 0), 0) / refs.length : 0,
+      alerts: refs.filter(r => r.temperature && (r.temperature > 8 || r.temperature < 0)).length
+    }
+  }, [refrigerators])
+  
+  const groupedRefrigerators = useMemo(() => {
+    const refs = Object.values(refrigerators)
+    return {
+      refrigerated: refs.filter(r => r.type === 'refrigerated'),
+      frozen: refs.filter(r => r.type === 'frozen'),
+      ambient: refs.filter(r => r.type === 'ambient')
+    }
+  }, [refrigerators])
+  
+  // 3) Hook per scroll automatico al form - con guardia
   const { formRef, scrollToForm } = useScrollToForm(isFormOpen('refrigerators'), 'conservation-point-form')
   
-  // Selettori dal store
-  const stats = useDataStore(selectConservationStats)
-  const groupedRefrigerators = useDataStore(selectGroupedRefrigerators)
+  // 4) Apertura automatica form - DISABILITATA per evitare loop
+  // const openedRef = useRef(false)
+  // const refrigeratorsCount = useMemo(() => Object.keys(refrigerators).length, [refrigerators])
+  // 
+  // useEffect(() => {
+  //   const empty = refrigeratorsCount === 0
+  //   const idle = !form || form.mode === 'idle'
+  //   if (empty && idle && !openedRef.current) {
+  //     openCreate('refrigerators')
+  //     openedRef.current = true
+  //   }
+  // }, [refrigeratorsCount, form?.mode, openCreate])
+  
+  // 5) Controllo store inizializzato - DOPO tutti gli hooks
+  if (!refrigerators || typeof refrigerators !== 'object') {
+    return (
+      <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+        <div className="flex items-center">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-yellow-700">
+              Sistema in fase di inizializzazione. Riprova tra qualche secondo.
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
   
   // ============================================================================
   // CONFIGURAZIONE CATEGORIE
@@ -106,7 +171,7 @@ function PuntidiConservazione({
   const handleOpenCreateForm = () => {
     formLogger.debug('Tentativo apertura form creazione frigorifero')
     
-    if (openCreateForm('refrigerators')) {
+    if (openCreate('refrigerators')) {
       // Inizializza draft con valori default
       updateDraft('refrigerators', {
         name: '',
@@ -124,7 +189,7 @@ function PuntidiConservazione({
   const handleOpenEditForm = (refrigerator) => {
     formLogger.debug(`Tentativo apertura form modifica frigorifero ${refrigerator.id}`)
     
-    if (openEditForm('refrigerators', refrigerator.id)) {
+    if (openEdit('refrigerators', refrigerator.id)) {
       // Popola draft con dati esistenti
       updateDraft('refrigerators', {
         name: refrigerator.name,
@@ -150,7 +215,7 @@ function PuntidiConservazione({
   }
 
   const handleCategoryToggle = (categoryId) => {
-    const currentDraft = store.meta.forms.refrigerators?.draft || {}
+    const currentDraft = form?.draft || {}
     const currentCategories = currentDraft.selectedCategories || []
     
     const isSelected = currentCategories.includes(categoryId)
@@ -173,7 +238,7 @@ function PuntidiConservazione({
   const handleSubmitForm = async () => {
     formLogger.debug('Tentativo submit form frigorifero')
     
-    const formState = store.meta.forms.refrigerators
+    const formState = form
     if (!formState || formState.mode === 'idle') {
       haccpLogger.warn('Nessun form attivo per il submit')
       return
@@ -491,7 +556,7 @@ function PuntidiConservazione({
         <Card ref={formRef} id="conservation-point-form" className="border-2 border-blue-200">
           <CardHeader>
             <CardTitle>
-              {store.meta.forms.refrigerators?.mode === 'create' ? 'Aggiungi Nuovo Frigorifero' : 'Modifica Frigorifero'}
+              {form?.mode === 'create' ? 'Aggiungi Nuovo Frigorifero' : 'Modifica Frigorifero'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -503,7 +568,7 @@ function PuntidiConservazione({
                   </label>
                   <input
                     type="text"
-                    value={store.meta.forms.refrigerators?.draft?.name || ''}
+                    value={form?.draft?.name || ''}
                     onChange={(e) => handleUpdateDraft('name', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
@@ -516,7 +581,7 @@ function PuntidiConservazione({
                   </label>
                   <input
                     type="text"
-                    value={store.meta.forms.refrigerators?.draft?.location || ''}
+                    value={form?.draft?.location || ''}
                     onChange={(e) => handleUpdateDraft('location', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
@@ -530,7 +595,7 @@ function PuntidiConservazione({
                   <input
                     type="number"
                     step="0.1"
-                    value={store.meta.forms.refrigerators?.draft?.targetTemp || 4}
+                    value={form?.draft?.targetTemp || 4}
                     onChange={(e) => handleUpdateDraft('targetTemp', parseFloat(e.target.value))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
@@ -547,7 +612,7 @@ function PuntidiConservazione({
                     <label key={category.id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        checked={store.meta.forms.refrigerators?.draft?.selectedCategories?.includes(category.id) || false}
+                        checked={form?.draft?.selectedCategories?.includes(category.id) || false}
                         onChange={() => handleCategoryToggle(category.id)}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
@@ -559,7 +624,7 @@ function PuntidiConservazione({
               
               <div className="flex gap-2 pt-4">
                 <Button type="submit" className="flex-1">
-                  {store.meta.forms.refrigerators?.mode === 'create' ? 'Aggiungi' : 'Aggiorna'} Frigorifero
+                  {form?.mode === 'create' ? 'Aggiungi' : 'Aggiorna'} Frigorifero
                 </Button>
                 <Button
                   type="button"

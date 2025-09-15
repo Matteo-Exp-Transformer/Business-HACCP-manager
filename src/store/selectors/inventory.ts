@@ -71,7 +71,7 @@ export const selectItemsByLocation = (location: string) => (state: DataStore) =>
 // ============================================================================
 
 export const selectInventoryFormState = (state: DataStore) => {
-  return state.meta.forms.inventory || { mode: 'idle', draft: {}, errors: {} }
+  return state?.meta?.forms?.inventory || { mode: 'idle', draft: {}, errors: {} }
 }
 
 export const selectInventoryFormErrors = (state: DataStore) => {

@@ -22,8 +22,13 @@ export const selectConservationDepartments = (state: DataStore) => state.entitie
 // ============================================================================
 
 export const selectConservationStats = (state: DataStore) => {
-  const refrigerators = state.entities.refrigerators
-  const temperatures = state.entities.temperatures
+  // Gestisci il caso in cui il store non è inizializzato
+  if (!state || !state.entities) {
+    return { totalRefrigerators: 0, activeRefrigerators: 0, averageTemp: 0, alerts: 0 }
+  }
+  
+  const refrigerators = state.entities.refrigerators || []
+  const temperatures = state.entities.temperatures || []
   
   const totalRefrigerators = refrigerators.length
   
@@ -80,7 +85,12 @@ export const selectConservationType = (refrigerator: any) => {
 }
 
 export const selectGroupedRefrigerators = (state: DataStore) => {
-  const refrigerators = state.entities.refrigerators
+  // Gestisci il caso in cui il store non è inizializzato
+  if (!state || !state.entities) {
+    return { refrigerated: [], frozen: [], ambient: [] }
+  }
+  
+  const refrigerators = state.entities.refrigerators || []
   const groups = {
     'frigorifero': [],
     'freezer': [],
@@ -177,7 +187,7 @@ export const selectTemperatureStatus = (refrigeratorId: string) => (state: DataS
 // ============================================================================
 
 export const selectConservationFormState = (state: DataStore) => {
-  return state.meta.forms.refrigerators || { mode: 'idle', draft: {}, errors: {} }
+  return state?.meta?.forms?.refrigerators || { mode: 'idle', draft: {}, errors: {} }
 }
 
 export const selectConservationFormErrors = (state: DataStore) => {

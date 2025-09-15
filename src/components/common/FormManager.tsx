@@ -10,8 +10,43 @@
 
 import React, { createContext, useContext, useCallback, ReactNode } from 'react'
 import { useDataStore } from '../../store/dataStore'
-import { validationService } from '../../validation/validationService'
-import { formLogger } from '../../utils/logger'
+import { validateConservationPoint, validateStaff, validateDepartment } from '../../validation/validationService'
+import { logger } from '../../utils/logger'
+
+// Logger specifico per i form
+const formLogger = logger.child('FormManager')
+
+// Funzione di validazione generica
+const validateForm = (entityType: string, data: any, mode: 'create' | 'update') => {
+  let validation
+  
+  switch (entityType) {
+    case 'conservationPoints':
+      validation = validateConservationPoint(data)
+      break
+    case 'staff':
+      validation = validateStaff(data)
+      break
+    case 'departments':
+      validation = validateDepartment(data)
+      break
+    default:
+      return { isValid: false, errors: { general: 'Tipo di entità non supportato' }, fieldErrors: {} }
+  }
+  
+  if (!validation.success) {
+    return { 
+      isValid: false, 
+      errors: { general: 'Dati non validi' }, 
+      fieldErrors: validation.error?.issues?.reduce((acc, issue) => {
+        acc[issue.path.join('.')] = issue.message
+        return acc
+      }, {}) || {}
+    }
+  }
+  
+  return { isValid: true, errors: {}, fieldErrors: {} }
+}
 
 // ============================================================================
 // INTERFACCE
@@ -69,18 +104,43 @@ export const useFormManager = (): FormManagerContextType => {
 export const FormManagerProvider: React.FC<FormManagerProps> = ({ children }) => {
   const store = useDataStore()
 
+  // Controllo di sicurezza per l'inizializzazione del store
+  const isStoreInitialized = store && store.meta && store.meta.forms
+  
+  if (!isStoreInitialized) {
+    console.warn('[FormManager] Store non inizializzato, usando valori di default')
+    // Forza l'inizializzazione del store se non è presente
+    if (store && !store.meta) {
+      console.log('[FormManager] Forzando inizializzazione meta...')
+      useDataStore.setState({
+        ...store,
+        meta: {
+          schemaVersion: 1,
+          devMode: { mirrorOnboardingChanges: false },
+          forms: {},
+          pending: false,
+          error: null
+        }
+      }, true)
+    }
+  }
+
   // ============================================================================
   // FORM STATE
   // ============================================================================
 
   const isFormOpen = useCallback((entityType: string): boolean => {
+    if (!isStoreInitialized) return false
     const formState = store.meta.forms[entityType]
     return formState ? formState.mode !== 'idle' : false
-  }, [store.meta.forms])
+  }, [isStoreInitialized, store?.meta?.forms])
 
   const getFormState = useCallback((entityType: string) => {
+    if (!isStoreInitialized) {
+      return { mode: 'idle', draft: {}, errors: {} }
+    }
     return store.meta.forms[entityType] || { mode: 'idle', draft: {}, errors: {} }
-  }, [store.meta.forms])
+  }, [isStoreInitialized, store?.meta?.forms])
 
   const getFormDraft = useCallback((entityType: string) => {
     const formState = getFormState(entityType)
@@ -145,10 +205,10 @@ export const FormManagerProvider: React.FC<FormManagerProps> = ({ children }) =>
   // FORM VALIDATION
   // ============================================================================
 
-  const validateForm = useCallback((entityType: string, data: any, mode: 'create' | 'update'): boolean => {
+  const validateFormCallback = useCallback((entityType: string, data: any, mode: 'create' | 'update'): boolean => {
     formLogger.debug(`Validazione form ${entityType} in modalità ${mode}`)
     
-    const validation = validationService.validateForm(entityType, data, mode)
+    const validation = validateForm(entityType, data, mode)
     
     if (!validation.isValid) {
       formLogger.warn(`Validazione fallita per ${entityType}`, validation.errors)
@@ -178,7 +238,7 @@ export const FormManagerProvider: React.FC<FormManagerProps> = ({ children }) =>
     }
     
     // Valida i dati
-    if (!validateForm(entityType, draft, mode)) {
+    if (!validateFormCallback(entityType, draft, mode)) {
       formLogger.error(`Validazione fallita per ${entityType}`)
       return false
     }
@@ -209,7 +269,7 @@ export const FormManagerProvider: React.FC<FormManagerProps> = ({ children }) =>
       formLogger.error(`Errore nel commit form ${entityType}`, error)
       return false
     }
-  }, [getFormState, validateForm, store, closeForm])
+  }, [getFormState, validateFormCallback, store, closeForm])
 
   // ============================================================================
   // FORM CONFLICT
@@ -253,7 +313,7 @@ export const FormManagerProvider: React.FC<FormManagerProps> = ({ children }) =>
     setFormErrors,
     
     // Form validation
-    validateForm,
+    validateForm: validateFormCallback,
     commitForm,
     
     // Form conflict

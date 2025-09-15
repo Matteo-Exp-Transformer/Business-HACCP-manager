@@ -15,6 +15,17 @@ const initialMeta: Meta = {
   error: null
 };
 
+// Funzione per inizializzare il meta in modo sicuro
+const ensureMetaInitialized = (state: any) => {
+  if (!state.meta) {
+    return { ...state, meta: initialMeta };
+  }
+  if (!state.meta.forms) {
+    return { ...state, meta: { ...state.meta, forms: {} } };
+  }
+  return state;
+};
+
 type Mutations = {
   addEntity: <K extends keyof Entities>(key: K, entity: Entities[K][ID]) => void;
   updateEntity: <K extends keyof Entities>(key: K, id: ID, patch: Partial<Entities[K][ID]>) => void;
@@ -24,6 +35,7 @@ type Mutations = {
   openEditForm: (entity: string, id: ID) => void;
   closeForm: (entity: string) => void;
   updateDraft: (entity: string, draft: unknown) => void;
+  setFormErrors: (entity: string, errors: Record<string, string>) => void;
 };
 
 export const useDataStore = create<AppState & Mutations>((set, get) => ({
@@ -45,22 +57,31 @@ export const useDataStore = create<AppState & Mutations>((set, get) => ({
   }),
 
   openCreateForm: (entity) => set((s) => {
-    const f = s.meta.forms[entity];
-    if (f && f.mode !== "idle") return s; // blocco
-    return { meta: { ...s.meta, forms: { ...s.meta.forms, [entity]: { mode: "create" } } } };
+    const safeState = ensureMetaInitialized(s);
+    const f = safeState.meta.forms[entity];
+    if (f && f.mode !== "idle") return safeState; // blocco
+    return { meta: { ...safeState.meta, forms: { ...safeState.meta.forms, [entity]: { mode: "create" } } } };
   }),
 
   openEditForm: (entity, id) => set((s) => {
-    const f = s.meta.forms[entity];
-    if (f && f.mode !== "idle") return s; // blocco
-    return { meta: { ...s.meta, forms: { ...s.meta.forms, [entity]: { mode: "edit", editId: id } } } };
+    const safeState = ensureMetaInitialized(s);
+    const f = safeState.meta.forms[entity];
+    if (f && f.mode !== "idle") return safeState; // blocco
+    return { meta: { ...safeState.meta, forms: { ...safeState.meta.forms, [entity]: { mode: "edit", editId: id } } } };
   }),
 
-  closeForm: (entity) => set((s) => ({
-    meta: { ...s.meta, forms: { ...s.meta.forms, [entity]: { mode: "idle" } } }
-  })),
+  closeForm: (entity) => set((s) => {
+    const safeState = ensureMetaInitialized(s);
+    return { meta: { ...safeState.meta, forms: { ...safeState.meta.forms, [entity]: { mode: "idle" } } } };
+  }),
 
-  updateDraft: (entity, draft) => set((s) => ({
-    meta: { ...s.meta, forms: { ...s.meta.forms, [entity]: { ...(s.meta.forms[entity] ?? { mode: "create" }), draft } } }
-  }))
+  updateDraft: (entity, draft) => set((s) => {
+    const safeState = ensureMetaInitialized(s);
+    return { meta: { ...safeState.meta, forms: { ...safeState.meta.forms, [entity]: { ...(safeState.meta.forms[entity] ?? { mode: "create" }), draft } } } };
+  }),
+
+  setFormErrors: (entity, errors) => set((s) => {
+    const safeState = ensureMetaInitialized(s);
+    return { meta: { ...safeState.meta, forms: { ...safeState.meta.forms, [entity]: { ...(safeState.meta.forms[entity] ?? { mode: "create" }), errors } } } };
+  })
 }));

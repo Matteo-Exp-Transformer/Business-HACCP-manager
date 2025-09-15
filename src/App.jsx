@@ -52,6 +52,9 @@ import HeaderButtons from './components/HeaderButtons'
 import DevButtons from './components/DevButtons'
 import DataButtons from './components/DataButtons'
 import { shouldBypassOnboarding } from './utils/devMode'
+import { FormManagerProvider } from './components/common/FormManager'
+import ErrorBoundary from './components/ErrorBoundary'
+import { safeGetItem, safeSetItem, clearHaccpData, checkDataIntegrity } from './utils/safeStorage'
 // import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
 function App() {
@@ -72,17 +75,16 @@ function App() {
   
   // Sistema notifiche per le sezioni
   const [lastCheck, setLastCheck] = useState(() => {
-    const saved = localStorage.getItem('haccp-last-check')
-    return saved ? JSON.parse(saved) : {}
+    return safeGetItem('haccp-last-check', {})
   })
 
   // Sistema sincronizzazione cloud
   const [pendingChanges, setPendingChanges] = useState([])
   const [lastSyncTime, setLastSyncTime] = useState(() => {
-    return localStorage.getItem('haccp-last-sync') || null
+    return safeGetItem('haccp-last-sync', null)
   })
   const [companyId, setCompanyId] = useState(() => {
-    return localStorage.getItem('haccp-company-id') || 'demo-pizzeria'
+    return safeGetItem('haccp-company-id', 'demo-pizzeria')
   })
 
   // Sistema onboarding
@@ -132,12 +134,7 @@ function App() {
     const inventory = JSON.parse(localStorage.getItem('haccp-products') || '[]')
     
     // Carica departments con gestione errori
-    try {
-      departments = JSON.parse(localStorage.getItem('haccp-departments') || '[]')
-    } catch (error) {
-      console.warn('Errore nel parsing departments:', error)
-      departments = []
-    }
+    departments = safeGetItem('haccp-departments', [])
     
     // Controlla se i reparti sono corrotti (contengono ruoli invece di nomi reparti)
     const corruptedDepartments = departments.some(dept => 
@@ -154,7 +151,16 @@ function App() {
     // Se i reparti sono corrotti o non ci sono reparti, carica dall'onboarding
     if (corruptedDepartments || departments.length === 0) {
       console.log('🧹 Ricaricamento reparti dall\'onboarding...')
-      const onboardingData = localStorage.getItem('haccp-onboarding-new') || localStorage.getItem('haccp-onboarding')
+      
+      // Controlla l'integrità dei dati all'avvio
+      const integrityReport = checkDataIntegrity()
+      if (integrityReport.corrupted.length > 0) {
+        console.warn('⚠️ Dati corrotti rilevati:', integrityReport.corrupted)
+        console.log('🔧 Pulizia automatica in corso...')
+        clearHaccpData()
+      }
+      
+      const onboardingData = safeGetItem('haccp-onboarding-new') || safeGetItem('haccp-onboarding')
       
       if (onboardingData) {
         try {
@@ -164,20 +170,36 @@ function App() {
             // Se è una stringa, prova a parsarla come JSON
             try {
               // Controlla se è la stringa corrotta "[object Object]"
-              if (onboardingData === '[object Object]') {
+              if (onboardingData === '[object Object]' || onboardingData === '[object Object]') {
                 console.warn('⚠️ Dati corrotti rilevati, pulizia in corso...')
+                // Pulisci i dati corrotti dal localStorage
+                localStorage.removeItem('haccp-onboarding-new')
+                localStorage.removeItem('haccp-onboarding')
                 onboarding = { formData: { departments: { list: [] } } }
               } else {
                 onboarding = JSON.parse(onboardingData)
+                // Valida che i dati parsati siano un oggetto valido
+                if (!onboarding || typeof onboarding !== 'object') {
+                  throw new Error('Dati non validi')
+                }
               }
             } catch (jsonError) {
-              // Se il parsing JSON fallisce, usa un oggetto vuoto
-              console.warn('⚠️ Errore parsing JSON, pulizia in corso...')
+              // Se il parsing JSON fallisce, pulisci e usa un oggetto vuoto
+              console.warn('⚠️ Errore parsing JSON, pulizia in corso...', jsonError)
+              localStorage.removeItem('haccp-onboarding-new')
+              localStorage.removeItem('haccp-onboarding')
               onboarding = { formData: { departments: { list: [] } } }
             }
           } else {
-            // Se è già un oggetto, usalo direttamente
-            onboarding = onboardingData
+            // Se è già un oggetto, valida che sia valido
+            if (onboardingData && typeof onboardingData === 'object') {
+              onboarding = onboardingData
+            } else {
+              console.warn('⚠️ Dati onboarding non validi, pulizia in corso...')
+              localStorage.removeItem('haccp-onboarding-new')
+              localStorage.removeItem('haccp-onboarding')
+              onboarding = { formData: { departments: { list: [] } } }
+            }
           }
           // Gestisci sia la struttura vecchia che quella nuova
           const departmentsData = onboarding.departments?.list || onboarding.formData?.departments?.list
@@ -1909,7 +1931,9 @@ function App() {
 
   // Se utente è loggato, mostra l'app completa
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ErrorBoundary>
+      <FormManagerProvider>
+        <div className="min-h-screen bg-gray-50">
       <DevModeBanner />
       <div className="container mx-auto px-4 py-8">
         {/* Header con info utente */}
@@ -2251,6 +2275,8 @@ function App() {
         />
       </div>
     </div>
+      </FormManagerProvider>
+    </ErrorBoundary>
   )
 }
 
