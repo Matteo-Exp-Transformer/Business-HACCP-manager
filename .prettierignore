@@ -1,0 +1,30 @@
+# Dependencies
+node_modules
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Production
+dist
+build
+.next
+out
+
+# Coverage
+coverage
+.nyc_output
+
+# Misc
+.git
+.husky
+.vscode
+.idea
+*.min.js
+*.min.css
+
+# Generated files
+public/workbox-*.js
+public/sw.js
+
+# Documentation
+*.md

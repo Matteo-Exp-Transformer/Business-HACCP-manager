@@ -19,11 +19,20 @@
 
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import App from './App.jsx'
+import { ClerkProvider } from '@clerk/clerk-react'
+// import App from './App.jsx'
+import AppWithAuth from './AppWithAuth.jsx'
 import './index.css'
 import { useDataStore } from "./store/dataStore";
 import { loadState, loadLegacyAndCompose, saveState } from "./persistence/adapter";
 import { validateReferentialIntegrity } from "./validation/integrity/validateReferentialIntegrity";
+
+// Get Clerk publishable key from environment
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+if (!clerkPubKey) {
+  console.error('[Clerk] Missing VITE_CLERK_PUBLISHABLE_KEY in environment variables');
+}
 
 // Service Worker Registration - Solo in produzione
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -102,7 +111,9 @@ async function bootstrap() {
 bootstrap().then(() => {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
-      <App />
+      <ClerkProvider publishableKey={clerkPubKey}>
+        <AppWithAuth />
+      </ClerkProvider>
     </React.StrictMode>,
   )
 }).catch(error => {

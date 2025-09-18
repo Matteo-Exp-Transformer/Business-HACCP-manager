@@ -31,14 +31,15 @@ export const TABLES = {
   COMPANIES: 'companies',
   USERS: 'users',
   DEPARTMENTS: 'departments',
-  STAFF: 'staff',
-  REFRIGERATORS: 'refrigerators',
-  TEMPERATURES: 'temperatures',
-  CLEANING: 'cleaning',
-  INVENTORY: 'inventory',
-  PRODUCT_LABELS: 'product_labels',
-  ONBOARDING: 'onboarding',
-  MAINTENANCE_TASKS: 'maintenance_tasks'
+  CONSERVATION_POINTS: 'conservation_points',
+  PRODUCTS: 'products',
+  TASKS: 'tasks',
+  TASK_COMPLETIONS: 'task_completions',
+  TEMPERATURE_READINGS: 'temperature_readings',
+  NON_CONFORMITIES: 'non_conformities',
+  NOTES: 'notes',
+  AUDIT_LOGS: 'audit_logs',
+  EXPORTS: 'exports'
 }
 
 // Company data structure
@@ -68,9 +69,10 @@ export const createCompanyStructure = (companyId) => ({
 
 // User permission levels
 export const USER_ROLES = {
-  ADMIN: 'admin', // Can manage their company
-  MANAGER: 'manager', // Can manage most data
-  USER: 'user' // Basic operations only
+  ADMIN: 'admin', // Full access to company data and settings
+  MANAGER: 'manager', // Can manage operations and view reports
+  EMPLOYEE: 'employee', // Can complete tasks and log data
+  COLLABORATOR: 'collaborator' // Limited access for external staff
 }
 
 // Connection status
