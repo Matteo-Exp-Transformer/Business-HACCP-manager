@@ -1,0 +1,10 @@
+node_modules
+dist
+build
+public
+docs/asset
+docs/assets
+.env*
+*.md
+package-lock.json
+pnpm-lock.yaml
