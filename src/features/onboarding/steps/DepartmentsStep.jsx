@@ -250,4 +250,4 @@ const DepartmentsStep = () => {
   )
 }
 
-export default BusinessInfoStep
+export default DepartmentsStep
