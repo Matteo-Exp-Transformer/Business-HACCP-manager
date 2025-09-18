@@ -1,0 +1,329 @@
+/**
+ * FullCalendar Custom Styles - HACCP Design System
+ * 
+ * Custom styling for FullCalendar to match HACCP design system
+ */
+
+/* Calendar Container */
+.calendar-container {
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Calendar Root */
+.fc {
+  background: white;
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+/* Calendar Header (hidden since we use custom) */
+.fc-header-toolbar {
+  display: none;
+}
+
+/* Calendar Body */
+.fc-view-harness {
+  background: white;
+}
+
+/* Day Headers */
+.fc-col-header {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.fc-col-header-cell {
+  padding: 0.75rem 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+/* Day Grid */
+.fc-daygrid-day {
+  background: white;
+  border-color: #f1f5f9;
+  min-height: 120px;
+}
+
+.fc-daygrid-day:hover {
+  background: #f8fafc;
+}
+
+.fc-daygrid-day-number {
+  padding: 0.5rem;
+  font-weight: 500;
+  color: #334155;
+  font-size: 0.875rem;
+}
+
+/* Today styling */
+.fc-day-today {
+  background: #eff6ff !important;
+  border-color: #3b82f6 !important;
+}
+
+.fc-day-today .fc-daygrid-day-number {
+  background: #3b82f6;
+  color: white;
+  border-radius: 0.375rem;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+/* Other month days */
+.fc-day-other .fc-daygrid-day-number {
+  color: #94a3b8;
+}
+
+/* Weekend styling */
+.fc-day-sat,
+.fc-day-sun {
+  background: #fefce8;
+}
+
+/* Events */
+.fc-event {
+  border-radius: 0.375rem;
+  border-width: 1px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.125rem 0.375rem;
+  margin: 0.125rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.fc-event:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fc-event-title {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc-event-time {
+  font-weight: 600;
+  font-size: 0.6875rem;
+}
+
+/* Event priority styling */
+.calendar-event.event-critical {
+  box-shadow: 0 0 0 2px #fee2e2, 0 0 0 4px #fecaca;
+  animation: pulse-critical 2s infinite;
+}
+
+.calendar-event.event-completed {
+  opacity: 0.8;
+  text-decoration: line-through;
+}
+
+@keyframes pulse-critical {
+  0%, 100% {
+    box-shadow: 0 0 0 2px #fee2e2, 0 0 0 4px #fecaca;
+  }
+  50% {
+    box-shadow: 0 0 0 2px #fecaca, 0 0 0 6px #fee2e2;
+  }
+}
+
+/* Time Grid Styling */
+.fc-timegrid {
+  border-color: #e2e8f0;
+}
+
+.fc-timegrid-slot {
+  border-color: #f1f5f9;
+  height: 3rem;
+}
+
+.fc-timegrid-slot-minor {
+  border-color: #f8fafc;
+}
+
+.fc-timegrid-axis {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* All Day Events */
+.fc-daygrid-event {
+  margin: 0.125rem 0.25rem;
+}
+
+.fc-daygrid-block-event .fc-event-title {
+  padding: 0.125rem 0.25rem;
+}
+
+/* Event Dot (for list view) */
+.fc-daygrid-dot-event .fc-event-title {
+  font-size: 0.75rem;
+}
+
+.fc-daygrid-dot-event:before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 0.25rem;
+}
+
+/* More Events Link */
+.fc-daygrid-more-link {
+  color: #3b82f6;
+  font-weight: 500;
+  font-size: 0.75rem;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  text-decoration: none;
+}
+
+.fc-daygrid-more-link:hover {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+/* Scrollbars */
+.fc-scroller::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .fc-col-header-cell {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.75rem;
+  }
+  
+  .fc-daygrid-day {
+    min-height: 80px;
+  }
+  
+  .fc-daygrid-day-number {
+    padding: 0.25rem;
+    font-size: 0.75rem;
+  }
+  
+  .fc-event {
+    font-size: 0.6875rem;
+    padding: 0.0625rem 0.25rem;
+  }
+  
+  .fc-event-title {
+    font-size: 0.6875rem;
+  }
+  
+  .fc-timegrid-slot {
+    height: 2.5rem;
+  }
+}
+
+/* Dark theme support (future) */
+@media (prefers-color-scheme: dark) {
+  .fc {
+    background: #1e293b;
+    color: #f1f5f9;
+  }
+  
+  .fc-col-header {
+    background: #334155;
+    border-color: #475569;
+  }
+  
+  .fc-daygrid-day {
+    background: #1e293b;
+    border-color: #334155;
+  }
+  
+  .fc-day-today {
+    background: #1e3a8a !important;
+  }
+}
+
+/* HACCP-specific event styling */
+.fc-event.haccp-temperature {
+  background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+  border-color: #b91c1c;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+}
+
+.fc-event.haccp-maintenance {
+  background: linear-gradient(135deg, #a16207 0%, #ca8a04 100%);
+  border-color: #854d0e;
+  box-shadow: 0 2px 4px rgba(161, 98, 7, 0.3);
+}
+
+.fc-event.haccp-cleaning {
+  background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+  border-color: #1d4ed8;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.fc-event.haccp-completed {
+  background: linear-gradient(135deg, #16a34a 0%, #22c55e 100%);
+  border-color: #15803d;
+  opacity: 0.9;
+}
+
+/* Loading state */
+.calendar-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.calendar-loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(59, 130, 246, 0.1),
+    transparent
+  );
+  animation: loading-shimmer 2s infinite;
+}
+
+@keyframes loading-shimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}

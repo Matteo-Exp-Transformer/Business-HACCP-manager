@@ -15,12 +15,12 @@ import { LoadingState } from '../components/layouts/PageLayout'
 // Lazy loaded page components
 const Dashboard = lazy(() => import('../components/Dashboard'))
 const PuntidiConservazione = lazy(() => import('../components/PuntidiConservazione'))
-const Cleaning = lazy(() => import('../components/Cleaning'))
+const TasksPage = lazy(() => import('../pages/TasksPage'))
 const Inventory = lazy(() => import('../components/Inventory'))
 const Management = lazy(() => import('../components/Management'))
 const AIAssistant = lazy(() => import('../components/AIAssistant'))
 const DataSettings = lazy(() => import('../components/DataSettings'))
-const OnboardingWizard = lazy(() => import('../components/OnboardingWizard'))
+const OnboardingWizard = lazy(() => import('../features/onboarding/OnboardingWizard'))
 
 // Error boundary for route errors
 const RouteErrorBoundary = ({ error }) => (
@@ -90,7 +90,7 @@ export const router = createBrowserRouter([
         path: 'tasks',
         element: (
           <LazyWrapper>
-            <Cleaning />
+            <TasksPage />
           </LazyWrapper>
         )
       },

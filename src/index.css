@@ -157,3 +157,8 @@
 .icon-md { @apply w-5 h-5; }
 .icon-lg { @apply w-6 h-6; }
 .icon-xl { @apply w-8 h-8; }
+
+/* FullCalendar integration */
+@import '@fullcalendar/core/index.css';
+@import '@fullcalendar/daygrid/index.css';
+@import '@fullcalendar/timegrid/index.css';
