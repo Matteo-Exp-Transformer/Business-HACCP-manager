@@ -5,6 +5,8 @@
  */
 
 import { useState, useEffect } from 'react'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { SignedIn, SignedOut, RedirectToSignIn } from '@clerk/clerk-react'
 import { 
   BarChart3, 
   Thermometer, 
@@ -16,25 +18,24 @@ import {
   Menu,
   X
 } from 'lucide-react'
-import { AuthButton } from '../../features/auth'
+import { AuthButton, useAuth } from '../../features/auth'
 import { Button } from '../ui/Button'
 import { Badge } from '../ui/Badge'
 import { useAppStore } from '../../stores/appStore'
 
-const AppLayout = ({ children }) => {
-  const { 
-    activeTab, 
-    setActiveTab, 
-    isMobileMenuOpen, 
-    setMobileMenuOpen 
-  } = useAppStore()
+const AppLayout = () => {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { isAdmin } = useAuth()
+  const { isMobileMenuOpen, setMobileMenuOpen } = useAppStore()
   
-  const [isAdmin] = useState(false) // Will be connected to auth later
+  // Get current route from location
+  const currentRoute = location.pathname.substring(1) || 'dashboard'
 
   // Navigation tabs configuration
   const navigationTabs = [
     {
-      id: 'home',
+      id: 'dashboard',
       label: 'Home',
       icon: BarChart3,
       description: 'Dashboard e statistiche'
@@ -93,7 +94,7 @@ const AppLayout = ({ children }) => {
 
   // Handle tab change
   const handleTabChange = (tabId) => {
-    setActiveTab(tabId)
+    navigate(`/${tabId}`)
     setMobileMenuOpen(false) // Close mobile menu when tab changes
   }
 
@@ -141,7 +142,7 @@ const AppLayout = ({ children }) => {
                   className={`
                     relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200
                     flex items-center gap-2 mobile-tap-target
-                    ${activeTab === tab.id 
+                    ${currentRoute === tab.id 
                       ? 'bg-primary-100 text-primary-700 shadow-sm' 
                       : 'text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100'
                     }
@@ -199,7 +200,7 @@ const AppLayout = ({ children }) => {
                   className={`
                     w-full flex items-center gap-3 px-3 py-3 rounded-lg text-left
                     transition-all duration-200 mobile-tap-target
-                    ${activeTab === tab.id 
+                    ${currentRoute === tab.id 
                       ? 'bg-primary-100 text-primary-700' 
                       : 'text-neutral-700 hover:bg-neutral-100'
                     }
@@ -224,9 +225,14 @@ const AppLayout = ({ children }) => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 safe-area-bottom">
-        <div className="animate-fade-in">
-          {children}
-        </div>
+        <SignedIn>
+          <div className="animate-fade-in">
+            <Outlet />
+          </div>
+        </SignedIn>
+        <SignedOut>
+          <RedirectToSignIn />
+        </SignedOut>
       </main>
 
       {/* Mobile Bottom Navigation (Alternative to hamburger menu) */}
@@ -239,7 +245,7 @@ const AppLayout = ({ children }) => {
               className={`
                 relative flex flex-col items-center gap-1 py-2 px-1 rounded-lg
                 transition-all duration-200 mobile-tap-target text-xs
-                ${activeTab === tab.id 
+                ${currentRoute === tab.id 
                   ? 'text-primary-600 bg-primary-50' 
                   : 'text-neutral-500 hover:text-neutral-700'
                 }
