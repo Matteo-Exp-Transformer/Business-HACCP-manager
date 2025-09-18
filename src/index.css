@@ -1,59 +1,159 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Line clamp utilities */
-.line-clamp-2 {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
+@layer base {
+  /* Typography System */
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  body {
+    @apply bg-neutral-50 text-neutral-900;
+    margin: 0;
+    line-height: 1.6;
+  }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
-}
+  /* Heading styles */
+  h1 { @apply text-3xl font-bold text-neutral-900 leading-tight; }
+  h2 { @apply text-2xl font-semibold text-neutral-800 leading-tight; }
+  h3 { @apply text-xl font-semibold text-neutral-800 leading-tight; }
+  h4 { @apply text-lg font-medium text-neutral-700 leading-tight; }
+  h5 { @apply text-base font-medium text-neutral-700 leading-tight; }
+  h6 { @apply text-sm font-medium text-neutral-600 leading-tight; }
 
-/* PWA iOS status bar fix */
-@supports (padding-top: env(safe-area-inset-top)) {
-  .safe-area-top {
-    padding-top: env(safe-area-inset-top);
+  /* Text styles */
+  p { @apply text-base text-neutral-700 leading-relaxed; }
+  small { @apply text-sm text-neutral-600; }
+
+  /* Focus styles */
+  *:focus {
+    @apply outline-none ring-2 ring-primary-500 ring-offset-2 ring-offset-white;
+  }
+
+  /* Selection styles */
+  ::selection {
+    @apply bg-primary-100 text-primary-900;
   }
 }
 
-/* Custom scrollbar */
+@layer components {
+  /* HACCP Status Colors */
+  .status-green { @apply bg-success-100 text-success-800 border-success-200; }
+  .status-yellow { @apply bg-warning-100 text-warning-800 border-warning-200; }
+  .status-red { @apply bg-error-100 text-error-800 border-error-200; }
+  .status-blue { @apply bg-primary-100 text-primary-800 border-primary-200; }
+
+  /* Card shadows */
+  .card-shadow { @apply shadow-soft hover:shadow-medium transition-shadow duration-200; }
+  .card-shadow-strong { @apply shadow-medium hover:shadow-strong transition-shadow duration-200; }
+
+  /* Button base styles */
+  .btn-base {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium 
+           transition-all duration-200 rounded-lg focus:outline-none focus:ring-2 
+           focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  /* Loading states */
+  .loading-skeleton {
+    @apply bg-neutral-200 animate-pulse rounded;
+  }
+
+  /* Form elements */
+  .form-input {
+    @apply block w-full px-3 py-2 border border-neutral-300 rounded-lg text-neutral-900 
+           placeholder-neutral-500 focus:border-primary-500 focus:ring-primary-500 
+           transition-colors duration-200;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-neutral-700 mb-1;
+  }
+
+  .form-error {
+    @apply text-sm text-error-600 mt-1;
+  }
+
+  .form-helper {
+    @apply text-sm text-neutral-500 mt-1;
+  }
+
+  /* Mobile optimizations */
+  .mobile-tap-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Responsive text */
+  .text-responsive-lg { @apply text-base md:text-lg; }
+  .text-responsive-xl { @apply text-lg md:text-xl; }
+  .text-responsive-2xl { @apply text-xl md:text-2xl; }
+}
+
+@layer utilities {
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Safe area utilities for PWA */
+  .safe-area-top { padding-top: env(safe-area-inset-top); }
+  .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+  .safe-area-left { padding-left: env(safe-area-inset-left); }
+  .safe-area-right { padding-right: env(safe-area-inset-right); }
+
+  /* Touch-friendly utilities */
+  .touch-manipulation { touch-action: manipulation; }
+  .touch-pan-x { touch-action: pan-x; }
+  .touch-pan-y { touch-action: pan-y; }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Custom scrollbar for webkit browsers */
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+  @apply bg-neutral-100 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+  @apply bg-neutral-300 rounded-full hover:bg-neutral-400;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
-}
-
-/* Fix per icone nei pulsanti - Standard app size */
-button svg {
-  width: 16px !important;
-  height: 16px !important;
-  min-width: 16px !important;
-  min-height: 16px !important;
-}
+/* Icon sizing for HACCP components */
+.icon-sm { @apply w-4 h-4; }
+.icon-md { @apply w-5 h-5; }
+.icon-lg { @apply w-6 h-6; }
+.icon-xl { @apply w-8 h-8; }

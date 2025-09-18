@@ -1,18 +1,50 @@
-import React from 'react'
+/**
+ * Input Component - HACCP Design System
+ * 
+ * Form input component with validation states and mobile optimization
+ */
 
-export function Input({ className, type, ...props }) {
+import { forwardRef } from 'react'
+
+const inputVariants = {
+  default: 'border-neutral-300 focus:border-primary-500 focus:ring-primary-500',
+  error: 'border-error-500 focus:border-error-500 focus:ring-error-500 bg-error-50',
+  success: 'border-success-500 focus:border-success-500 focus:ring-success-500 bg-success-50',
+  warning: 'border-warning-500 focus:border-warning-500 focus:ring-warning-500 bg-warning-50'
+}
+
+const inputSizes = {
+  sm: 'h-8 px-2 py-1 text-xs',
+  default: 'h-10 px-3 py-2 text-sm mobile-tap-target',
+  lg: 'h-12 px-4 py-3 text-base mobile-tap-target'
+}
+
+export const Input = forwardRef(({ 
+  className = '', 
+  type = 'text',
+  variant = 'default',
+  size = 'default',
+  error = false,
+  disabled = false,
+  ...props 
+}, ref) => {
+  const variantClass = error ? inputVariants.error : inputVariants[variant]
+  
   return (
     <input
+      ref={ref}
       type={type}
       className={`
-        flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2
-        text-sm ring-offset-background file:border-0 file:bg-transparent
-        file:text-sm file:font-medium placeholder:text-gray-500
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500
-        focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50
+        form-input
+        ${variantClass}
+        ${inputSizes[size]}
+        ${disabled ? 'bg-neutral-100 cursor-not-allowed' : 'bg-white'}
         ${className}
       `}
+      disabled={disabled}
       {...props}
     />
   )
-}
+})
+
+Input.displayName = 'Input'

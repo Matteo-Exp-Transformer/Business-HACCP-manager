@@ -17,7 +17,9 @@
  * @version 1.0
  */
 
-import React, { useState } from 'react'
+import { useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
+import { Card, CardHeader, CardContent } from './ui/Card'
 
 function CollapsibleCard({
   title,
