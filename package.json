@@ -37,7 +37,7 @@
     "react-hook-form": "^7.62.0",
     "react-router-dom": "^7.9.1",
     "react-toastify": "^11.0.5",
-    "zod": "^4.1.8",
+    "zod": "^4.1.9",
     "zustand": "^5.0.8"
   },
   "devDependencies": {
