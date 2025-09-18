@@ -1,589 +1,585 @@
 /**
- * 🚨 ATTENZIONE CRITICA - LEGGERE PRIMA DI MODIFICARE 🚨
+ * Supabase Service Layer
  * 
- * Questo file gestisce i SERVIZI SUPABASE - FUNZIONALITÀ CRITICA HACCP
- * 
- * PRIMA di qualsiasi modifica, leggi OBBLIGATORIAMENTE:
- * - AGENT_DIRECTIVES.md (nella root del progetto)
- * - HACCP_APP_DOCUMENTATION.md
- * 
- * ⚠️ MODIFICHE NON AUTORIZZATE POSSONO COMPROMETTERE LA SICUREZZA ALIMENTARE
- * ⚠️ Questo file gestisce CRUD operations e sincronizzazione dati
- * ⚠️ Coordina persistenza critica per compliance HACCP
- * 
- * @fileoverview Servizi Supabase HACCP - Sistema Critico di Persistenza
- * @requires AGENT_DIRECTIVES.md
- * @critical Sicurezza alimentare - Persistenza e Sincronizzazione
- * @version 1.0
+ * This service provides high-level database operations for the HACCP application
+ * All functions include proper error handling and data validation
  */
 
-import { supabase, TABLES, createCompanyStructure } from '../lib/supabase.js'
-import { validateAndSanitizeData, MAINTENANCE_DATA_SCHEMA } from '../utils/dataValidation'
+import { supabase, db, realtime, storage, TABLES, STORAGE_BUCKETS } from '../lib/supabase-config'
+import { getCompanyId } from '../lib/clerk'
 
-// Importa anche l'URL per il controllo
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
-
-// Service class for Supabase operations
-class SupabaseService {
-  constructor() {
-    this.companyId = this.getCompanyId()
-  }
-
-  // Get or create company ID
-  getCompanyId() {
-    let companyId = localStorage.getItem('haccp-company-id')
-    if (!companyId) {
-      companyId = `company_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      localStorage.setItem('haccp-company-id', companyId)
-    }
-    return companyId
-  }
-
-  // Generic error handler
-  handleError(error, operation) {
-    console.error(`❌ Supabase ${operation} error:`, error)
-    return {
-      success: false,
-      error: error.message,
-      data: null
-    }
-  }
-
-  // Generic success handler
-  handleSuccess(data, operation) {
-    console.log(`✅ Supabase ${operation} success:`, data)
-    return {
-      success: true,
-      error: null,
-      data
-    }
-  }
-
-  // ===== COMPANY OPERATIONS =====
-  async createCompany(companyData) {
+/**
+ * Company Service
+ */
+export const companyService = {
+  /**
+   * Get current user's company
+   */
+  async getCurrent() {
     try {
-      const company = {
-        ...createCompanyStructure(this.companyId),
-        ...companyData,
-        id: this.companyId
-      }
-
-      const { data, error } = await supabase
-        .from(TABLES.COMPANIES)
-        .insert([company])
-        .select()
-
+      const { data, error } = await db.select(TABLES.COMPANIES)
       if (error) throw error
-      return this.handleSuccess(data[0], 'createCompany')
+      return data?.[0] || null
     } catch (error) {
-      return this.handleError(error, 'createCompany')
+      console.error('Error fetching company:', error)
+      throw error
     }
-  }
+  },
 
-  async getCompany() {
+  /**
+   * Update company information
+   */
+  async update(companyData) {
     try {
-      const { data, error } = await supabase
-        .from(TABLES.COMPANIES)
-        .select('*')
-        .eq('id', this.companyId)
-        .single()
-
-      if (error && error.code !== 'PGRST116') throw error
-      return this.handleSuccess(data, 'getCompany')
-    } catch (error) {
-      return this.handleError(error, 'getCompany')
-    }
-  }
-
-  // ===== USERS OPERATIONS =====
-  async saveUsers(users) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.USERS)
-        .upsert(users.map(user => ({
-          ...user,
-          company_id: this.companyId,
-          updated_at: new Date().toISOString()
-        })))
-        .select()
-
+      const { data, error } = await db.update(TABLES.COMPANIES, companyData.id, companyData)
       if (error) throw error
-      return this.handleSuccess(data, 'saveUsers')
+      return data?.[0]
     } catch (error) {
-      return this.handleError(error, 'saveUsers')
-    }
-  }
-
-  async getUsers() {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.USERS)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      return this.handleSuccess(data || [], 'getUsers')
-    } catch (error) {
-      return this.handleError(error, 'getUsers')
-    }
-  }
-
-  // ===== DEPARTMENTS OPERATIONS =====
-  async saveDepartments(departments) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.DEPARTMENTS)
-        .upsert(departments.map(dept => ({
-          ...dept,
-          company_id: this.companyId,
-          updated_at: new Date().toISOString()
-        })))
-        .select()
-
-      if (error) throw error
-      return this.handleSuccess(data, 'saveDepartments')
-    } catch (error) {
-      return this.handleError(error, 'saveDepartments')
-    }
-  }
-
-  async getDepartments() {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.DEPARTMENTS)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      return this.handleSuccess(data || [], 'getDepartments')
-    } catch (error) {
-      return this.handleError(error, 'getDepartments')
-    }
-  }
-
-  // ===== STAFF OPERATIONS =====
-  async saveStaff(staff) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.STAFF)
-        .upsert(staff.map(member => ({
-          ...member,
-          company_id: this.companyId,
-          updated_at: new Date().toISOString()
-        })))
-        .select()
-
-      if (error) throw error
-      return this.handleSuccess(data, 'saveStaff')
-    } catch (error) {
-      return this.handleError(error, 'saveStaff')
-    }
-  }
-
-  async getStaff() {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.STAFF)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      return this.handleSuccess(data || [], 'getStaff')
-    } catch (error) {
-      return this.handleError(error, 'getStaff')
-    }
-  }
-
-  // ===== REFRIGERATORS OPERATIONS =====
-  async saveRefrigerators(refrigerators) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.REFRIGERATORS)
-        .upsert(refrigerators.map(ref => ({
-          ...ref,
-          company_id: this.companyId,
-          updated_at: new Date().toISOString()
-        })))
-        .select()
-
-      if (error) throw error
-      return this.handleSuccess(data, 'saveRefrigerators')
-    } catch (error) {
-      return this.handleError(error, 'saveRefrigerators')
-    }
-  }
-
-  async getRefrigerators() {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.REFRIGERATORS)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      return this.handleSuccess(data || [], 'getRefrigerators')
-    } catch (error) {
-      return this.handleError(error, 'getRefrigerators')
-    }
-  }
-
-  // ===== TEMPERATURES OPERATIONS =====
-  async saveTemperatures(temperatures) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.TEMPERATURES)
-        .upsert(temperatures.map(temp => ({
-          ...temp,
-          company_id: this.companyId,
-          updated_at: new Date().toISOString()
-        })))
-        .select()
-
-      if (error) throw error
-      return this.handleSuccess(data, 'saveTemperatures')
-    } catch (error) {
-      return this.handleError(error, 'saveTemperatures')
-    }
-  }
-
-  async getTemperatures() {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.TEMPERATURES)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .order('timestamp', { ascending: false })
-
-      if (error) throw error
-      return this.handleSuccess(data || [], 'getTemperatures')
-    } catch (error) {
-      return this.handleError(error, 'getTemperatures')
-    }
-  }
-
-  // ===== CLEANING OPERATIONS =====
-  async saveCleaning(cleaning) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.CLEANING)
-        .upsert(cleaning.map(task => ({
-          ...task,
-          company_id: this.companyId,
-          updated_at: new Date().toISOString()
-        })))
-        .select()
-
-      if (error) throw error
-      return this.handleSuccess(data, 'saveCleaning')
-    } catch (error) {
-      return this.handleError(error, 'saveCleaning')
-    }
-  }
-
-  async getCleaning() {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.CLEANING)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      return this.handleSuccess(data || [], 'getCleaning')
-    } catch (error) {
-      return this.handleError(error, 'getCleaning')
-    }
-  }
-
-  // ===== INVENTORY OPERATIONS =====
-  async saveInventory(inventory) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.INVENTORY)
-        .upsert(inventory.map(item => ({
-          ...item,
-          company_id: this.companyId,
-          updated_at: new Date().toISOString()
-        })))
-        .select()
-
-      if (error) throw error
-      return this.handleSuccess(data, 'saveInventory')
-    } catch (error) {
-      return this.handleError(error, 'saveInventory')
-    }
-  }
-
-  async getInventory() {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.INVENTORY)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      return this.handleSuccess(data || [], 'getInventory')
-    } catch (error) {
-      return this.handleError(error, 'getInventory')
-    }
-  }
-
-  // ===== ONBOARDING OPERATIONS =====
-  async saveOnboarding(onboardingData) {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.ONBOARDING)
-        .upsert([{
-          id: this.companyId,
-          company_id: this.companyId,
-          data: onboardingData,
-          completed: true,
-          completed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
-        .select()
-
-      if (error) throw error
-      return this.handleSuccess(data[0], 'saveOnboarding')
-    } catch (error) {
-      return this.handleError(error, 'saveOnboarding')
-    }
-  }
-
-  async getOnboarding() {
-    try {
-      const { data, error } = await supabase
-        .from(TABLES.ONBOARDING)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .single()
-
-      if (error && error.code !== 'PGRST116') throw error
-      return this.handleSuccess(data, 'getOnboarding')
-    } catch (error) {
-      return this.handleError(error, 'getOnboarding')
-    }
-  }
-
-  // ===== MAINTENANCE TASKS OPERATIONS =====
-  async saveMaintenanceTasks(maintenanceTasks) {
-    try {
-      // Valida e sanitizza ogni task prima del salvataggio
-      const validatedTasks = [];
-      for (const task of maintenanceTasks) {
-        const validation = validateAndSanitizeData(task, MAINTENANCE_DATA_SCHEMA, 'task di manutenzione');
-        if (validation.isValid) {
-          validatedTasks.push(validation.sanitizedData);
-        } else {
-          console.error('❌ Task di manutenzione non valido:', validation.errors);
-          throw new Error(`Task non valido: ${validation.errors.join(', ')}`);
-        }
-      }
-
-      // Controlla se Supabase è configurato correttamente
-      if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
-        console.warn('⚠️ Supabase non configurato, salvataggio in localStorage');
-        // Salva in localStorage come fallback
-        const existingTasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
-        const newTasks = validatedTasks.map(task => ({
-          ...task,
-          company_id: this.companyId,
-          updated_at: new Date().toISOString()
-        }));
-        const updatedTasks = [...existingTasks.filter(t => 
-          !validatedTasks.some(mt => mt.conservation_point_id === t.conservation_point_id)
-        ), ...newTasks];
-        localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(updatedTasks));
-        return this.handleSuccess(newTasks, 'saveMaintenanceTasks (localStorage)');
-      }
-
-      const { data, error } = await supabase
-        .from(TABLES.MAINTENANCE_TASKS)
-        .upsert(validatedTasks.map(task => ({
-          ...task,
-          company_id: this.companyId,
-          updated_at: new Date().toISOString()
-        })))
-        .select()
-
-      if (error) throw error
-      return this.handleSuccess(data, 'saveMaintenanceTasks')
-    } catch (error) {
-      return this.handleError(error, 'saveMaintenanceTasks')
-    }
-  }
-
-  async getMaintenanceTasks() {
-    try {
-      // Controlla se Supabase è configurato correttamente
-      if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
-        console.warn('⚠️ Supabase non configurato, caricamento da localStorage');
-        const tasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
-        console.log('🔍 Tasks raw from localStorage:', tasks.length, 'task');
-        console.log('🔍 Company ID corrente:', this.companyId);
-        const filteredTasks = tasks.filter(task => task.company_id === this.companyId);
-        console.log('🔍 Tasks filtrati per company_id:', filteredTasks.length, 'task');
-        return this.handleSuccess(filteredTasks, 'getMaintenanceTasks (localStorage)');
-      }
-
-      const { data, error } = await supabase
-        .from(TABLES.MAINTENANCE_TASKS)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      return this.handleSuccess(data || [], 'getMaintenanceTasks')
-    } catch (error) {
-      return this.handleError(error, 'getMaintenanceTasks')
-    }
-  }
-
-  async getMaintenanceTasksByConservationPoint(conservationPointId) {
-    try {
-      // Controlla se Supabase è configurato correttamente
-      if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
-        console.warn('⚠️ Supabase non configurato, caricamento da localStorage');
-        const tasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
-        const filteredTasks = tasks.filter(task => 
-          task.company_id === this.companyId && 
-          task.conservation_point_id === conservationPointId
-        );
-        return this.handleSuccess(filteredTasks, 'getMaintenanceTasksByConservationPoint (localStorage)');
-      }
-
-      const { data, error } = await supabase
-        .from(TABLES.MAINTENANCE_TASKS)
-        .select('*')
-        .eq('company_id', this.companyId)
-        .eq('conservation_point_id', conservationPointId)
-        .order('created_at', { ascending: true })
-
-      if (error) throw error
-      return this.handleSuccess(data || [], 'getMaintenanceTasksByConservationPoint')
-    } catch (error) {
-      return this.handleError(error, 'getMaintenanceTasksByConservationPoint')
-    }
-  }
-
-  async deleteMaintenanceTasksByConservationPoint(conservationPointId) {
-    try {
-      // Controlla se Supabase è configurato correttamente
-      if (!supabase || supabaseUrl.includes('your-project.supabase.co')) {
-        console.warn('⚠️ Supabase non configurato, eliminazione da localStorage');
-        const tasks = JSON.parse(localStorage.getItem('haccp-maintenance-tasks') || '[]');
-        const filteredTasks = tasks.filter(task => 
-          !(task.company_id === this.companyId && task.conservation_point_id === conservationPointId)
-        );
-        localStorage.setItem('haccp-maintenance-tasks', JSON.stringify(filteredTasks));
-        return this.handleSuccess(filteredTasks, 'deleteMaintenanceTasksByConservationPoint (localStorage)');
-      }
-
-      const { data, error } = await supabase
-        .from(TABLES.MAINTENANCE_TASKS)
-        .delete()
-        .eq('company_id', this.companyId)
-        .eq('conservation_point_id', conservationPointId)
-
-      if (error) throw error
-      return this.handleSuccess(data, 'deleteMaintenanceTasksByConservationPoint')
-    } catch (error) {
-      return this.handleError(error, 'deleteMaintenanceTasksByConservationPoint')
-    }
-  }
-
-  // ===== MIGRATION FROM LOCALSTORAGE =====
-  async migrateFromLocalStorage() {
-    try {
-      console.log('🔄 Starting migration from localStorage to Supabase...')
-      
-      // Get all localStorage data
-      const localData = {
-        users: JSON.parse(localStorage.getItem('haccp-users') || '[]'),
-        departments: JSON.parse(localStorage.getItem('haccp-departments') || '[]'),
-        staff: JSON.parse(localStorage.getItem('haccp-staff') || '[]'),
-        refrigerators: JSON.parse(localStorage.getItem('haccp-refrigerators') || '[]'),
-        temperatures: JSON.parse(localStorage.getItem('haccp-temperatures') || '[]'),
-        cleaning: JSON.parse(localStorage.getItem('haccp-cleaning') || '[]'),
-        products: JSON.parse(localStorage.getItem('haccp-products') || '[]'),
-        onboarding: JSON.parse(localStorage.getItem('haccp-onboarding') || 'null')
-      }
-
-      // Create company if it doesn't exist
-      const companyResult = await this.getCompany()
-      if (!companyResult.success || !companyResult.data) {
-        await this.createCompany({
-          name: 'Migrated Company',
-          type: 'pizzeria'
-        })
-      }
-
-      // Migrate each data type
-      const migrations = []
-      
-      if (localData.users.length > 0) {
-        migrations.push(this.saveUsers(localData.users))
-      }
-      if (localData.departments.length > 0) {
-        migrations.push(this.saveDepartments(localData.departments))
-      }
-      if (localData.staff.length > 0) {
-        migrations.push(this.saveStaff(localData.staff))
-      }
-      if (localData.refrigerators.length > 0) {
-        migrations.push(this.saveRefrigerators(localData.refrigerators))
-      }
-      if (localData.temperatures.length > 0) {
-        migrations.push(this.saveTemperatures(localData.temperatures))
-      }
-      if (localData.cleaning.length > 0) {
-        migrations.push(this.saveCleaning(localData.cleaning))
-      }
-      if (localData.products.length > 0) {
-        migrations.push(this.saveInventory(localData.products))
-      }
-      if (localData.onboarding) {
-        migrations.push(this.saveOnboarding(localData.onboarding))
-      }
-
-      // Execute all migrations
-      const results = await Promise.all(migrations)
-      
-      // Check if all migrations succeeded
-      const failedMigrations = results.filter(r => !r.success)
-      if (failedMigrations.length > 0) {
-        console.error('❌ Some migrations failed:', failedMigrations)
-        return this.handleError(new Error('Migration failed'), 'migrateFromLocalStorage')
-      }
-
-      // Clear localStorage after successful migration
-      const keysToRemove = [
-        'haccp-users',
-        'haccp-departments', 
-        'haccp-staff',
-        'haccp-refrigerators',
-        'haccp-temperatures',
-        'haccp-cleaning',
-        'haccp-products',
-        'haccp-onboarding'
-      ]
-      
-      keysToRemove.forEach(key => localStorage.removeItem(key))
-      
-      console.log('✅ Migration completed successfully!')
-      return this.handleSuccess(results, 'migrateFromLocalStorage')
-      
-    } catch (error) {
-      return this.handleError(error, 'migrateFromLocalStorage')
+      console.error('Error updating company:', error)
+      throw error
     }
   }
 }
 
-// Export singleton instance
-export const supabaseService = new SupabaseService()
-export default supabaseService
+/**
+ * User Service
+ */
+export const userService = {
+  /**
+   * Get all users in company
+   */
+  async getAll() {
+    try {
+      const { data, error } = await db.select(TABLES.USERS, `
+        *,
+        departments (
+          id,
+          name
+        )
+      `)
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching users:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Create or update user (for Clerk integration)
+   */
+  async upsert(userData) {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.USERS)
+        .upsert(userData, { onConflict: 'clerk_user_id' })
+        .select()
+      
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error upserting user:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Update user profile
+   */
+  async update(userId, userData) {
+    try {
+      const { data, error } = await db.update(TABLES.USERS, userId, userData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error updating user:', error)
+      throw error
+    }
+  }
+}
+
+/**
+ * Department Service
+ */
+export const departmentService = {
+  /**
+   * Get all departments
+   */
+  async getAll() {
+    try {
+      const { data, error } = await db.select(TABLES.DEPARTMENTS, `
+        *,
+        manager:manager_id (
+          id,
+          first_name,
+          last_name,
+          email
+        )
+      `)
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching departments:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Create new department
+   */
+  async create(departmentData) {
+    try {
+      const { data, error } = await db.insert(TABLES.DEPARTMENTS, departmentData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error creating department:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Update department
+   */
+  async update(departmentId, departmentData) {
+    try {
+      const { data, error } = await db.update(TABLES.DEPARTMENTS, departmentId, departmentData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error updating department:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Delete department
+   */
+  async delete(departmentId) {
+    try {
+      const { error } = await db.delete(TABLES.DEPARTMENTS, departmentId)
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error('Error deleting department:', error)
+      throw error
+    }
+  }
+}
+
+/**
+ * Conservation Point Service
+ */
+export const conservationPointService = {
+  /**
+   * Get all conservation points
+   */
+  async getAll() {
+    try {
+      const { data, error } = await db.select(TABLES.CONSERVATION_POINTS, `
+        *,
+        department:department_id (
+          id,
+          name
+        )
+      `)
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching conservation points:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Create new conservation point
+   */
+  async create(pointData) {
+    try {
+      const { data, error } = await db.insert(TABLES.CONSERVATION_POINTS, pointData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error creating conservation point:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Update conservation point
+   */
+  async update(pointId, pointData) {
+    try {
+      const { data, error } = await db.update(TABLES.CONSERVATION_POINTS, pointId, pointData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error updating conservation point:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Delete conservation point
+   */
+  async delete(pointId) {
+    try {
+      const { error } = await db.delete(TABLES.CONSERVATION_POINTS, pointId)
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error('Error deleting conservation point:', error)
+      throw error
+    }
+  }
+}
+
+/**
+ * Product Service
+ */
+export const productService = {
+  /**
+   * Get all products
+   */
+  async getAll() {
+    try {
+      const { data, error } = await db.select(TABLES.PRODUCTS, `
+        *,
+        department:department_id (
+          id,
+          name
+        ),
+        conservation_point:conservation_point_id (
+          id,
+          name,
+          type
+        )
+      `)
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching products:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Get products expiring soon
+   */
+  async getExpiringSoon(days = 7) {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.PRODUCTS)
+        .select(`
+          *,
+          department:department_id (
+            id,
+            name
+          ),
+          conservation_point:conservation_point_id (
+            id,
+            name,
+            type
+          )
+        `)
+        .lte('expiry_date', new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+        .eq('is_active', true)
+        .order('expiry_date', { ascending: true })
+      
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching expiring products:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Create new product
+   */
+  async create(productData) {
+    try {
+      const { data, error } = await db.insert(TABLES.PRODUCTS, productData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error creating product:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Update product
+   */
+  async update(productId, productData) {
+    try {
+      const { data, error } = await db.update(TABLES.PRODUCTS, productId, productData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error updating product:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Delete product
+   */
+  async delete(productId) {
+    try {
+      const { error } = await db.delete(TABLES.PRODUCTS, productId)
+      if (error) throw error
+      return true
+    } catch (error) {
+      console.error('Error deleting product:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Upload product image
+   */
+  async uploadImage(productId, file) {
+    try {
+      const fileName = `${productId}-${Date.now()}.${file.name.split('.').pop()}`
+      const { data, error } = await storage.upload(STORAGE_BUCKETS.PRODUCT_IMAGES, fileName, file)
+      
+      if (error) throw error
+      
+      const imageUrl = storage.getPublicUrl(STORAGE_BUCKETS.PRODUCT_IMAGES, fileName)
+      return imageUrl
+    } catch (error) {
+      console.error('Error uploading product image:', error)
+      throw error
+    }
+  }
+}
+
+/**
+ * Task Service
+ */
+export const taskService = {
+  /**
+   * Get all tasks
+   */
+  async getAll() {
+    try {
+      const { data, error } = await db.select(TABLES.TASKS, `
+        *,
+        conservation_point:conservation_point_id (
+          id,
+          name,
+          type
+        ),
+        assigned_user:assigned_to_user_id (
+          id,
+          first_name,
+          last_name
+        ),
+        assigned_department:assigned_to_department_id (
+          id,
+          name
+        )
+      `)
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching tasks:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Get tasks due soon
+   */
+  async getDueSoon(hours = 24) {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.TASKS)
+        .select(`
+          *,
+          conservation_point:conservation_point_id (
+            id,
+            name,
+            type
+          ),
+          assigned_user:assigned_to_user_id (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .lte('due_date', new Date(Date.now() + hours * 60 * 60 * 1000).toISOString())
+        .eq('is_active', true)
+        .order('due_date', { ascending: true })
+      
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching due tasks:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Create new task
+   */
+  async create(taskData) {
+    try {
+      const { data, error } = await db.insert(TABLES.TASKS, taskData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error creating task:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Update task
+   */
+  async update(taskId, taskData) {
+    try {
+      const { data, error } = await db.update(TABLES.TASKS, taskId, taskData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error updating task:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Complete task
+   */
+  async complete(taskId, completionData) {
+    try {
+      const { data, error } = await db.insert(TABLES.TASK_COMPLETIONS, {
+        task_id: taskId,
+        ...completionData
+      })
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error completing task:', error)
+      throw error
+    }
+  }
+}
+
+/**
+ * Temperature Reading Service
+ */
+export const temperatureService = {
+  /**
+   * Get temperature readings for a conservation point
+   */
+  async getByConservationPoint(conservationPointId, limit = 50) {
+    try {
+      const { data, error } = await supabase
+        .from(TABLES.TEMPERATURE_READINGS)
+        .select(`
+          *,
+          conservation_point:conservation_point_id (
+            id,
+            name,
+            type
+          ),
+          recorded_user:recorded_by_user_id (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('conservation_point_id', conservationPointId)
+        .order('recorded_at', { ascending: false })
+        .limit(limit)
+      
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching temperature readings:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Record new temperature reading
+   */
+  async record(temperatureData) {
+    try {
+      const { data, error } = await db.insert(TABLES.TEMPERATURE_READINGS, temperatureData)
+      if (error) throw error
+      return data?.[0]
+    } catch (error) {
+      console.error('Error recording temperature:', error)
+      throw error
+    }
+  },
+
+  /**
+   * Get temperature statistics
+   */
+  async getStats(conservationPointId, days = 30) {
+    try {
+      const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString()
+      
+      const { data, error } = await supabase
+        .from(TABLES.TEMPERATURE_READINGS)
+        .select('temperature, recorded_at, is_within_range')
+        .eq('conservation_point_id', conservationPointId)
+        .gte('recorded_at', startDate)
+        .order('recorded_at', { ascending: true })
+      
+      if (error) throw error
+      return data || []
+    } catch (error) {
+      console.error('Error fetching temperature stats:', error)
+      throw error
+    }
+  }
+}
+
+/**
+ * Real-time Subscriptions
+ */
+export const subscriptionService = {
+  /**
+   * Subscribe to conservation point changes
+   */
+  subscribeToConservationPoints(callback) {
+    return realtime.subscribe(TABLES.CONSERVATION_POINTS, callback)
+  },
+
+  /**
+   * Subscribe to task changes
+   */
+  subscribeToTasks(callback) {
+    return realtime.subscribe(TABLES.TASKS, callback)
+  },
+
+  /**
+   * Subscribe to temperature readings
+   */
+  subscribeToTemperatureReadings(callback) {
+    return realtime.subscribe(TABLES.TEMPERATURE_READINGS, callback)
+  },
+
+  /**
+   * Unsubscribe from channel
+   */
+  unsubscribe(channel) {
+    return realtime.unsubscribe(channel)
+  }
+}
+
+export default {
+  companyService,
+  userService,
+  departmentService,
+  conservationPointService,
+  productService,
+  taskService,
+  temperatureService,
+  subscriptionService
+}
