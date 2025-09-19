@@ -1,12 +1,12 @@
 {
   "version": "1.0.0",
-  "buildTime": "2025-09-19T03:04:28.087Z",
-  "buildNumber": "250919.0304",
-  "gitCommit": "658ebb035c4d90495d51dac6c96ad19e3f5eddde",
-  "gitCommitShort": "658ebb03",
+  "buildTime": "2025-09-19T03:08:59.699Z",
+  "buildNumber": "250919.0308",
+  "gitCommit": "27c0af94d72c0c7c9317e45f4badde360c7ef4f0",
+  "gitCommitShort": "27c0af94",
   "gitBranch": "BHM-v.2",
   "environment": "development",
   "builtBy": "HACCP Build System",
   "nodeVersion": "v22.16.0",
-  "buildId": "658ebb03-250919.0304"
+  "buildId": "27c0af94-250919.0308"
 }

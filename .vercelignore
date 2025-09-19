@@ -1,0 +1,51 @@
+# Vercel ignore file
+# Exclude files and directories from deployment
+
+# Development files
+.env.local
+.env.development
+.env.staging
+.env.production
+
+# Node modules
+node_modules/
+
+# Source files (only built files in docs/ are needed)
+src/
+public/
+
+# Development tools
+.vscode/
+.cursor/
+scripts/
+
+# Documentation
+*.md
+!README.md
+
+# Git
+.git/
+.gitignore
+
+# Cache and temporary files
+.cache/
+.temp/
+*.tmp
+*.log
+
+# Test files
+coverage/
+test-results/
+
+# Build artifacts (except docs/)
+dist/
+build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+*.swp
+*.swo
+.idea/

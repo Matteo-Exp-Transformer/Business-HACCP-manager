@@ -1,20 +1,10 @@
 {
   "version": 2,
   "name": "haccp-business-manager",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "docs"
-      }
-    }
-  ],
-  "buildCommand": "npm run deploy:prod",
+  "buildCommand": "npm run build:prod",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": "docs",
-  "public": true,
   "routes": [
     {
       "src": "/api/(.*)",
@@ -62,10 +52,5 @@
     "VITE_APP_ENV": "production",
     "VITE_PWA_ENABLED": "true",
     "VITE_OFFLINE_MODE": "true"
-  },
-  "build": {
-    "env": {
-      "VITE_APP_ENV": "production"
-    }
   }
 }

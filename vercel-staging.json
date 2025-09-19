@@ -1,20 +1,10 @@
 {
   "version": 2,
   "name": "haccp-business-manager-staging",
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "docs"
-      }
-    }
-  ],
-  "buildCommand": "npm run deploy:staging",
+  "buildCommand": "npm run build:staging",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": "docs",
-  "public": false,
   "routes": [
     {
       "src": "/api/(.*)",
