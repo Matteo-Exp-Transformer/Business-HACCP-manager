@@ -19,45 +19,45 @@ HACCP Business Manager is a Progressive Web App (PWA) for digitalizing food safe
 #### **Milestone A.1: Infrastructure Setup (Sprints 1-4)**
 
 ##### A.1.0 Initial Project Setup
-- [ ] Create GitHub repository (private recommended)
-- [ ] Set up branch protection rules
-- [ ] Configure issue and PR templates
-- [ ] Create Vercel account and connect to GitHub
-- [ ] Set up development, staging, and production environments
-- [ ] Configure environment variables in Vercel
+- [x] Create GitHub repository (private recommended)
+- [x] Set up branch protection rules
+- [x] Configure issue and PR templates
+- [x] Create Vercel account and connect to GitHub
+- [x] Set up development, staging, and production environments
+- [x] Configure environment variables in Vercel
 - [ ] Set up Posthog/analytics account (optional)
 - [ ] Create Resend account for email service (optional)
 
 ##### A.1.1 Repository & Development Environment
-- [ ] Initialize Git repository with proper branching strategy
-- [ ] Configure development environment with Node.js 18.x or 20.x LTS
-- [ ] Set up Vite 5.4+ build tool configuration
-- [ ] Install and configure ESLint 9.17+ and Prettier 3.4+
-- [ ] Set up Husky 9.1+ for pre-commit hooks
-- [ ] Configure TypeScript 5.6+ with gradual migration strategy
-- [ ] Set up testing framework (Vitest 2.1+ + React Testing Library 16.1+)
-- [ ] Create project documentation structure (README, CONTRIBUTING)
-- [ ] Configure CI/CD pipeline with GitHub Actions
-- [ ] Set up Sentry 8.47+ for error monitoring
-- [ ] Configure VS Code with required extensions
-- [ ] Set up pnpm as package manager
-- [ ] Install React 18.3+ and React DOM
-- [ ] Configure project structure as per PLANNING.md
-- [ ] Set up environment variables (.env.example)
-- [ ] Install development browser extensions
+- [x] Initialize Git repository with proper branching strategy
+- [x] Configure development environment with Node.js 18.x or 20.x LTS
+- [x] Set up Vite 5.4+ build tool configuration
+- [x] Install and configure ESLint 9.17+ and Prettier 3.4+
+- [x] Set up Husky 9.1+ for pre-commit hooks
+- [x] Configure TypeScript 5.6+ with gradual migration strategy
+- [x] Set up testing framework (Vitest 2.1+ + React Testing Library 16.1+)
+- [x] Create project documentation structure (README, CONTRIBUTING)
+- [x] Configure CI/CD pipeline with GitHub Actions
+- [x] Set up Sentry 8.47+ for error monitoring
+- [x] Configure VS Code with required extensions
+- [x] Set up pnpm as package manager
+- [x] Install React 18.3+ and React DOM
+- [x] Configure project structure as per PLANNING.md
+- [x] Set up environment variables (.env.example)
+- [x] Install development browser extensions
 
 ##### A.1.2 Authentication System (Clerk)
-- [ ] Create Clerk account and obtain API keys (Publishable Key, Secret Key)
-- [ ] Install Clerk React SDK 5.20+
-- [ ] Implement email/password authentication flow
-- [ ] Create registration and login pages
-- [ ] Implement JWT token handling
-- [ ] Set up session management
-- [ ] Configure password reset flow
-- [ ] Implement role-based access control (RBAC)
+- [x] Create Clerk account and obtain API keys (Publishable Key, Secret Key)
+- [x] Install Clerk React SDK 5.20+
+- [x] Implement email/password authentication flow
+- [x] Create registration and login pages
+- [x] Implement JWT token handling
+- [x] Set up session management
+- [x] Configure password reset flow
+- [x] Implement role-based access control (RBAC)
 - [ ] Add optional MFA for administrators
-- [ ] Create user profile management interface
-- [ ] Configure OAuth providers and webhook endpoints
+- [x] Create user profile management interface
+- [x] Configure OAuth providers and webhook endpoints
 
 ##### A.1.3 Supabase Backend Setup
 - [ ] Create Supabase project (obtain Project URL, Anon Key, Service Key)
