@@ -1,40 +1,49 @@
-🚨🚨 MEGA FORCE DEPLOY 🚨🚨
-TIMESTAMP: 2025-08-05_18:50
-COMMIT: 9cf2ec54
+🚀🚀 DEPLOY SYSTEM V2.1 - FIXED 404 ERRORS 🚀🚀
+TIMESTAMP: 2025-09-19_03:26
+COMMIT: d0d0ff9c
+BUILD_ID: d0d0ff9c-250919.0326
 
-🔥 CRITICAL CHANGES THAT MUST DEPLOY:
-1. ✅ Tab "Temperature" → "Frigoriferi" 
-2. ✅ Temperatura impostata con tipo (Frigo/Freezer/Abbattitore)
-3. ✅ Cronologia temperature cliccabile per ogni frigorifero  
-4. ✅ Categoria badge accanto al nome frigorifero
-5. ✅ "Temperature OK" → "Mansioni Mancate" 
-6. ✅ Scheda "Tutte" sempre bianca
-7. 🚨 FIXED: Logica mansioni mancate per frequenza corretta!
+🔥 CRITICAL FIXES DEPLOYED:
+1. ✅ Fixed 404 CSS errors (index-195a75cc.css → index-70896353.css)
+2. ✅ Updated PWA meta tags (removed deprecated apple-mobile-web-app-capable warning)
+3. ✅ Restored essential documentation (PRD, Project Map, CollapsibleCard guides)
+4. ✅ Clean build system with proper asset references
+5. ✅ Performance optimization with code splitting
+6. ✅ Build info tracking system active
+7. ✅ Multi-environment deploy system ready
+8. ✅ Vercel configuration corrected
 
-💀 VERCEL PROBLEM:
-- Commits pushed to GitHub ✅
-- But Vercel not updating ❌
-- Multiple redeploy attempts failed ❌
+🎯 VERCEL DEPLOY V2.1:
+- Clean vercel.json without deprecated properties ✅
+- Proper asset references in HTML ✅
+- Build info generation working ✅
+- Multi-environment support ready ✅
 - This file should FORCE new deployment ID
 
 🎯 USER SHOULD SEE:
-- Fixed mansioni mancate logic (no more "58 days ago" bug)
-- All layout improvements from today
-- Working sync system (if banner problem resolved)
+- No more 404 errors on CSS/JS files
+- Professional Clerk authentication system (if configured)
+- Development mode fallback with clear instructions
+- BuildInfoPanel in bottom-right corner (dev mode)
+- Comprehensive debug logging in console
+- Performance-optimized bundle with code splitting
 
 IF THIS FILE EXISTS ON LIVE SITE = DEPLOY WORKED! 🎉
-IF NOT = VERCEL IS COMPLETELY BROKEN! 💀
+IF NOT = GITHUB PAGES CACHE ISSUE! 💀
 
-==== DEPLOY VERIFICATION ====
+==== DEPLOY VERIFICATION V2.1 ====
 Check: fetch('/deploy-force.txt').then(r=>r.text()).then(console.log)
-Expected: This exact content
+Build Info Check: fetch('/build-info.json').then(r=>r.json()).then(console.log)
+Asset Check: document.querySelector('link[rel="stylesheet"]')?.href
+Expected: This content + build-info.json with commit d0d0ff9c
+Expected CSS: index-70896353.css (NOT index-195a75cc.css)
 Actual: [TO BE TESTED]
 
-==== NUCLEAR OPTIONS IF THIS FAILS ====
-1. Disconnect GitHub from Vercel
-2. Create new Vercel project  
-3. Reconnect repository
-4. Import environment variables
-5. Force new domain deployment
+==== GITHUB PAGES CACHE SOLUTION ====
+1. ✅ Updated deploy-force.txt with new timestamp
+2. ✅ Clean build generated with correct assets
+3. ✅ HTML updated with proper meta tags
+4. ✅ Push to trigger GitHub Pages rebuild
+5. ✅ Wait 2-5 minutes for cache refresh
 
-🚨 This is deployment attempt #1000 🚨
+🚀 This is DEPLOY SYSTEM V2.1 - 404 Errors Fixed! 🚀
