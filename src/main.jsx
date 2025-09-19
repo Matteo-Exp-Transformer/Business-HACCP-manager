@@ -21,6 +21,11 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import { initSentry, SentryErrorBoundary } from './lib/sentry.ts'
+import AuthProvider from './components/auth/AuthProvider.tsx'
+
+// Initialize Sentry for error monitoring
+initSentry()
 
 // Service Worker Registration - Solo in produzione
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
@@ -73,9 +78,30 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
 //   useDataStore.subscribe((s) => saveState(s));
 // })();
 
-// Renderizza l'app
+// Renderizza l'app con Sentry Error Boundary e Auth Provider
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <SentryErrorBoundary fallback={({ error }) => (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full">
+          <h1 className="text-xl font-bold text-red-600 mb-4">
+            Errore Applicazione
+          </h1>
+          <p className="text-gray-600 mb-4">
+            Si è verificato un errore imprevisto. Il team tecnico è stato notificato.
+          </p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Ricarica Pagina
+          </button>
+        </div>
+      </div>
+    )}>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </SentryErrorBoundary>
   </React.StrictMode>,
 )
