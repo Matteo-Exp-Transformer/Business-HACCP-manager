@@ -17,9 +17,19 @@
     "url": "https://github.com/your-org/haccp-business-manager.git"
   },
   "scripts": {
-    "dev": "vite --port 3000",
-    "build": "vite build",
-    "preview": "vite preview",
+    "dev": "npm run build:info && vite --port 3000 --host",
+    "dev:clean": "npm run clean && npm run dev",
+    "build": "npm run build:info && npm run build:prod",
+    "build:dev": "npm run build:info && VITE_APP_ENV=development vite build --mode development",
+    "build:staging": "npm run build:info && VITE_APP_ENV=staging vite build --mode staging",
+    "build:prod": "npm run build:info && VITE_APP_ENV=production vite build --mode production",
+    "build:info": "node scripts/build-info.js",
+    "preview": "vite preview --port 4173 --host",
+    "preview:prod": "npm run build:prod && npm run preview",
+    "clean": "rm -rf docs/asset/* && rm -rf node_modules/.vite && rm -rf src/generated",
+    "deploy:dev": "npm run build:dev && echo 'Development build ready for deployment'",
+    "deploy:staging": "npm run build:staging && echo 'Staging build ready for deployment'", 
+    "deploy:prod": "npm run build:prod && echo 'Production build ready for deployment'",
     "lint": "eslint src --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint src --ext js,jsx,ts,tsx --fix",
     "test": "vitest --run",
@@ -29,7 +39,10 @@
     "type-check": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
-    "prepare": "husky"
+    "prepare": "husky",
+    "version:patch": "npm version patch && git push && git push --tags",
+    "version:minor": "npm version minor && git push && git push --tags",
+    "version:major": "npm version major && git push && git push --tags"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.47.0",

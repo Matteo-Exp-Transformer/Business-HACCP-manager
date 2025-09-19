@@ -58,10 +58,17 @@ import DataButtons from './components/DataButtons'
 import { shouldBypassOnboarding } from './utils/devMode'
 import { FormManagerProvider } from './components/common/FormManager'
 import ErrorBoundary from './components/ErrorBoundary'
+import BuildInfoPanel from './components/BuildInfoPanel'
 import { safeGetItem, safeSetItem, clearHaccpData, checkDataIntegrity } from './utils/safeStorage'
+import { logBuildInfo, isDevelopment } from './lib/buildInfo'
 // import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
 function App() {
+  // 🔍 DEBUG: Build and environment information
+  React.useEffect(() => {
+    logBuildInfo()
+  }, [])
+  
   // 🔍 DEBUG: Environment variables
   console.log('🔍 [CLERK DEBUG] Environment check:', {
     clerkKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? 'PRESENT' : 'MISSING',
@@ -2390,6 +2397,9 @@ function App() {
 
         {/* PWA Install Prompt */}
         <PWAInstallPrompt />
+
+        {/* Build Info Panel (Development only) */}
+        <BuildInfoPanel />
 
         {/* Onboarding Wizard */}
         {showOnboarding && (

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "haccp-business-manager",
+  "name": "haccp-business-manager-staging",
   "builds": [
     {
       "src": "package.json",
@@ -10,11 +10,11 @@
       }
     }
   ],
-  "buildCommand": "npm run deploy:prod",
+  "buildCommand": "npm run deploy:staging",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": "docs",
-  "public": true,
+  "public": false,
   "routes": [
     {
       "src": "/api/(.*)",
@@ -32,19 +32,6 @@
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
-        },
-        {
-          "key": "Service-Worker-Allowed",
-          "value": "/"
-        }
-      ]
-    },
-    {
-      "source": "/manifest.json",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/manifest+json"
         }
       ]
     },
@@ -53,19 +40,14 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
+          "value": "public, max-age=86400"
         }
       ]
     }
   ],
   "env": {
-    "VITE_APP_ENV": "production",
-    "VITE_PWA_ENABLED": "true",
-    "VITE_OFFLINE_MODE": "true"
-  },
-  "build": {
-    "env": {
-      "VITE_APP_ENV": "production"
-    }
+    "VITE_APP_ENV": "staging",
+    "VITE_DEBUG_MODE": "true",
+    "VITE_PWA_ENABLED": "true"
   }
 }
