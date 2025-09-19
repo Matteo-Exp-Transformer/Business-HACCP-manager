@@ -3,15 +3,15 @@
 
 export const BUILD_INFO = {
   "version": "1.0.0",
-  "buildTime": "2025-09-19T03:13:02.858Z",
-  "buildNumber": "250919.0313",
-  "gitCommit": "19aeedfa0c1b3ca4d113e4673d975fde219cb5cf",
-  "gitCommitShort": "19aeedfa",
+  "buildTime": "2025-09-19T03:25:35.707Z",
+  "buildNumber": "250919.0325",
+  "gitCommit": "9805da103aa75a9ab52e35bd5c5fbe4249e2b312",
+  "gitCommitShort": "9805da10",
   "gitBranch": "BHM-v.2",
   "environment": "development",
   "builtBy": "HACCP Build System",
   "nodeVersion": "v22.16.0",
-  "buildId": "19aeedfa-250919.0313"
+  "buildId": "9805da10-250919.0325"
 } as const
 
 export default BUILD_INFO
