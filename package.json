@@ -1,16 +1,29 @@
 {
-  "name": "mini-epackpro-haccp",
+  "name": "haccp-business-manager",
   "version": "1.0.0",
   "type": "module",
-  "description": "Sistema digitale per la gestione HACCP nei ristoranti e attività alimentari",
+  "description": "Progressive Web App for HACCP food safety management in restaurants",
+  "author": "HACCP Business Manager Team",
+  "license": "MIT",
+  "keywords": ["haccp", "food-safety", "restaurant", "pwa", "react"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/haccp-business-manager.git"
+  },
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 3000",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "eslint src --ext js,jsx,ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint src --ext js,jsx,ts,tsx --fix",
     "test": "vitest --run",
+    "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "state:snapshot": "node -e \"console.log('snapshot disabled placeholder')\""
+    "test:coverage": "vitest --coverage",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "prepare": "husky install"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.0",

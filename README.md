@@ -1,93 +1,199 @@
-Business Haccp Manager
+# 🍽️ HACCP Business Manager
 
-[![PWA](https://img.shields.io/badge/PWA-Ready-green.svg)](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
-[![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org/)
-[![Vite](https://img.shields.io/badge/Vite-4.5.14-purple.svg)](https://vitejs.dev/)
+> Progressive Web App for HACCP food safety management in restaurants
 
-## 🚨 ATTENZIONE AGENTI E SVILUPPATORI 🚨
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![React](https://img.shields.io/badge/React-18.3+-blue.svg)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6+-blue.svg)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.4+-646CFF.svg)](https://vitejs.dev/)
 
-**⚠️ PRIMA di lavorare su questo progetto, leggi OBBLIGATORIAMENTE:**
-- **[`AGENT_DIRECTIVES.md`](./AGENT_DIRECTIVES.md)** - Direttive essenziali per agenti e sviluppatori
-- **[`HACCP_APP_DOCUMENTATION.md`](./HACCP_APP_DOCUMENTATION.md)** - Documentazione completa dell'applicazione
+## 🎯 Overview
 
-**Questi file contengono informazioni CRITICHE per comprendere il sistema HACCP e evitare errori.**
+HACCP Business Manager is a mobile-first Progressive Web App designed to revolutionize food safety management in the restaurant industry. By digitalizing HACCP compliance processes, we make food safety management intuitive, efficient, and accessible for restaurant staff at all levels.
 
-Sistema digitale completo per la gestione HACCP nei ristoranti e attività alimentari. Progressive Web App (PWA) con funzionalità offline-first.
+### Key Features
 
-## 🚀 Funzionalità Principali
+- **📱 Mobile-First**: Optimized for smartphones and tablets
+- **🔄 Offline-First**: Critical functions work without internet
+- **⚡ Real-Time**: Instant updates across all devices
+- **📊 Compliance-Focused**: Built around HACCP regulations
+- **👥 User-Friendly**: Intuitive interface requiring minimal training
 
-### ✅ Moduli Implementati
-- **🌡️ Gestione Temperature**: Registrazione e monitoraggio temperature con validazione automatica
-- **🧹 Attività di Pulizia**: Pianificazione e tracciamento delle attività di sanificazione
-- **👥 Gestione Personale**: Anagrafica del team con certificazioni HACCP
-- **📊 Dashboard**: Panoramica generale con statistiche e alert
+## 🏗️ Architecture
 
-### 🔧 Funzionalità Tecniche
-- **📱 Progressive Web App**: Installabile su dispositivi mobili
-- **🔄 Offline-First**: Funziona senza connessione internet
-- **💾 localStorage**: Persistenza dati locale
-- **📄 Export PDF**: Generazione report temperature
-- **📥 Import/Export**: Backup e ripristino dati in formato JSON
-- **🎨 UI Responsive**: Ottimizzata per mobile e desktop
+### Frontend Stack
+- **React 18.3+** - UI Framework
+- **TypeScript 5.6+** - Type Safety
+- **Vite 5.4+** - Build Tool
+- **Tailwind CSS 3.4+** - Styling
+- **Zustand 5.0+** - State Management
 
-## 🛠️ Stack Tecnologico
+### Backend & Services
+- **Supabase** - Database & Real-time
+- **Clerk** - Authentication
+- **Vercel** - Hosting & Deployment
 
-- **Frontend**: React 18.2.0
-- **Build Tool**: Vite 4.5.14
-- **Styling**: Tailwind CSS
-- **Icons**: Lucide React
-- **PDF Generation**: jsPDF + jsPDF-AutoTable
-- **PWA**: Service Worker + Web App Manifest
+## 🚀 Quick Start
 
-## 📦 Installazione e Avvio
+### Prerequisites
+
+- Node.js 18.x or 20.x LTS
+- pnpm (recommended) or npm
+- Git 2.40+
+
+### Installation
 
 ```bash
-# Clona il repository
-git clone https://github.com/Matteo-Exp-Transformer/Business-HACCP-manager.git
-cd Business-HACCP-manager
+# Clone the repository
+git clone https://github.com/your-org/haccp-business-manager.git
+cd haccp-business-manager
 
-# Installa le dipendenze
-npm install
+# Install dependencies
+pnpm install
 
-# Avvia in modalità sviluppo
-npm run dev
+# Copy environment variables
+cp .env.example .env.local
 
-# Compila per produzione
-npm run build
-
-# Anteprima build di produzione
-npm run preview
+# Start development server
+pnpm dev
 ```
 
-## 🌐 Struttura del Progetto
+### Environment Setup
+
+1. **Supabase**: Create project and get URL + Anon Key
+2. **Clerk**: Set up authentication and get Publishable Key
+3. **Configure**: Update `.env.local` with your keys
+
+## 📋 Development
+
+### Available Scripts
+
+```bash
+# Development
+pnpm dev              # Start dev server (localhost:3000)
+pnpm build            # Production build
+pnpm preview          # Preview production build
+
+# Code Quality
+pnpm lint             # Run ESLint
+pnpm lint:fix         # Fix ESLint issues
+pnpm format           # Format with Prettier
+pnpm type-check       # TypeScript check
+
+# Testing
+pnpm test             # Run tests
+pnpm test:watch       # Watch mode
+pnpm test:ui          # Test UI
+pnpm test:coverage    # Coverage report
+```
+
+### Project Structure
 
 ```
-├── src/
-│   ├── components/
-│   │   ├── ui/           # Componenti UI base
-│   │   ├── Dashboard.jsx # Dashboard con statistiche
-│   │   ├── Temperature.jsx # Gestione temperature
-│   │   ├── Cleaning.jsx  # Attività pulizie
-│   │   ├── Staff.jsx     # Gestione personale
-│   │   └── PDFExport.jsx # Export PDF temperature
-│   ├── App.jsx           # Componente principale
-│   ├── main.jsx          # Entry point
-│   └── index.css         # Stili globali
-├── docs/                 # Build per GitHub Pages
-├── public/               # Asset statici
-└── package.json
+src/
+├── components/          # Reusable React components
+│   ├── ui/             # Base UI components
+│   ├── forms/          # Form components
+│   └── layouts/        # Layout components
+├── features/           # Feature-based modules
+│   ├── auth/          # Authentication
+│   ├── onboarding/    # Onboarding flow
+│   ├── conservation/  # Temperature management
+│   ├── tasks/         # Task management
+│   └── inventory/     # Inventory system
+├── hooks/             # Custom React hooks
+├── lib/               # Utilities and helpers
+├── stores/            # Zustand stores
+├── types/             # TypeScript types
+└── styles/            # Global styles
 ```
 
-## 📞 Supporto
+## 🎨 Core Modules
 
-Per problemi, suggerimenti o contributi:
-- **Issues**: [GitHub Issues](https://github.com/Matteo-Exp-Transformer/Business-HACCP-manager/issues)
-- **Documentazione**: Vedi cartelle `docs/` per guide dettagliate
+### 🏠 Dashboard
+- Real-time overview
+- Compliance metrics
+- Quick actions
 
-## 📄 Licenza
+### ❄️ Conservation Points
+- Temperature monitoring
+- Automatic classification
+- Maintenance scheduling
 
-Questo progetto è sviluppato per scopi didattici e professionali. Consultare il proprietario per l'utilizzo commerciale.
+### ✅ Tasks & Activities
+- HACCP task management
+- Staff assignments
+- Completion tracking
+
+### 📦 Inventory
+- Product management
+- Expiry monitoring
+- Allergen tracking
+
+### ⚙️ Settings & Data
+- Configuration
+- Data export/import
+- HACCP manual
+
+### 👥 Management (Admin)
+- Staff management
+- Department setup
+- System configuration
+
+## 🔧 Development Guidelines
+
+### Code Standards
+- **TypeScript**: New components always in TS
+- **ESLint + Prettier**: Consistent formatting
+- **Testing**: Unit tests for all utilities
+- **Documentation**: Comprehensive README files
+
+### Git Workflow
+1. Create feature branch from `main`
+2. Make changes with clear commit messages
+3. Run tests and linting
+4. Create pull request
+5. Code review and merge
+
+## 📊 Performance Targets
+
+- **Lighthouse Score**: >90 all categories
+- **Core Web Vitals**: LCP <2.5s, FID <100ms, CLS <0.1
+- **Bundle Size**: <200KB initial load
+- **Offline Support**: Full CRUD operations
+
+## 🔒 Security
+
+- HTTPS everywhere
+- Content Security Policy
+- Input sanitization
+- Row Level Security (RLS)
+- Regular dependency updates
+
+## 📚 Documentation
+
+- [Planning Document](./PLANNING.md) - Project architecture
+- [Development Tasks](./TASKS.md) - Detailed task breakdown
+- [Claude Guide](./Claude.md) - AI development guidelines
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- HACCP regulations and best practices
+- Open source community
+- Restaurant industry feedback
 
 ---
 
-**Mini-ePackPro** - *Semplifica la gestione HACCP con tecnologia moderna*
+**Built with ❤️ for food safety compliance**
