@@ -62,8 +62,23 @@ import { safeGetItem, safeSetItem, clearHaccpData, checkDataIntegrity } from './
 // import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
 function App() {
-  // Clerk authentication hook
-  const { isLoaded, isSignedIn, user, signOut } = useAuth()
+  // Clerk authentication hook (with fallback for when Clerk is not configured)
+  let isLoaded = true
+  let isSignedIn = false
+  let user = null
+  let signOut = null
+  
+  try {
+    const authHook = useAuth()
+    isLoaded = authHook.isLoaded
+    isSignedIn = authHook.isSignedIn
+    user = authHook.user
+    signOut = authHook.signOut
+  } catch (error) {
+    console.warn('Clerk not available, using legacy authentication')
+    isLoaded = true
+    isSignedIn = false
+  }
   
   const [activeTab, setActiveTab] = useState('dashboard')
   const [temperatures, setTemperatures] = useState([])
