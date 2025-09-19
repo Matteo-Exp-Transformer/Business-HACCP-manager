@@ -1,13 +1,11 @@
-import { Clerk } from '@clerk/clerk-react'
-
-// Initialize Clerk with configuration
+// Clerk configuration without direct instantiation
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
 if (!clerkPublishableKey) {
   console.warn('Clerk Publishable Key not found. Authentication will be disabled.')
 }
 
-export const clerk = clerkPublishableKey ? new Clerk(clerkPublishableKey) : null
+export const clerk = null // We'll use hooks instead of direct instantiation
 
 // Clerk configuration
 export const clerkConfig = {
@@ -158,4 +156,4 @@ export interface HACCPUserMetadata {
   }
 }
 
-export default clerk
+export { clerkPublishableKey }

@@ -27,6 +27,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { BarChart3, Thermometer, Sparkles, Users, Package, Download, Upload, LogIn, LogOut, Settings, Bot, RotateCcw } from 'lucide-react'
+import { useAuth } from './hooks/useAuth'
+import { SignedIn, SignedOut } from '@clerk/clerk-react'
+import SignInPage from './components/auth/SignInPage'
+import AuthGuard from './components/auth/AuthGuard'
 import Dashboard from './components/Dashboard'
 import Cleaning from './components/Cleaning'
 import PuntidiConservazione from './components/PuntidiConservazione'
@@ -58,6 +62,9 @@ import { safeGetItem, safeSetItem, clearHaccpData, checkDataIntegrity } from './
 // import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
 function App() {
+  // Clerk authentication hook
+  const { isLoaded, isSignedIn, user, signOut } = useAuth()
+  
   const [activeTab, setActiveTab] = useState('dashboard')
   const [temperatures, setTemperatures] = useState([])
   const [cleaning, setCleaning] = useState([])
@@ -66,7 +73,7 @@ function App() {
   const [products, setProducts] = useState([])
   const [departments, setDepartments] = useState([])
   const [productLabels, setProductLabels] = useState([])
-  // Sistema utenti e login
+  // Sistema utenti e login (mantenuto per compatibilità legacy)
   const [currentUser, setCurrentUser] = useState(null)
   const [users, setUsers] = useState([])
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
@@ -1448,7 +1455,7 @@ function App() {
   }
   */
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (currentUser) {
       const logoutAction = {
         id: Date.now(),
@@ -1469,6 +1476,8 @@ function App() {
       }
     }
     
+    // Use Clerk signOut
+    await signOut()
     setCurrentUser(null)
     setActiveTab('dashboard')
     
@@ -1803,8 +1812,38 @@ function App() {
     }
   }
 
-  // Se non c'è utente loggato, mostra dashboard con pulsante "Inizia Turno"
-  if (!currentUser) {
+  // Show loading while Clerk is initializing
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Caricamento sistema HACCP...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show Clerk authentication if user is not signed in
+  if (!isSignedIn) {
+    return <SignInPage />
+  }
+
+  // Sync Clerk user with legacy currentUser for compatibility
+  useEffect(() => {
+    if (user && !currentUser) {
+      const legacyUser = {
+        id: user.id,
+        name: user.firstName || user.fullName || 'User',
+        role: user.role === 'admin' ? 'admin' : 'dipendente',
+        department: user.metadata?.department || 'Amministrazione'
+      }
+      setCurrentUser(legacyUser)
+    }
+  }, [user, currentUser])
+
+  // Se non c'è utente loggato (legacy fallback), mostra dashboard con pulsante "Inizia Turno"
+  if (!currentUser && isSignedIn) {
     return (
       <div className="min-h-screen bg-gray-50">
         <DevModeBanner />
