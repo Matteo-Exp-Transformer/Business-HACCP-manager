@@ -61,17 +61,17 @@ HACCP Business Manager is a Progressive Web App (PWA) for digitalizing food safe
 
 ##### A.1.3 Supabase Backend Setup
 - [ ] Create Supabase project (obtain Project URL, Anon Key, Service Key)
-- [ ] Design database schema (DDL) with PostgreSQL 15+
-- [ ] Create core tables:
-  - [ ] companies (multi-tenancy)
-  - [ ] users (auth integration)
-  - [ ] departments
-  - [ ] conservation_points
-  - [ ] staff_members
-  - [ ] tasks
-  - [ ] task_completions
-  - [ ] audit_logs
-- [ ] Implement Row Level Security (RLS) policies
+- [x] Design database schema (DDL) with PostgreSQL 15+
+- [x] Create core tables:
+  - [x] companies (multi-tenancy)
+  - [x] users (auth integration)
+  - [x] departments
+  - [x] conservation_points
+  - [x] staff_members
+  - [x] tasks
+  - [x] task_completions
+  - [x] audit_logs
+- [x] Implement Row Level Security (RLS) policies
 - [ ] Set up PostgREST API service layer abstraction
 - [ ] Configure Realtime subscriptions
 - [ ] Create data migration utilities with Supabase CLI
@@ -382,7 +382,7 @@ HACCP Business Manager is a Progressive Web App (PWA) for digitalizing food safe
 #### **Milestone C.5: Production Polish (Sprints 57-60)**
 
 ##### C.5.1 Security & Performance
-- [ ] Refine RLS policies
+- [x] Refine RLS policies
 - [ ] Implement rate limiting
 - [ ] Harden input validation
 - [ ] Optimize database queries
