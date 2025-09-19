@@ -27,6 +27,13 @@ import AuthProvider from './components/auth/AuthProvider.tsx'
 // Initialize Sentry for error monitoring
 initSentry()
 
+// 🔍 DEBUG: Application startup
+console.log('🚀 [MAIN DEBUG] Application starting...', {
+  mode: import.meta.env.MODE,
+  clerkKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? 'PRESENT' : 'MISSING',
+  sentryDsn: import.meta.env.VITE_SENTRY_DSN ? 'PRESENT' : 'MISSING'
+})
+
 // Service Worker Registration - Solo in produzione
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {

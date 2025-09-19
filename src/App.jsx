@@ -62,18 +62,58 @@ import { safeGetItem, safeSetItem, clearHaccpData, checkDataIntegrity } from './
 // import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
 function App() {
+  // 🔍 DEBUG: Environment variables
+  console.log('🔍 [CLERK DEBUG] Environment check:', {
+    clerkKey: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ? 'PRESENT' : 'MISSING',
+    clerkKeyValue: import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+    nodeEnv: import.meta.env.MODE,
+    isDev: import.meta.env.DEV,
+    isProd: import.meta.env.PROD
+  })
+  
   // Check if we should use Clerk or legacy authentication
   const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
   const useLegacyMode = localStorage.getItem('haccp-use-legacy-auth') === 'true'
   const useClerkAuth = clerkKey && clerkKey !== 'pk_test_temp_development_key_for_demo' && !useLegacyMode
   
+  console.log('🔍 [CLERK DEBUG] Authentication mode decision:', {
+    clerkKey: clerkKey ? `${clerkKey.substring(0, 20)}...` : 'NULL',
+    useLegacyMode,
+    useClerkAuth,
+    decision: useClerkAuth ? 'CLERK' : 'LEGACY'
+  })
+  
   // Clerk authentication hook (only if Clerk is properly configured)
-  const authHook = useClerkAuth ? useAuth() : null
+  let authHook = null
+  if (useClerkAuth) {
+    try {
+      console.log('🔍 [CLERK DEBUG] Attempting to initialize useAuth hook...')
+      authHook = useAuth()
+      console.log('🔍 [CLERK DEBUG] useAuth hook initialized successfully:', {
+        isLoaded: authHook.isLoaded,
+        isSignedIn: authHook.isSignedIn,
+        hasUser: !!authHook.user,
+        userId: authHook.user?.id || 'NULL'
+      })
+    } catch (error) {
+      console.error('🚨 [CLERK DEBUG] Error initializing useAuth:', error)
+      authHook = null
+    }
+  } else {
+    console.log('🔍 [CLERK DEBUG] Skipping Clerk, using legacy authentication')
+  }
   
   const isLoaded = authHook?.isLoaded ?? true
   const isSignedIn = authHook?.isSignedIn ?? false
   const user = authHook?.user ?? null
   const signOut = authHook?.signOut ?? null
+  
+  console.log('🔍 [CLERK DEBUG] Final authentication state:', {
+    isLoaded,
+    isSignedIn,
+    hasUser: !!user,
+    authMethod: useClerkAuth ? 'CLERK' : 'LEGACY'
+  })
   
   const [activeTab, setActiveTab] = useState('dashboard')
   const [temperatures, setTemperatures] = useState([])
@@ -1824,6 +1864,7 @@ function App() {
 
   // Show development mode notice if Clerk is not configured
   if (!useClerkAuth) {
+    console.log('🟡 [CLERK DEBUG] Rendering DEVELOPMENT MODE fallback')
     return (
       <div className="min-h-screen bg-yellow-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center">
@@ -1853,6 +1894,7 @@ function App() {
 
   // Show loading while Clerk is initializing
   if (!isLoaded) {
+    console.log('⏳ [CLERK DEBUG] Rendering LOADING state')
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -1865,6 +1907,7 @@ function App() {
 
   // Show Clerk authentication if user is not signed in
   if (!isSignedIn) {
+    console.log('🔐 [CLERK DEBUG] Rendering CLERK SIGN-IN page')
     return <SignInPage />
   }
 
@@ -1883,6 +1926,7 @@ function App() {
 
   // Se non c'è utente loggato (legacy fallback), mostra dashboard con pulsante "Inizia Turno"
   if (!currentUser && isSignedIn) {
+    console.log('🔄 [CLERK DEBUG] Rendering LEGACY FALLBACK (signed in but no currentUser)')
     return (
       <div className="min-h-screen bg-gray-50">
         <DevModeBanner />
@@ -2016,6 +2060,12 @@ function App() {
   }
 
   // Se utente è loggato, mostra l'app completa
+  console.log('✅ [CLERK DEBUG] Rendering FULL APP - User authenticated:', {
+    currentUser: currentUser?.name || 'NULL',
+    clerkUser: user?.fullName || 'NULL',
+    authMethod: useClerkAuth ? 'CLERK' : 'LEGACY'
+  })
+  
   return (
     <ErrorBoundary>
       <FormManagerProvider>

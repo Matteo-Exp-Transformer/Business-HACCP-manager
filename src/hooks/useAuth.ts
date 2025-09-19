@@ -35,6 +35,15 @@ export const useAuth = (): AuthState & AuthActions => {
   const { signOut: clerkSignOut } = useClerkAuth()
   const clerk = useClerk()
 
+  // 🔍 DEBUG: Clerk hook state
+  console.log('🔍 [useAuth DEBUG] Clerk state:', {
+    isLoaded,
+    isSignedIn,
+    hasClerkUser: !!clerkUser,
+    clerkUserId: clerkUser?.id || 'NULL',
+    hasClerk: !!clerk
+  })
+
   // Transform Clerk user to our AuthUser format
   const user = useMemo((): AuthUser | null => {
     if (!clerkUser) return null

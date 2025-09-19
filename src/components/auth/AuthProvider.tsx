@@ -9,8 +9,15 @@ interface AuthProviderProps {
 const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
+  console.log('🔍 [AUTH PROVIDER DEBUG] Initialization:', {
+    hasKey: !!clerkPublishableKey,
+    keyValue: clerkPublishableKey,
+    isTestKey: clerkPublishableKey === 'pk_test_temp_development_key_for_demo',
+    shouldShowFallback: !clerkPublishableKey || clerkPublishableKey === 'pk_test_temp_development_key_for_demo'
+  })
+
   if (!clerkPublishableKey || clerkPublishableKey === 'pk_test_temp_development_key_for_demo') {
-    console.warn('Clerk not configured, using development mode')
+    console.warn('🚧 [AUTH PROVIDER DEBUG] Clerk not configured, showing development mode fallback')
     return (
       <div className="min-h-screen bg-yellow-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center">
