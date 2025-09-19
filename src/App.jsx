@@ -62,23 +62,18 @@ import { safeGetItem, safeSetItem, clearHaccpData, checkDataIntegrity } from './
 // import { useHaccpValidation } from './utils/useHaccpValidation' // TEMPORANEAMENTE DISABILITATO
 
 function App() {
-  // Clerk authentication hook (with fallback for when Clerk is not configured)
-  let isLoaded = true
-  let isSignedIn = false
-  let user = null
-  let signOut = null
+  // Check if we should use Clerk or legacy authentication
+  const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
+  const useLegacyMode = localStorage.getItem('haccp-use-legacy-auth') === 'true'
+  const useClerkAuth = clerkKey && clerkKey !== 'pk_test_temp_development_key_for_demo' && !useLegacyMode
   
-  try {
-    const authHook = useAuth()
-    isLoaded = authHook.isLoaded
-    isSignedIn = authHook.isSignedIn
-    user = authHook.user
-    signOut = authHook.signOut
-  } catch (error) {
-    console.warn('Clerk not available, using legacy authentication')
-    isLoaded = true
-    isSignedIn = false
-  }
+  // Clerk authentication hook (only if Clerk is properly configured)
+  const authHook = useClerkAuth ? useAuth() : null
+  
+  const isLoaded = authHook?.isLoaded ?? true
+  const isSignedIn = authHook?.isSignedIn ?? false
+  const user = authHook?.user ?? null
+  const signOut = authHook?.signOut ?? null
   
   const [activeTab, setActiveTab] = useState('dashboard')
   const [temperatures, setTemperatures] = useState([])
@@ -1825,6 +1820,35 @@ function App() {
           setActiveTab('dashboard')
       }
     }
+  }
+
+  // Show development mode notice if Clerk is not configured
+  if (!useClerkAuth) {
+    return (
+      <div className="min-h-screen bg-yellow-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full text-center">
+          <h1 className="text-xl font-bold text-yellow-600 mb-4">
+            🚧 Modalità Sviluppo
+          </h1>
+          <p className="text-gray-600 mb-4">
+            Clerk non è configurato. L'app funziona in modalità sviluppo con il sistema legacy.
+          </p>
+          <p className="text-xs text-gray-500 mb-4">
+            Per configurare Clerk: crea account su clerk.com e aggiorna VITE_CLERK_PUBLISHABLE_KEY in .env.local
+          </p>
+          <button 
+            onClick={() => {
+              // Set a flag to use legacy mode and reload
+              localStorage.setItem('haccp-use-legacy-auth', 'true')
+              window.location.reload()
+            }}
+            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          >
+            Continua in Modalità Legacy
+          </button>
+        </div>
+      </div>
+    )
   }
 
   // Show loading while Clerk is initializing
