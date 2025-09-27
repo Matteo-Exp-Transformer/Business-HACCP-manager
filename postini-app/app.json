@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Postini App",
+    "slug": "postini-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFD800"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Questa app ha bisogno della posizione per mostrarti gli indirizzi vicini durante il percorso postale.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Questa app ha bisogno della posizione per tracciare il percorso e ottimizzare le consegne."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFD800"
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Questa app ha bisogno della posizione per mostrarti gli indirizzi vicini e ottimizzare il percorso postale."
+        }
+      ]
+    ]
+  }
+}
